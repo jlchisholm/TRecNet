@@ -240,7 +240,7 @@ class Transform:
         x = (w + lep_phi*exist) % (2*pi)
         x = x-2*np.pi*(x>pi)
         return x
-    
+
 #     def phi5_transform(arr, max0, mean, exist):
 #         w = (arr - lep_phi*exist) % (2*np.pi)
 #         w = w -2*np.pi*(w>np.pi)
@@ -257,7 +257,7 @@ class Transform:
 #         x = (w + lep_phi*exist) % (2*pi)
 #         x = x-2*np.pi*(x>pi)
 #         return x
-    
+
 #     def phi6_transform(arr, max0, mean, exist):
 #         arr = arr - np.pi
 #         w = (arr - lep_phi*exist) % (2*np.pi)
@@ -276,7 +276,7 @@ class Transform:
 #         x = x + np.pi 
 #         x = x-2*np.pi*(x>pi)
 #         return x
-    
+
     def DL1r_transform(arr):
         return (arr+9.718866348266602)/(9.718866348266602 + 18.004295349121094)
     

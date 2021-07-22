@@ -24,7 +24,7 @@ class Scale_variables:
         z = z*(1-dont) + array*dont
         return z
     
-    def scale_arrays(self, keys, maxmean0):
+    def scale_arrays(self, keys, maxmean0):   # J: I put dataset in here for plotting help
         names = []
         arrays = []
         i = 0
@@ -33,7 +33,7 @@ class Scale_variables:
             ktype = keys[i].split('_')[1]
             var = np.array(dataset.get(key))[0:crop0]
             if 'pt' in ktype: 
-                var1, var2 = np.array(dataset.get(keys[i+1]))[0:crop0], np.array(dataset.get(keys[i+2]))[0:crop0]
+                var1, var2 = np.array(dataset.get(keys[i+1]))[0:crop0], np.array(dataset.get(keys[i+2]))[0:crop0] # J: this would get eta and phi I think
                 ptbox,px,py,eta = cart_pt_transform(var,var1,var2,self.boxcox_ptlamb)
                 short = key.split('_')[0]
                 names = names + [short + '_ptbox', short + '_px', short + '_py', short + '_eta']
@@ -83,8 +83,8 @@ class Scale_variables:
         orig = np.stack(orig, axis=1)
         diff = np.max(np.abs(orig - inverse),axis=0)
         return diff
-          
-        
+
+
 def cart_pt_transform(pt, eta, phi, lamb):
     ptbox = pt 
     px = pt*np.cos(phi)
@@ -95,7 +95,7 @@ def inv_cart_pt_transform(ptbox,px,py,eta, lamb):
     pt = ptbox 
     phi = np.arctan2(py, px)
     return pt, eta, phi
-    
+
 def phi4_transform(arr, exist):
     w = arr % (2*np.pi)
     sin = 2/np.pi*np.arcsin(np.sin(w)) - 1.2*(1-exist)
@@ -110,10 +110,10 @@ def invphi4_transform(z, exist):
     x = w% (2*pi)
     x = x-2*np.pi*(x>pi)
     return x    
+
                 
+
                 
+
                 
-                
-                
-                
-       
+
