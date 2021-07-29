@@ -24,7 +24,7 @@ class Scale_variables:
         z = z*(1-dont) + array*dont
         return z
     
-    def scale_arrays(self, keys, maxmean0):   # J: I put dataset in here for plotting help
+    def scale_arrays(self, keys, maxmean0):
         names = []
         arrays = []
         i = 0
