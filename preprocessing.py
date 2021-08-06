@@ -99,6 +99,8 @@ def getOtherData(reco_tree):
     # Cut rows that are not matched between truth and reco
     indexNames = df_other[df_other['isMatched'] == 0 ].index
     df_other.drop(indexNames,inplace=True)
+    
+    print('Other dataframe created.')
 
     return df_other
 
@@ -198,6 +200,8 @@ def getTruthData(truth_tree):
     indexNames = df_truth[df_truth['isDummy'] == 1 ].index
     df_truth.drop(indexNames,inplace=True)
 
+    print('Truth dataframe created.')
+
     return df_truth
 
 
@@ -231,10 +235,10 @@ def getDataframes(name):
 
 # Create and save h5 file with the reco and truth variables
 # Input: array of jet dataframes, other dataframe, and truth dataframe
-def saveH5File(df_jets,df_other,df_truth):
+def saveH5File(df_jets,df_other,df_truth,n):
 
     # Creating h5 file for input in the neural network
-    f = h5py.File("/data/jchishol/variables_ttbar_parton_ejets.h5","w")  # "w" means initializing file
+    f = h5py.File("/data/jchishol/variables_ttbar_"+str(n)+"_parton_ejets.h5","w")  # "w" means initializing file
 
     # Create datasets for jets 1 to 6
     for i in range(1,7):
@@ -255,112 +259,146 @@ def saveH5File(df_jets,df_other,df_truth):
         f.create_dataset('wh_'+v,data=df_truth['wh_'+v])
         f.create_dataset('wl_'+v,data=df_truth['wl_'+v])
 
-    print('Saved: variables_ttbar_parton_ejets.h5')
+    print('Saved: variables_ttbar_'+str(n)+'_parton_ejets.h5')
 
 
 # ---------- FUNCTION FOR SAVING XMAXMEAN ---------- #
 
-# Saves numpy array of [max,mean] values for the input X variables
-# Input: array of jet dataframes and dataframe of other reco variables
-def saveXMaxMean(df_jets,df_other):
+# Saves numpy array of [max,mean] values for X and Y variables
+def saveMaxMean():
 
-    # Initialize array of maxmean
+    # Load data
+    f = h5py.File('/data/jchishol/Jenna_Data/variables_ttbar_parton_ejets.h5','r')    
+
+    # Create data frame
+    df = pd.DataFrame({'j1_DL1r':np.array(f.get('j1_DL1r'))})
+    for key in list(f.keys()):
+        df[key] = np.array(f.get(key))
+
+    # Initialize arrays of maxmean
     X_maxmean=[]
+    Y_maxmean=[]
 
-    # Append maxmean for each jet
-    for df in df_jets:
+    # Jets
+    for i in range(6):
 
         # Calculate px and py
-        df['px'] = df['pt']*np.cos(df['phi'])
-        df['py'] = df['pt']*np.sin(df['phi'])
-
+        df['j'+str(i+1)+'_px'] = df['j'+str(i+1)+'_pt']*np.cos(df['j'+str(i+1)+'_phi'])
+        df['j'+str(i+1)+'_py'] = df['j'+str(i+1)+'_pt']*np.sin(df['j'+str(i+1)+'_phi'])
+   
+        # Append max and mean
         for v in ['pt','px','py','eta','m','DL1r']:
-            X_maxmean.append([df[v].max(),df[v].mean()])
+            X_maxmean.append([df['j'+str(i+1)+'_'+v].max(),df['j'+str(i+1)+'_'+v].mean()])
 
-    # Calculate px and py for lep
-    df_other['lep_px'] = df_other['lep_pt']*np.cos(df_other['lep_phi'])
-    df_other['lep_py'] = df_other['lep_pt']*np.sin(df_other['lep_phi'])
+    # Calculate px and py of lep
+    df['lep_px'] = df['lep_pt']*np.cos(df['lep_phi'])
+    df['lep_py'] = df['lep_pt']*np.sin(df['lep_phi'])
 
     # Calculate sin(met_phi) and cos(met_phi)
-    df_other['met_phi-sin'] = np.sin(df_other['met_phi'])
-    df_other['met_phi-cos'] = np.cos(df_other['met_phi'])
+    df['met_phi-sin'] = np.sin(df['met_phi'])
+    df['met_phi-cos'] = np.cos(df['met_phi'])
 
     # Append maxmean for other variables
     for v in ['lep_pt','lep_px','lep_py','lep_eta','met_met','met_phi-sin','met_phi-cos']:
-        X_maxmean.append([df_other[v].max(),df_other[v].mean()])
+        X_maxmean.append([df[v].max(),df[v].mean()])
 
     # Save array of X maxmean values
     np.save('X_maxmean_new',X_maxmean)
-
     print('Saved: X_maxmean_new.npy')
 
-
-# ---------- FUNCTION FOR SAVING YMAXMEAN ---------- #
-
-# Saves numpy array of [max,mean] values for the output Y variables
-# Input: dataframe of truth variables
-def saveYMaxMean(df_truth):
-
-    # Initialize array of maxmean
-    Y_maxmean=[]
-
-    # Calculate px and py for variables
+    # Calculate px and py for truth
     for p in ['th_','wh_','tl_','wl_']:
-        df_truth[p+'px'] = df_truth[p+'pt']*np.cos(df_truth[p+'phi'])
-        df_truth[p+'py'] = df_truth[p+'pt']*np.sin(df_truth[p+'phi'])
+        df[p+'px'] = df[p+'pt']*np.cos(df[p+'phi'])
+        df[p+'py'] = df[p+'pt']*np.sin(df[p+'phi'])
 
         # Append maxmean for all truth variables
         for v in ['pt','px','py','eta','m']:
-            if p=='th_' and v=='eta':
-                indexNames = df_truth[df_truth[p+v] >= -20 ].index.tolist()   # Outliers were throwing off the mean (might want to cut events instead?)
-                mean = df_truth[p+v].iloc[indexNames].mean(axis=0)
-                Y_maxmean.append([df_truth[p+v].max(),mean])
+            if v=='eta':
+                indexNames = df[abs(df[p+v]) <= 20 ].index.tolist()   # Outliers were throwing off the mean (might want to cut events instead?)
+                mean = df[p+v].iloc[indexNames].mean(axis=0)
+                Y_maxmean.append([df[p+v].max(),mean])
             else:
-                Y_maxmean.append([df_truth[p+v].max(),df_truth[p+v].mean()])
+                Y_maxmean.append([df[p+v].max(),df[p+v].mean()])
+
+            print('Appended '+p+v)
 
     # Save maxmean arrays
     np.save('Y_maxmean_new',Y_maxmean)
-
     print('Saved: Y_maxmean_new.npy')
 
 
+# ---------- FUNCTION FOR TURNING ROOT DATA TO H5 FILE ---------- #
 
-# ---------- MAIN CODE ---------- #
+# Takes data from designated root files and creates an h5 file for machine learning
+# Input designated number of files to process
+#def rootDataToH5(nf):
 
-# Get dataframes for each of the files
-df_jets_list = [[] for _ in range(7)]
-df_other_list = [[] for _ in range(7)]
-df_truth_list = [[] for _ in range(7)]
-for i in range(7):
-    print('Processing file: '+str(i))
-    df_jets_list[i], df_other_list[i], df_truth_list[i] = getDataframes(str(i)+'_parton_ejets')
+    # Get dataframes for each of the files
+#    df_jets_list = [[] for _ in range(nf)]
+#    df_other_list = [[] for _ in range(nf)]
+#    df_truth_list = [[] for _ in range(nf)]
+#    for i in range(nf):
+#        print('Processing file: '+str(i))
+#        df_jets_list[i], df_other_list[i], df_truth_list[i] = getDataframes(str(i)+'_parton_ejets')
 
-# Initialize concatenated data frames
-df_jets = [[] for _ in range(6)]
-for i in range(6):
-    df_jets[i] = pd.concat([df_jets_list[0][i],df_jets_list[1][i]])   # Initialize jets 
-df_other = pd.concat([df_other_list[0],df_other_list[1]])             # Initialize other
-df_truth = pd.concat([df_truth_list[0],df_truth_list[1]])             # Initialize truth
+    # Initialize concatenated data frames
+#    df_jets = [[] for _ in range(6)]
+#    for i in range(6):
+#        df_jets[i] = pd.concat([df_jets_list[0][i],df_jets_list[1][i]])   # Initialize jets 
+#    df_other = pd.concat([df_other_list[0],df_other_list[1]])             # Initialize other
+#    df_truth = pd.concat([df_truth_list[0],df_truth_list[1]])             # Initialize truth
+#
+    # Concatenate the rest of the data
+#    for j in range(2,nf+1):
+#        for i in range(6):
+#            df_jets[i] = pd.concat([df_jets[i],df_jets_list[j][i]])   # Concatenate jets
+#        df_other = pd.concat([df_other,df_other_list[j]])             # Concatenate other
+#        df_truth = pd.concat([df_truth,df_truth_list[j]])             # Concatenate truth
 
-# Concatenate the rest of the data
-for j in range(2,8):
-    for i in range(6):
-        df_jets[i] = pd.concat([df_jets[i],df_jets_list[j][i]])   # Concatenate jets
-    df_other = pd.concat([df_other,df_other_list[j]])             # Concatenate other
-    df_truth = pd.concat([df_truth,df_truth_list[j]])             # Concatenate truth
+#    print('Dataframes concatenated.')
 
-print('Dataframes concatenated.')
+#    print(df_truth)
 
-print(df_truth)
+    # Create and save an h5 file of the data
+#    saveH5File(df_jets,df_other,df_truth)
 
-# Create and save an h5 file of the data
-saveH5File(df_jets,df_other,df_truth)
 
-# Create and save numpy array of X max and mean values
-saveXMaxMean(df_jets,df_other)
+# ---------- MAIN CODE ----------#
 
-# Create and save numpy array of Y max and mean values
-saveYMaxMean(df_truth)
+# Create h5 file
+#rootDataToH5(7)
+
+# Separate h5 files?
+#file_num = 7
+#df_jets, df_other, df_truth = getDataframes(str(file_num)+'_parton_ejets')
+#print('Made it here!')
+#saveH5File(df_jets,df_other,df_truth,file_num)
+
+
+# Put h5 files together?
+#with h5py.File('/data/jchishol/Jenna_Data/variables_ttbar_parton_ejets.h5','w') as h5fw:
+#    current_row = 0
+#    total_len = 0
+#    for i in range(8):
+#        h5fr = h5py.File('/data/jchishol/variables_ttbar_'+str(i)+'_parton_ejets.h5','r')    # Read the file
+#        dslen = h5fr['j1_DL1r'].shape[0]
+#        total_len += dslen
+#        for key in list(h5fr.keys()):
+#            arr_data = h5fr[key]
+#            if i == 0:
+#                h5fw.create_dataset(key,data=arr_data,maxshape=(None,))
+#            else:
+#                h5fw[key].resize((total_len,))
+#                h5fw[key][current_row:total_len] = arr_data
+#        current_row = total_len
+#        print('File '+str(i)+' appended.')
+
+
+
+
+# Create and save numpy array of X and Y max and mean values
+saveMaxMean()
+
 
 
 
