@@ -1,11 +1,13 @@
-# Iiimport useful packages
+# Import useful packages
 import uproot
 import pandas as pd
 import awkward as ak
 import numpy as np
 import vector
+import tk as tkinter
 import matplotlib
 #matplotlib.use('Agg')  # need for not displaying plots when running batch jobs
+#matplotlib.use('GTK3Agg')   # need this one if you want plots displayed
 from matplotlib import pyplot as plt
 from matplotlib import colors
 import Plotter
@@ -94,6 +96,19 @@ ticks_labels_yboost_ttbar = [str(x) for x in ticks_yboost_ttbar]
 ticks_labels_yboost_ttbar[0] = '-'+r'$\infty$'
 ticks_labels_yboost_ttbar[-1] = r'$\infty$'
 
+# ystar
+ticks_ystar_ttbar = np.arange(-2.5,3,0.5)
+ticks_labels_ystar_ttbar = [str(x) for x in ticks_ystar_ttbar]
+ticks_labels_ystar_ttbar[0] = '-'+r'$\infty$'
+ticks_labels_ystar_ttbar[-1] = r'$\infty$'
+
+# chi
+ticks_chi_ttbar = np.arange(0,25,2.5)
+ticks_labels_chi_ttbar = [str(x) for x in ticks_chi_ttbar]
+ticks_labels_chi_ttbar[-1] = r'$\infty$'
+
+
+
 
 # Define the particles we'll be working with
 
@@ -112,11 +127,11 @@ top_lep = Plotter.Particle('tl',
                            [ticks_labels_pt_t, ticks_labels_eta, ticks_labels_y, ticks_labels_phi, ticks_labels_m_t, ticks_labels_E_t, ticks_labels_pout_t])
 
 top_antitop = Plotter.Particle('ttbar',
-                               ['pt','eta','y','phi','m','E','dphi','Ht','yboost'],
-                               ['$p_T^{t\overline{t}}$','$\eta^{t\overline{t}}$','$y^{t\overline{t}}$','$\phi^{t\overline{t}}$','$m^{t\overline{t}}$','$E^{t\overline{t}}$','$\Delta\phi^{t\overline{t}}$','$H_T^{t\overline{t}}$','$y_{boost}^{t\overline{t}}$'],
-                               [' [GeV]','','','',' [GeV]',' [GeV]','',' [GeV]',''],
-                               [ticks_pt_ttbar, ticks_eta, ticks_y, ticks_phi, ticks_m_ttbar, ticks_E_ttbar, ticks_dphi_ttbar, ticks_Ht_ttbar, ticks_yboost_ttbar],
-                               [ticks_labels_pt_ttbar, ticks_labels_eta, ticks_labels_y, ticks_labels_phi, ticks_labels_m_ttbar, ticks_labels_E_ttbar, ticks_labels_dphi_ttbar, ticks_labels_Ht_ttbar, ticks_labels_yboost_ttbar])
+                               ['pt','eta','y','phi','m','E','dphi','Ht','yboost','ystar','chi'],
+                               ['$p_T^{t\overline{t}}$','$\eta^{t\overline{t}}$','$y^{t\overline{t}}$','$\phi^{t\overline{t}}$','$m^{t\overline{t}}$','$E^{t\overline{t}}$','$\Delta\phi^{t\overline{t}}$','$H_T^{t\overline{t}}$','$y_{boost}^{t\overline{t}}$','$y^{* t\overline{t}}$','$\chi^{t\overline{t}}$'],
+                               [' [GeV]','','','',' [GeV]',' [GeV]','',' [GeV]','','',''],
+                               [ticks_pt_ttbar, ticks_eta, ticks_y, ticks_phi, ticks_m_ttbar, ticks_E_ttbar, ticks_dphi_ttbar, ticks_Ht_ttbar, ticks_yboost_ttbar, ticks_ystar_ttbar,ticks_chi_ttbar],
+                               [ticks_labels_pt_ttbar, ticks_labels_eta, ticks_labels_y, ticks_labels_phi, ticks_labels_m_ttbar, ticks_labels_E_ttbar, ticks_labels_dphi_ttbar, ticks_labels_Ht_ttbar, ticks_labels_yboost_ttbar, ticks_labels_ystar_ttbar, ticks_labels_chi_ttbar])
 
 
 
@@ -124,10 +139,9 @@ top_antitop = Plotter.Particle('ttbar',
 
 
 # Imports data from 0th file and creates a data frame
-# Note: currently used for KLFitter, not ML
-# Input: reco_type (i.e.'KLFitter' or 'ML'), filename
+# Input: reco_method (i.e.'KLFitter' or 'TRecNet' or 'TRecNet+ttbar') and file name
 # Output: data frame
-def Create_DF(reco_type,filename): 
+def Create_DF(reco_method,filename): 
 	
     # Open first root file and its trees
     file0 = uproot.open('/data/jchishol/'+filename)
@@ -135,7 +149,7 @@ def Create_DF(reco_type,filename):
     tree_reco0 = file0['reco'].arrays()
 
     # Create pandas dataframe
-    if reco_type=='KLFitter':
+    if reco_method=='KLFitter':
         df = ak.to_pandas(tree_reco0['isMatched'])                              # Add reco isMatched to df
         df.rename(columns={'values':'reco_isMatched'},inplace=True)             # Rename first column appropriately
         df['truth_isDummy'] = ak.to_pandas(tree_truth0['isDummy'])              # Add truth isDummy to df 
@@ -148,14 +162,14 @@ def Create_DF(reco_type,filename):
                 df['truth_'+par.particle+'_'+var] = ak.to_pandas(tree_truth0[level[par.particle][1]+var])    # Append the true values
 
     else:
-        df = ak.to_pandas(tree_reco0['ttbar_ystar'])                # Create df
-        df.rename(columns={'values':'reco_ttbar_y'},inplace=True)             # Rename first column appropriately
-        df['truth_ttbar_y']=tree_truth0['ttbar_ystar']
+        df = ak.to_pandas(tree_reco0['ttbar_pt'])                # Create df
+        df.rename(columns={'values':'reco_ttbar_pt'},inplace=True)             # Rename first column appropriately
+        df['truth_ttbar_pt']=tree_truth0['ttbar_pt']
 
         # Add variables to be plotted
         for par in [top_had,top_lep,top_antitop]:                 # For each particle
             for var in par.variables:          # For each variable of that particle
-                if par.particle=='ttbar' and var=='y':   # We have ttbar_ystar instead of ttbar_y --> NEED to check if this is the same
+                if par.particle=='ttbar' and var=='pt':   # We have alredy have ttbar_pt, so skip it
                     continue
                 df['reco_'+par.particle+'_'+var] = ak.to_pandas(tree_reco0[par.particle+'_'+var])      # Append the reco values
                 df['truth_'+par.particle+'_'+var] = ak.to_pandas(tree_truth0[par.particle+'_'+var])    # Append the true values
@@ -170,9 +184,9 @@ def Create_DF(reco_type,filename):
 
 
 # Appends data from the rest of the files to the existing data frame
-# Note: currently used for KLFitter, not ML
-# Input: data frame, file number (in string form), and type of data
-# Output data frame
+# Note: currently used for KLFitter, not ML (only have one result file from the testing.ipynb)
+# Input: data frame and name of file to be appended
+# Output: data frame
 def Append_Data(df,filename):
 
     # Open root file and its trees
@@ -230,49 +244,51 @@ def Edit_Data(df):
 # ------------- MAIN CODE ------------- #
 
 
-for dtype in ['parton_ejets','parton_mjets']:
+#for datatype in ['parton_ejets','parton_mjets']:
+for datatype in ['parton_mjets']:
 
-    # Create the main data frame for KLFitter
-    KLF_df = Create_DF('KLFitter','mc16e/mntuple_ttbar_0_'+dtype+'.root')
-
-    # Append all data to the main frame
+    # Create the main data frame, append data from the rest of the files, fix it up, and then create a dataset object for KLFitter
+    KLF_df = Create_DF('KLFitter','mc16e/mntuple_ttbar_0_'+datatype+'.root')
     for n in range(1,8):
-        KLF_df = Append_Data(KLF_df,'mc16e/mntuple_ttbar_'+str(n)+'_'+dtype+'.root')
-
-    # Edit data (remove unmatched, convert units, calculate resolution, etc.)
+        KLF_df = Append_Data(KLF_df,'mc16e/mntuple_ttbar_'+str(n)+'_'+datatype+'.root')
     KLF_df = Edit_Data(KLF_df)
+    KLF_data = Plotter.Dataset(KLF_df,'KLFitter',datatype)
 
-    # Create dataset object for KLFitter
-    KLF_data = Plotter.Dataset(KLF_df,'KLFitter',dtype)
+    # Create the data frame and dataset object for custom TRecNet model
+    TRecNet_df = Create_DF('TRecNet','ML_Data/ML_Results_'+datatype+'_Custom.root')
+    TRecNet_data = Plotter.Dataset(TRecNet_df,'TRecNet',datatype)
 
-    # Create the main data frame for ML
-    ML_df = Create_DF('ML','Jenna_Data/ML_Results_'+dtype+'.root')
-    
-    # Create dataset object for ML
-    ML_data = Plotter.Dataset(ML_df,'ML',dtype)
+    # Create the data frame and dataset object for custom+ttbar TRecNet model
+    TRecNet_ttbar_df = Create_DF('TRecNet+ttbar','ML_Data/ML_Results_'+datatype+'_Custom+ttbar.root')
+    TRecNet_ttbar_data = Plotter.Dataset(TRecNet_ttbar_df,'TRecNet+ttbar',datatype)
+
 
     # Create plots
     for par in [top_had,top_lep,top_antitop]:
         for var in par.variables:
-
+        
             # TruthReco Plots
-            Plotter.Plot.TruthReco_Hist(KLF_data,par,var,'./plots/'+dtype+'/'+par.particle+'/',30)
-            Plotter.Plot.TruthReco_Hist(ML_data,par,var,'./plots/'+dtype+'/'+par.particle+'/',30)
+            Plotter.Plot.TruthReco_Hist(KLF_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',30,LL_cut=-52)
+            Plotter.Plot.TruthReco_Hist(TRecNet_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',30)
+            Plotter.Plot.TruthReco_Hist(TRecNet_ttbar_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',30)
             
             # 2D Plots
-            Plotter.Plot.Normalized_2D(KLF_data,par,var,'./plots/'+dtype+'/'+par.particle+'/',color=plt.cm.Blues)
-            Plotter.Plot.Normalized_2D(ML_data,par,var,'./plots/'+dtype+'/'+par.particle+'/',color=plt.cm.Purples)
-
+            Plotter.Plot.Normalized_2D(KLF_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',color=plt.cm.Blues,LL_cut=-52)
+            Plotter.Plot.Normalized_2D(TRecNet_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',color=plt.cm.Purples)
+            Plotter.Plot.Normalized_2D(TRecNet_ttbar_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',color=colors.LinearSegmentedColormap.from_list('magenta_cmap', ['white', 'magenta']))
+    
             # Res Plots
-            res='Residuals' if var in ['eta','phi','y','pout'] else 'Resolution'
-            Plotter.Plot.Res([ML_data,KLF_data],par,var,'./plots/'+dtype+'/'+par.particle+'/',30,res,LL_cuts=[-52,-50,-48],Normed=True)
-            Plotter.Plot.Res([ML_data,KLF_data],par,var,'./plots/'+dtype+'/'+par.particle+'/',30,res,LL_cuts=[-52,-50,-48],Normed=False)
+            res='Residuals' if var in ['eta','phi','y','pout','yboost','ystar','dphi'] else 'Resolution'
+            Plotter.Plot.Res([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,var,'./plots/'+datatype+'/'+par.particle+'/',30,res,LL_cuts=[-52,-50,-48])
 
         # Res vs Var Plots
-        Plotter.Plot.Res_vs_Var([ML_data,KLF_data],par,'eta','eta',[-2.4,2.4,0.2],'./plots/'+dtype+'/'+par.particle+'/','Residuals',LL_cuts=[-52,-50,-48])
-        Plotter.Plot.Res_vs_Var([ML_data,KLF_data],par,'pt','pt',[90,510,20],'./plots/'+dtype+'/'+par.particle+'/','Resolution',LL_cuts=[-52,-50,-48])
-        Plotter.Plot.Res_vs_Var([ML_data,KLF_data],par,'pt','eta',[-2.4,2.4,0.2],'./plots/'+dtype+'/'+par.particle+'/','Resolution',LL_cuts=[-52,-50,-48])
-        Plotter.Plot.Res_vs_Var([ML_data,KLF_data],par,'eta','pt',[90,510,20],'./plots/'+dtype+'/'+par.particle+'/','Residuals',LL_cuts=[-52,-50,-48])
+        Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'eta','eta',[-2.4,2.4,0.4],'./plots/'+datatype+'/'+par.particle+'/','Residuals',LL_cuts=[-52,-50,-48])
+        Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'pt','pt',[90,510,30],'./plots/'+datatype+'/'+par.particle+'/','Resolution',LL_cuts=[-52,-50,-48])
+        Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'pt','eta',[-2.4,2.4,0.4],'./plots/'+datatype+'/'+par.particle+'/','Resolution',LL_cuts=[-52,-50,-48])
+        Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'eta','pt',[90,510,30],'./plots/'+datatype+'/'+par.particle+'/','Residuals',LL_cuts=[-52,-50,-48])
+
+        #Plotter.Plot.Res_vs_Var([TRecNet_data,KLF_data],par,'phi','pt',[90,510,20],'./plots/'+datatype+'/'+par.particle+'/','Residuals',LL_cuts=[-52,-50,-48])
+        #Plotter.Plot.Res_vs_Var([TRecNet_data,KLF_data],par,'pt','phi',[-3,3,0.5],'./plots/'+datatype+'/'+par.particle+'/','Resolution',LL_cuts=[-52,-50,-48])
 
 
 print("done :)")

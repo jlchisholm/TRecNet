@@ -7,7 +7,7 @@ import matplotlib
 #matplotlib.use('Agg')  # need for not displaying plots when running batch jobs
 from matplotlib import pyplot as plt
 from matplotlib import colors
-
+from sigfig import round
 
 class Particle:
     """ 
@@ -15,9 +15,9 @@ class Particle:
     """
     
     def __init__(self, particle, variables, var_labels, var_units, ticks, tick_labels):
-    """
-    Initialize: particle name, list of variable names, list of variable axis labels, list of variable units, list of ticks, and list of tick labels
-    """
+        """
+        Initialize: particle name, list of variable names, list of variable axis labels, list of variable units, list of ticks, and list of tick labels
+        """
 
         self.particle = particle
         self.variables = variables
@@ -32,13 +32,13 @@ class Dataset:
     A class for dataset objects
     """
 
-    def __init__(self, df, reco_type, data_type):
-    """
-    Initialize: dataframe of data, reconstruction type ('ML' or 'KLFitter'), and data type (e.g. 'parton_ejets')
-    """
+    def __init__(self, df, reco_method, data_type):
+        """
+        Initialize: dataframe of data, reconstruction method ('TRecNet' or 'TRecNet+ttbar' or 'KLFitter'), and data type (e.g. 'parton_ejets')
+        """
 
         self.df = df
-        self.reco_type = reco_type
+        self.reco_method = reco_method
         self.data_type = data_type
 
 
@@ -48,15 +48,19 @@ class Plot:
     """
     
 
-    def TruthReco_Hist(dataset,particle,variable,save_location,nbins):
+    def TruthReco_Hist(dataset,particle,variable,save_location,nbins,LL_cut=None):
         """
         Creates and saves a histogram with true and reconstructed data both plotted
-        Input: dataset object, particle object, variable, save location, and number of bins
-        Output: saves histogram as in <save_location> as '<reco_type>_TruthReco_Hist_<data_type>_<particle>_<variable>.png' 
+        Input: dataset object, particle object, variable, save location, number of bins, and log-likelihood cut (if desired)
+        Output: saves histogram as in <save_location> as '<reco_method>_TruthReco_Hist_<data_type>_<particle>_<variable>.png' 
         """
 
         # Get the dataframe for this dataset
         df = dataset.df
+
+        # Cut on log-likelihood (if desired)
+        if dataset.reco_method=='KLFitter' and type(LL_cut)!=None:
+            df = df[df['likelihood']>LL_cut]
 
         # Set the range (based on variable and particle we're plotting)
         ran = particle.ticks[variable][::len(particle.ticks[variable])-1]
@@ -80,19 +84,29 @@ class Plot:
         ax2.set_ylabel('Ratio (truth/reco)')
         
         # Save the figure as a png in save location
-        plt.savefig(save_location+dataset.reco_type+'_TruthReco_Hist_'+dataset.data_type+'_'+particle.particle+'_'+variable,bbox_inches='tight')
-        print('Saved Figure: '+dataset.reco_type+'_TruthReco_Hist_'+dataset.data_type+'_'+particle.particle+'_'+variable)
+        if dataset.reco_method=='KLFitter' and type(LL_cut)!=None:
+            plt.savefig(save_location+dataset.reco_method+'(LL>'+str(LL_cut)+')_TruthReco_Hist_'+dataset.data_type+'_'+particle.particle+'_'+variable,bbox_inches='tight')
+            print('Saved Figure: '+dataset.reco_method+'(LL>'+str(LL_cut)+')_TruthReco_Hist_'+dataset.data_type+'_'+particle.particle+'_'+variable)
+        else:
+            plt.savefig(save_location+dataset.reco_method+'_TruthReco_Hist_'+dataset.data_type+'_'+particle.particle+'_'+variable,bbox_inches='tight')
+            print('Saved Figure: '+dataset.reco_method+'_TruthReco_Hist_'+dataset.data_type+'_'+particle.particle+'_'+variable)
+
+        plt.close()
 
     
-    def Normalized_2D(dataset,particle,variable,save_location,color=plt.cm.Blues):
+    def Normalized_2D(dataset,particle,variable,save_location,color=plt.cm.Blues,LL_cut=None):
         """ 
         Creates and saves a 2D histogram of true vs reconstructed data, normalized across rows
-        Input: dataset object, particle object, variable, save location, and color scheme
-        Output: saves histogram in <save_location> as '<reco_type>_Normalized_2D_<data_type>_<particle>_<variable>.png' 
+        Input: dataset object, particle object, variable, save location, color scheme, and LL_cut (if desired)
+        Output: saves histogram in <save_location> as '<reco_method>_Normalized_2D_<data_type>_<particle>_<variable>.png' 
         """
 
         # Get the dataframe for this dataset
         df = dataset.df
+
+        # Cut on log-likelihood (if desired)
+        if dataset.reco_method=='KLFitter' and type(LL_cut)!=None:
+            df = df[df['likelihood']>LL_cut]
 
         # Define useful constants
         tk = particle.ticks[variable]
@@ -112,8 +126,8 @@ class Plot:
         plt.imshow(masked_norm,extent=[0,n-1,0,n-1],cmap=color,origin='lower')
         plt.xticks(np.arange(n),tkls,fontsize=9,rotation=-25)
         plt.yticks(np.arange(n),tkls,fontsize=9)
-        plt.xlabel('Reco '+particle.var_labels[variable]+particle.var_units[variable])
-        plt.ylabel('Truth '+particle.var_labels[variable]+particle.var_units[variable])
+        plt.xlabel('Reco-level '+particle.var_labels[variable]+particle.var_units[variable])
+        plt.ylabel('Parton-level '+particle.var_labels[variable]+particle.var_units[variable])
         plt.clim(0,100)
         plt.colorbar()
 
@@ -124,21 +138,25 @@ class Plot:
                     plt.text(j+0.5,k+0.5,masked_norm.T[j,k],color="k",fontsize=6,weight="bold",ha="center",va="center")
 
         # Save the figure in save location as a png
-        plt.savefig(save_location+dataset.reco_type+'_Normalized_2D_'+dataset.data_type+'_'+particle.particle+'_'+variable,bbox_inches='tight')
-        print('Saved Figure: '+dataset.reco_type+'_Normalized_2D_'+dataset.data_type+'_'+particle.particle+'_'+variable)
+        if dataset.reco_method=='KLFitter' and type(LL_cut)!=None:
+            plt.savefig(save_location+dataset.reco_method+'(LL>'+str(LL_cut)+')_Normalized_2D_'+dataset.data_type+'_'+particle.particle+'_'+variable,bbox_inches='tight')
+            print('Saved Figure: '+dataset.reco_method+'(LL>'+str(LL_cut)+')_Normalized_2D_'+dataset.data_type+'_'+particle.particle+'_'+variable)
+        else:
+            plt.savefig(save_location+dataset.reco_method+'_Normalized_2D_'+dataset.data_type+'_'+particle.particle+'_'+variable,bbox_inches='tight')
+            print('Saved Figure: '+dataset.reco_method+'_Normalized_2D_'+dataset.data_type+'_'+particle.particle+'_'+variable)
 
         plt.close()
 
 
-    def Res(datasets,particle,variable,save_location,nbins,res='Resolution',LL_cuts=None,Normed=False):
+    def Res(datasets,particle,variable,save_location,nbins,res='Resolution',LL_cuts=None):
         """
         Creates and saves the resolution plots for each variable
-        Input: list of dataset objects, particle object, variable, save location, number of bins, 'Resolution' or 'Residuals', list of cuts on negative LogLikelihood (if any), and normalization (default: False)
+        Input: list of dataset objects, particle object, variable, save location, number of bins, 'Resolution' or 'Residuals', and list of cuts on negative LogLikelihood (if any)
         Output: saves histogram in <save_location> as '<res>_<data_type>_<particle>_<variable>.png'
         """
 
         # Define the absolute range for the resolution plot
-        ran = 5 if variable =='pout' else 1   # For some reason pout is quite wide ...
+        ran = 100 if variable =='pout' else 1   # For some reason pout is quite wide ...
 
         # Create figure to be filled
         plt.figure(particle.particle+'_'+variable+' '+'Res')
@@ -155,32 +173,34 @@ class Plot:
             else:
                 df['res_'+particle.particle+'_'+variable] = df['reco_'+particle.particle+'_'+variable] - df['truth_'+particle.particle+'_'+variable]
 
+            # Calculate mean and standard deviation of the resolution
+            res_mean = round(df['res_'+particle.particle+'_'+variable].mean(),sigfigs=2)
+            res_std = round(df['res_'+particle.particle+'_'+variable].std(),sigfigs=2)
+
             # Plot the resolution
-            plt.hist(df['res_'+particle.particle+'_'+variable],bins=nbins,range=(-ran,ran),histtype='step',label=dataset.reco_type+': No Cuts',density=Normed)
+            plt.hist(df['res_'+particle.particle+'_'+variable],bins=nbins,range=(-ran,ran),histtype='step',label=dataset.reco_method+': No Cuts, $\mu=$'+str(res_mean)+', $\sigma=$'+str(res_std),density=True)
 
             # Also plot cuts on likelihood if KLFitter (if any)
-            if dataset.reco_type=='KLFitter' and type(LL_cuts)==list:
+            if dataset.reco_method=='KLFitter' and type(LL_cuts)==list:
                 for cut in LL_cuts:
                     df_cut = df[df['likelihood']>cut]
-                    plt.hist(df_cut['res_'+particle.particle+'_'+variable],bins=nbins,range=(-ran,ran),histtype='step',label=dataset.reco_type+': nLL > '+str(cut),density=Normed)
+                    cut_mean = round(df_cut['res_'+particle.particle+'_'+variable].mean(),sigfigs=2)
+                    cut_std = round(df_cut['res_'+particle.particle+'_'+variable].std(),sigfigs=2)
+                    plt.hist(df_cut['res_'+particle.particle+'_'+variable],bins=nbins,range=(-ran,ran),histtype='step',label=dataset.reco_method+': LL > '+str(cut)+', $\mu=$'+str(cut_mean)+', $\sigma=$'+str(cut_std),density=True)
             
         # Add some labels
-        plt.legend()
+        plt.legend(prop={'size': 6})
         plt.xlabel(particle.var_labels[variable]+' '+res)
         plt.ylabel('Counts')
 
         # Save figure in save location
-        if Normed:
-            plt.savefig(save_location+'Normalized_'+res+'_'+dataset.data_type+'_'+particle.particle+'_'+variable,bbox_inches='tight')
-            print('Saved Figure: Normalized_'+res+'_'+dataset.data_type+'_'+particle.particle+'_'+variable) 
-        else:
-            plt.savefig(save_location+res+'_'+dataset.data_type+'_'+particle.particle+'_'+variable,bbox_inches='tight')
-            print('Saved Figure: '+res+'_'+dataset.data_type+'_'+particle.particle+'_'+variable)
-        
+        plt.savefig(save_location+res+'_'+dataset.data_type+'_'+particle.particle+'_'+variable,bbox_inches='tight')
+        print('Saved Figure: '+res+'_'+dataset.data_type+'_'+particle.particle+'_'+variable)
+
         plt.close()
 
 
-    def Res_vs_Var(datasets,particle,y_var,x_var,x_bins,save_location,y_res='Resolution',LL_cuts=None,Normed=False):
+    def Res_vs_Var(datasets,particle,y_var,x_var,x_bins,save_location,y_res='Resolution',LL_cuts=None):
         """
         Creates and saves the resolution vs variable plots
         Input: datasets (could be multiple), particle, res y-variable, res x-variable, [first bin edge, last bin edge, width of bins], save location, resolution vs residuals for y, and negative log-likelihood cuts (list) if any 
@@ -218,11 +238,21 @@ class Plot:
                 # Add point to list
                 points.append([middle,sigma])
 
+            # Set color index
+            #if dataset.reco_method=='KLFitter':
+            #    i = 0
+            #else:
+            #    i = 4
+
             # Put data in the scatterplot
-            plt.scatter(np.array(points)[:,0],np.array(points)[:,1],label=dataset.reco_type+': No Cuts')
+            #plt.scatter(np.array(points)[:,0],np.array(points)[:,1],color=plt.cm.tab20c(i),label=dataset.reco_method+': No Cuts')
+            plt.scatter(np.array(points)[:,0],np.array(points)[:,1],label=dataset.reco_method+': No Cuts')
+
+            # Reset color index for LL cuts
+            #i = 1
 
             # Also make cuts on likelihood of KLFitter (if any)
-            if dataset.reco_type=='KLFitter' and type(LL_cuts)==list:
+            if dataset.reco_method=='KLFitter' and type(LL_cuts)==list:
                 for cut in LL_cuts:
                
                     # Make the LL cut
@@ -246,11 +276,15 @@ class Plot:
                         points.append([middle,sigma])
 
                     # Put data in the scatterplot
-                    plt.scatter(np.array(points)[:,0],np.array(points)[:,1],label=dataset.reco_type+': nLL > '+str(cut))
-                
+                    #plt.scatter(np.array(points)[:,0],np.array(points)[:,1],color=plt.cm.tab20c(i),label=dataset.reco_method+': LL > '+str(cut))
+                    plt.scatter(np.array(points)[:,0],np.array(points)[:,1],label=dataset.reco_method+': LL > '+str(cut))
+
+                    # Increase color index
+                    #i+=1
+
         # Add some labels
-        plt.xlabel('Truth '+particle.var_labels[x_var]+particle.var_units[x_var])
-        plt.ylabel('Stdev of '+particle.var_labels[y_var]+' '+y_res)
+        plt.xlabel('Parton-level '+particle.var_labels[x_var]+particle.var_units[x_var])
+        plt.ylabel('$\sigma$ of '+particle.var_labels[y_var]+' '+y_res)
         plt.legend()
 
         # Save figure in save location
