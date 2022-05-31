@@ -11,8 +11,8 @@ import vector
 # ---------- FUNCTION FOR OBTAINING JET DATA ---------- #
 
 # Creates an array of 6 dataframes for the 6 jets
-# Input: reco level tree from ROOT file
-def getJetsData(reco_tree):
+# Input: reco level tree from ROOT file, number of jets to have per event (default is 6)
+def getJetsData(reco_tree,jn=6):
 
     # Get the total number of events
     num_events = len(reco_tree['eventNumber'])
@@ -23,7 +23,7 @@ def getJetsData(reco_tree):
     b = -1.
 
     # Create temporary jet arrays
-    jets = [[] for _ in range(6)]
+    jets = [[] for _ in range(jn)]
     for n in range(num_events):     # Going through each event
 
         # Get the variables for the jets in this event
@@ -50,24 +50,12 @@ def getJetsData(reco_tree):
             e = [e for _,_,_,e,_ in all_var_by_pt]
             btag = [btag for _,_,_,_,btag in all_var_by_pt]
 
-        # Append data for the first four jets in the event
-        jets[0].append([pt[0],eta[0],phi[0],e[0],btag[0]])
-        jets[1].append([pt[1],eta[1],phi[1],e[1],btag[1]])
-        jets[2].append([pt[2],eta[2],phi[2],e[2],btag[2]])
-        jets[3].append([pt[3],eta[3],phi[3],e[3],btag[3]])
-
-        # If there are only four jets, pad jet 5 and 6 with the constant
-        if n_jets==4:
-            jets[4].append([c,c,c,c,b])
-            jets[5].append([c,c,c,c,b])
-        # If there are only five jets, append jet 5 values and pad jet 6 with constant    
-        elif n_jets==5:
-            jets[4].append([pt[4],eta[4],phi[4],e[4],btag[4]])
-            jets[5].append([c,c,c,c,b])
-        # If there are six jets or more, append jet 5 and 6 values as normal
-        else:
-            jets[4].append([pt[4],eta[4],phi[4],e[4],btag[4]])
-            jets[5].append([pt[5],eta[5],phi[5],e[5],btag[5]])
+        # Append data for the jets
+        for i in range(jn):
+            if i<=n_jets:  # Append like normal for however many jets are in the event
+                jets[i].append([pt[i],eta[i],phi[i],e[i],btag[i]])
+            else:          # Otherwise pad the jets with constants
+                jets[i].append([c,c,c,c,b])
 
         # Print every once in a while so we know there's progress
         if (n+1)%100000==0 or n==num_events-1:

@@ -244,8 +244,8 @@ def Edit_Data(df):
 # ------------- MAIN CODE ------------- #
 
 
-#for datatype in ['parton_ejets','parton_mjets']:
-for datatype in ['parton_mjets']:
+for datatype in ['parton_ejets','parton_mjets']:
+#for datatype in ['parton_ejets']:
 
     # Create the main data frame, append data from the rest of the files, fix it up, and then create a dataset object for KLFitter
     KLF_df = Create_DF('KLFitter','mc16e/mntuple_ttbar_0_'+datatype+'.root')
@@ -255,37 +255,36 @@ for datatype in ['parton_mjets']:
     KLF_data = Plotter.Dataset(KLF_df,'KLFitter',datatype)
 
     # Create the data frame and dataset object for custom TRecNet model
-    TRecNet_df = Create_DF('TRecNet','ML_Data/ML_Results_'+datatype+'_Custom.root')
+    TRecNet_df = Create_DF('TRecNet','ML_Data/ML_Results_'+datatype+'_Model_Custom.root')
     TRecNet_data = Plotter.Dataset(TRecNet_df,'TRecNet',datatype)
 
     # Create the data frame and dataset object for custom+ttbar TRecNet model
-    TRecNet_ttbar_df = Create_DF('TRecNet+ttbar','ML_Data/ML_Results_'+datatype+'_Custom+ttbar.root')
+    TRecNet_ttbar_df = Create_DF('TRecNet+ttbar','ML_Data/ML_Results_'+datatype+'_Model_Custom+ttbar.root')
     TRecNet_ttbar_data = Plotter.Dataset(TRecNet_ttbar_df,'TRecNet+ttbar',datatype)
-
 
     # Create plots
     for par in [top_had,top_lep,top_antitop]:
         for var in par.variables:
         
             # TruthReco Plots
-            Plotter.Plot.TruthReco_Hist(KLF_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',30,LL_cut=-52)
+            #Plotter.Plot.TruthReco_Hist(KLF_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',30,LL_cut=-52)
             Plotter.Plot.TruthReco_Hist(TRecNet_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',30)
             Plotter.Plot.TruthReco_Hist(TRecNet_ttbar_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',30)
             
             # 2D Plots
-            Plotter.Plot.Normalized_2D(KLF_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',color=plt.cm.Blues,LL_cut=-52)
+            #Plotter.Plot.Normalized_2D(KLF_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',color=plt.cm.Blues,LL_cut=-52)
             Plotter.Plot.Normalized_2D(TRecNet_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',color=plt.cm.Purples)
-            Plotter.Plot.Normalized_2D(TRecNet_ttbar_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',color=colors.LinearSegmentedColormap.from_list('magenta_cmap', ['white', 'magenta']))
+            Plotter.Plot.Normalized_2D(TRecNet_ttbar_data,par,var,'./plots/'+datatype+'/'+par.particle+'/',color=colors.LinearSegmentedColormap.from_list('magenta_cmap', ['white', 'm']))
     
             # Res Plots
             res='Residuals' if var in ['eta','phi','y','pout','yboost','ystar','dphi'] else 'Resolution'
             Plotter.Plot.Res([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,var,'./plots/'+datatype+'/'+par.particle+'/',30,res,LL_cuts=[-52,-50,-48])
 
         # Res vs Var Plots
-        Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'eta','eta',[-2.4,2.4,0.4],'./plots/'+datatype+'/'+par.particle+'/','Residuals',LL_cuts=[-52,-50,-48])
-        Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'pt','pt',[90,510,30],'./plots/'+datatype+'/'+par.particle+'/','Resolution',LL_cuts=[-52,-50,-48])
-        Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'pt','eta',[-2.4,2.4,0.4],'./plots/'+datatype+'/'+par.particle+'/','Resolution',LL_cuts=[-52,-50,-48])
-        Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'eta','pt',[90,510,30],'./plots/'+datatype+'/'+par.particle+'/','Residuals',LL_cuts=[-52,-50,-48])
+        #Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'eta','eta',[-2.4,2.4,0.4],'./plots/'+datatype+'/'+par.particle+'/','Residuals',LL_cuts=[-52,-50,-48])
+        #Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'pt','pt',[90,510,30],'./plots/'+datatype+'/'+par.particle+'/','Resolution',LL_cuts=[-52,-50,-48])
+        #Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'pt','eta',[-2.4,2.4,0.4],'./plots/'+datatype+'/'+par.particle+'/','Resolution',LL_cuts=[-52,-50,-48])
+        #Plotter.Plot.Res_vs_Var([TRecNet_data,TRecNet_ttbar_data,KLF_data],par,'eta','pt',[90,510,30],'./plots/'+datatype+'/'+par.particle+'/','Residuals',LL_cuts=[-52,-50,-48])
 
         #Plotter.Plot.Res_vs_Var([TRecNet_data,KLF_data],par,'phi','pt',[90,510,20],'./plots/'+datatype+'/'+par.particle+'/','Residuals',LL_cuts=[-52,-50,-48])
         #Plotter.Plot.Res_vs_Var([TRecNet_data,KLF_data],par,'pt','phi',[-3,3,0.5],'./plots/'+datatype+'/'+par.particle+'/','Resolution',LL_cuts=[-52,-50,-48])
