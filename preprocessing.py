@@ -5,73 +5,296 @@ import awkward as ak
 import pandas as pd
 import matplotlib.pyplot as plt
 import vector
+from scipy.optimize import linear_sum_assignment
+
+# Define some helpful ranges
+had_range = list(range(1,9))              # Quarks have pdgid 1 to 8
+lep_range = list(range(11,19))            # Leptons have pdgid 11 to 18
+bos_range = list(range(21,26))+[9,37]     # Bosons have pdgid 21 to 25, and 9, and 37
+
+
+# ---------- FUNCTION FOR MATCHING JETS AND DECAY PRODUCTS ---------- #
+
+def getJetMatching(event,parton_tree,jet_vectors,btags,num_jets):
+    """
+    Matches the four decay products to four out of however many jets in a given event
+    Input: event number, parton level tree, vectors (vector.arr) for the jets in the event, btags for the jets in the event, number of jets in the event
+    Output: list of [jet label (0 to jn-1), name of the matching decay product (e.g.'b_from_tbar')]
+    """
+    
+    #print("Matching event:",event)
+    #print("Number of jets: ",num_jets)
+    #print('---------------------------------------\n')
+
+    # Create a set of jet labels (0 to jn-1) and matched labels (items will be moved from jet labels into matched labels as they're matched)
+    jet_labels = list(range(num_jets))
+    matched_labels = []
+
+    # Run through b quarks first, then (hadronic) W decay products, matching the objects to the closest reconstructed jet (by dR)
+    particle_list = ['b_from_t','b_from_tbar']
+    if parton_tree['MC_Wdecay1_from_t_afterFSR_pdgid'][event] in had_range or parton_tree['MC_Wdecay2_from_t_afterFSR_pdgid'][event] in had_range:
+        particle_list.append('Wdecay1_from_t')
+        particle_list.append('Wdecay2_from_t') 
+    elif parton_tree['MC_Wdecay1_from_tbar_afterFSR_pdgid'][event] in had_range or parton_tree['MC_Wdecay2_from_tbar_afterFSR_pdgid'][event] in had_range:
+        particle_list.append('Wdecay1_from_tbar')
+        particle_list.append('Wdecay2_from_tbar')
+    else:
+        print('WARNING: none of the W decays seem to be jets! What?!')
+
+    # Run through b quarks first, then (hadronic) W decay products, matching the objects to the closest reconstructed jet (by dR)
+    for par in particle_list:
+
+        #print('Looking at decay product '+par)
+
+        # Calculate the vector for the particle of interest
+        particle_vec = vector.obj(pt=parton_tree['MC_'+par+'_afterFSR_pt'][event],eta=parton_tree['MC_'+par+'_afterFSR_eta'][event],phi=parton_tree['MC_'+par+'_afterFSR_phi'][event],E=parton_tree['MC_'+par+'_afterFSR_E'][event])
+        #print("particle_vec is giving:",particle_vec)
+
+        # Create a list to hold the dR values
+        dRs = []
+        labels = []
+                
+        # If we have a b-quark ...
+        if par.split('_')[0]=='b':
+
+            # For each of the unassigned jets
+            for label in jet_labels:
+
+                #print("On jet #",label)
+
+                # Only want jets that are b-tagged when matching to b quark
+                if btags[label]==1:
+
+                    # Grab the jet vector
+                    jet_vec = jet_vectors[label]
+                    #print("jet_vec is giving:",jet_vec)
+
+                    # Calculate dR and append it to a list
+                    #print("dR=",particle_vec.deltaR(jet_vec))
+                    dRs.append(particle_vec.deltaR(jet_vec))
+                    labels.append(label)
+                    
+        # If we have a W decay product that is a jet ...
+        else:
+
+            # For each of the unassigned jets
+            for label in jet_labels:
+
+                #print("On jet #",label)
+
+                # Grab the jet vector
+                jet_vec = jet_vectors[label]
+                #print("jet_vec is giving:",jet_vec)
+
+                # Calculate dR and append it to a list
+                #print("dR=",particle_vec.deltaR(jet_vec))
+                dRs.append(particle_vec.deltaR(jet_vec))
+                labels.append(label)
+
+
+        # Figuring out which jet matches the decay product best!
+        #print("dRs: ",dRs)
+        min_index = np.where(dRs==min(dRs))[0][0]  # Get the index where the minimum dR occurs
+        j_label = labels[min_index]            # Get the jet label corresponding to the minimum dR
+        matched_labels.append([j_label,par])   # Put the matched jet label in the list, as well as the particle label so we know which jet matched which particle
+        jet_labels.remove(j_label)             # Remove that number from the list of jet labels now that it's been used
+
+        #print('---------------------------------------\n')
+
+    
+    #print(matched_labels)
+    # Little check that things went okay
+    if len(matched_labels)!=4:
+        print('WARNING: more or less than 4 particles were matched to the jets! Ah!')
+
+
+    return matched_labels
+
+
+
+
+# ---------- FUNCTION FOR MATCHING JETS AND DECAY PRODUCTS ---------- #
+
+
+## This one attempts to use the Hungarian algorithm
+def getJetMatching_HungarianMethod(event,parton_tree,jet_vectors,btags,num_jets):
+    """
+    Matches the four decay products to four out of however many jets in a given event
+    Input: event number, parton level tree, vectors (vector.arr) for the jets in the event, btags for the jets in the event, number of jets in the event
+    Output: list of [jet label (0 to jn-1), name of the matching decay product (e.g.'b_from_tbar')]
+    """
+
+    #print("Matching event:",event)
+    #print("Number of jets: ",num_jets)
+    #print('---------------------------------------\n')
+
+    # Run through b quarks first, then (hadronic) W decay products, matching the objects to the closest reconstructed jet (by dR)
+    particle_list = ['b_from_t','b_from_tbar']
+    if parton_tree['MC_Wdecay1_from_t_afterFSR_pdgid'][event] in had_range or parton_tree['MC_Wdecay2_from_t_afterFSR_pdgid'][event] in had_range:
+        particle_list.append('Wdecay1_from_t')
+        particle_list.append('Wdecay2_from_t') 
+    elif parton_tree['MC_Wdecay1_from_tbar_afterFSR_pdgid'][event] in had_range or parton_tree['MC_Wdecay2_from_tbar_afterFSR_pdgid'][event] in had_range:
+        particle_list.append('Wdecay1_from_tbar')
+        particle_list.append('Wdecay2_from_tbar')
+    else:
+        print('WARNING: none of the W decays seem to be jets! What?!')
+
+    # Sanity check:
+    if len(particle_list)!=4:
+        print('WARNING: more or less than 4 decay products are being matched to the jets! Ah!')
+
+
+    # Go through and calculate a cost matrix (based on dR and btags)
+    cost_matrix = []
+    for par in particle_list:
+
+        #print('Looking at decay product '+par)
+
+        # Calculate the vector for the particle of interest
+        particle_vec = vector.obj(pt=parton_tree['MC_'+par+'_afterFSR_pt'][event],eta=parton_tree['MC_'+par+'_afterFSR_eta'][event],phi=parton_tree['MC_'+par+'_afterFSR_phi'][event],E=parton_tree['MC_'+par+'_afterFSR_E'][event])
+        #print("particle_vec is giving:",particle_vec)
+
+
+        # Create a list to hold the dR values
+        dR_list = []
+
+        # For each of the jets
+        for j in range(num_jets):
+
+            #print("On jet #",j)
+
+            # Grab the jet vector
+            jet_vec = jet_vectors[j]
+            #print("jet_vec is giving:",jet_vec)
+
+            # Calculate dR
+            dR = particle_vec.deltaR(jet_vec)
+
+            # Sanity check:
+            if dR>20:
+                print('WARNING: dR is a little big check it out')
+
+            # If we are looking at a b quark and the jet isn't b-tagged, add a huge cost to it
+            if par.split('_')[0]=='b' and btags[j]!=1:
+                dR+= 10000
+
+            # Append dR to the list
+            dR_list.append(dR)
+
+        #print("dR:",dR_list)
+
+        # Append dR list for the jets with this particle to the cost matrix
+        cost_matrix.append(dR_list)
+    
+        #print('------------------\n')
+
+    # Use the Hungarian method to get the best matching
+    cost_matrix = np.array(cost_matrix)
+    row_ind, col_ind = linear_sum_assignment(cost_matrix)
+    cost = cost_matrix[row_ind,col_ind].sum()
+
+    #print("Cost matrix:",cost_matrix)
+    #print("rows:",row_ind)
+    #print("cols:",col_ind)
+    #print("cost:",cost)
+
+    # Get the matching labels for the decay products and jets
+    matched_pairs = []
+    for i in range(len(row_ind)):
+        pmatch = particle_list[row_ind[i]]  # Get decay product (string) that was matched
+        jmatch = col_ind[i]                 # Get jet (int) that was matched to it
+        matched_pairs.append([jmatch,pmatch])
+
+    #print(matched_pairs)
+
+
+    return matched_pairs, cost
+
+
+
+
 
 
 
 # ---------- FUNCTION FOR OBTAINING JET DATA ---------- #
 
-# Creates an array of 6 dataframes for the 6 jets
-# Input: reco level tree from ROOT file, number of jets to have per event (default is 6)
-def getJetsData(reco_tree,jn=6):
+def getJetsData(parton_tree,reco_tree,withJetMatch,jn=6):
+    """
+    Creates an array of dataframes for the jets
+    Input: parton level tree from ROOT file, reco level tree from ROOT file, bool for if you want to match jets, number of jets <jn> want to have per event (default is 6)
+    Output: an array of <jn> dataframes (one for each of the jets)
+    """
 
     # Get the total number of events
     num_events = len(reco_tree['eventNumber'])
     print('Number of events: '+str(num_events))
 
-    # Constant for padding the jets
-    c = 0.
-    b = -1.
-
     # Create temporary jet arrays
     jets = [[] for _ in range(jn)]
+
     for n in range(num_events):     # Going through each event
 
         # Get the variables for the jets in this event
-        pt = reco_tree['jet_pt'][n]
-        eta = reco_tree['jet_eta'][n]
-        phi = reco_tree['jet_phi'][n]
-        e = reco_tree['jet_e'][n]
-        btag = reco_tree['jet_btagged'][n]
+        pts = reco_tree['jet_pt'][n]
+        etas = reco_tree['jet_eta'][n]
+        phis = reco_tree['jet_phi'][n]
+        es = reco_tree['jet_e'][n]
+        btags = reco_tree['jet_btagged'][n]
 
         # Get the number of jets in this event
-        n_jets = reco_tree['jet_n'][n]
+        n_jets = int(reco_tree['jet_n'][n])
 
-        # Check that the jets are actually organized highest to lowest pt and reorganize if necessary (hasn't been an issue yet)
-        if not np.array_equal(np.array(sorted(pt,reverse=True)),np.array(pt)):
-            print('Jet pt values are NOT sorted highest to lowest. Attempting to re-order properly...')
-            print(pt)
-            
-            # Reorder jets from highest to lowest pt
-            all_var = zip(pt,eta,phi,e,btag)
-            all_var_by_pt = sorted(all_var,reverse=True)
-            pt = [pt for pt,_,_,_,_ in all_var_by_pt]
-            eta = [eta for _,eta,_,_,_ in all_var_by_pt]
-            phi = [phi for _,_,phi,_,_ in all_var_by_pt]
-            e = [e for _,_,_,e,_ in all_var_by_pt]
-            btag = [btag for _,_,_,_,btag in all_var_by_pt]
+        # Calculate the jet vectors
+        jet_vectors = vector.arr({"pt":pts,"eta":etas,"phi":phis,"E":es})
 
-        # Append data for the jets
-        for i in range(jn):
-            if i<=n_jets:  # Append like normal for however many jets are in the event
-                jets[i].append([pt[i],eta[i],phi[i],e[i],btag[i]])
-            else:          # Otherwise pad the jets with constants
-                jets[i].append([c,c,c,c,b])
+        # Calculate mass for the jet vectors
+        ms = jet_vectors.mass
+
+        
+        if withJetMatch:
+
+            # Jet and decay product matching
+            #matched_pairs = getJetMatching(n,parton_tree,jet_vectors,btags,n_jets)
+            matched_pairs, cost = getJetMatching_HungarianMethod(n,parton_tree,jet_vectors,btags,n_jets)
+
+            # Append data for the jets
+            for i in range(jn):
+                if i+1<=n_jets:  # Append like normal for however many jets are in the event
+                    isTrue = 1 if i in np.array(matched_pairs)[:,0].astype(int) else 0
+                    jets[i].append([pts[i],etas[i],phis[i],ms[i],btags[i],isTrue])
+                else:          # Otherwise pad the jets with constants (with 0's for isTrue, since it's not even a real jet)
+                    jets[i].append([0.,0.,0.,0.,-1.,0.]) 
+
+        else:
+
+            # Append data for the jets
+            for i in range(jn):
+                if i+1<=n_jets:  # Append like normal for however many jets are in the event
+                    jets[i].append([pts[i],etas[i],phis[i],ms[i],btags[i]])
+                else:          # Otherwise pad the jets with constants
+                    jets[i].append([0.,0.,0.,0.,-1.]) 
+
 
         # Print every once in a while so we know there's progress
         if (n+1)%100000==0 or n==num_events-1:
             print ('Jet Events Processed: '+str(n+1))
+            if withJetMatch: print('Sample of matched labels: ',matched_pairs)
+            if withJetMatch: print('Sample of cost: ', cost)
 
     # Create an array of jet dataframes
-    df_jets = [[] for _ in range(6)]
-    for i in range(len(df_jets)):
-        df_jets[i] = pd.DataFrame(jets[i],columns=('pt','eta','phi','e','isbtag'))
+    df_jets = [[] for _ in range(jn)]
+    for i in range(jn):
+
+        if withJetMatch:
+            column_names = ('pt','eta','phi','m','isbtag','isTrue')
+        else:
+            column_names = ('pt','eta','phi','m','isbtag')
+
+        df_jets[i] = pd.DataFrame(jets[i],columns=column_names)
 
         # Convert from MeV to GeV
-        for v in ['pt','e']:
+        for v in ['pt','m']:
             df_jets[i][v] = df_jets[i][v]/1000
-
-        # Calculate mass
-        df_jets[i]['m'] = vector.arr({"pt":df_jets[i]['pt'],"phi":df_jets[i]['phi'],"eta":df_jets[i]['eta'],"E":df_jets[i]['e']}).mass
 
         # Print a progress statement
         print ('Jet '+str(i+1)+' dataframe created.')
@@ -81,9 +304,12 @@ def getJetsData(reco_tree,jn=6):
 
 # ---------- FUNCTION FOR OBTAINING OTHER DATA ---------- #
 
-# Create a dataframe for the truth variables
-# Input: reco level tree from ROOT file
 def getOtherData(reco_tree):
+    """
+    Create a dataframe for the other (lep, met) variables
+    Input: reco level tree from ROOT file 
+    Output: dataframe for the other (lep, met) variables
+    """
 
     # Create dataframe for other variables
     df_other = ak.to_pandas(reco_tree['isMatched'])
@@ -101,88 +327,26 @@ def getOtherData(reco_tree):
 
 # ---------- FUNCTION FOR OBTAINING TRUTH DATA ---------- #
 
-# Create a dataframe for the truth variables
-# Input: truth level tree from ROOT file, true or false for added ttbar variables
-def getTruthData(truth_tree,ttbar_addon):
+def getTruthData(parton_tree,ttbar_addon):
+    """
+    Create a dataframe for the truth variables
+    Input: parton level tree from ROOT file, true or false for added ttbar variables
+    Output: dataframe for the truth variables
+    """
 
-    # Create temporary df for W truth variables
-    df_truth_W = ak.to_pandas(truth_tree['isDummy'])
+    # Create temporary df for W truth variables (to help sort the hadronic and leptonic)
+    df_truth_W = ak.to_pandas(parton_tree['isDummy'])
     df_truth_W.rename(columns={'values':'isDummy'},inplace=True)
 
-    # Need to calculate the W 4-vectors from the decay products due to a problem with the mntuple!
-
-    #decay_vec = []
     # Append the pdgid values for each of the four W decay products
     for par in ['Wdecay1_from_tbar_','Wdecay1_from_t_','Wdecay2_from_tbar_','Wdecay2_from_t_']:
-        df_truth_W[par+'pdgid'] = truth_tree['MC_'+par+'afterFSR_pdgid']
+        df_truth_W[par+'pdgid'] = parton_tree['MC_'+par+'afterFSR_pdgid']
 
-        # Get four vector of the W decay product (vector.arr not working properly at the moment ... need to go event by event :( )
-        #decay_vec.append(vector.arr({"pt":truth_tree['MC_'+par+'afterFSR_pt'],"phi":truth_tree['MC_'+par+'afterFSR_phi'],"eta":truth_tree['MC_'+par+'afterFSR_eta'],"mass":truth_tree['MC_'+par+'afterFSR_m']}))   
+    # Append the variables for W's
+    for par in ['MC_W_from_t_afterFSR_','MC_W_from_tbar_afterFSR_']:
+        for var in ['pt','eta','y','phi','m','E']:
+            df_truth_W[par+var] = parton_tree[par+var]
 
-    # Get 4-vector values for the W's into the dataframe
-    for t in ['t','tbar']:
-
-        print('Calculating 4-vectors for '+t+' ...')
-
-        # Create lists for the variables
-        W_pt = []
-        W_phi = []
-        W_eta = []
-        W_m = []
-
-        # Run through each event
-        num_events = len(df_truth_W['isDummy'])
-        for i in range(num_events):
-
-            # Get W decay vectors
-            # ('Wdecay2_from_t_eta' is full of zeroes, so we need to approximate with y for now)
-            if t=='t':
-                Wdecay2_vec = vector.obj(pt=truth_tree['MC_Wdecay2_from_'+t+'_afterFSR_pt'][i],phi=truth_tree['MC_Wdecay2_from_'+t+'_afterFSR_phi'][i],eta=truth_tree['MC_Wdecay2_from_'+t+'_afterFSR_y'][i],mass=truth_tree['MC_Wdecay2_from_'+t+'_afterFSR_m'][i])
-            else:
-                Wdecay2_vec = vector.obj(pt=truth_tree['MC_Wdecay2_from_'+t+'_afterFSR_pt'][i],phi=truth_tree['MC_Wdecay2_from_'+t+'_afterFSR_phi'][i],eta=truth_tree['MC_Wdecay2_from_'+t+'_afterFSR_eta'][i],mass=truth_tree['MC_Wdecay2_from_'+t+'_afterFSR_m'][i])
-
-            Wdecay1_vec = vector.obj(pt=truth_tree['MC_Wdecay1_from_'+t+'_afterFSR_pt'][i],phi=truth_tree['MC_Wdecay1_from_'+t+'_afterFSR_phi'][i],eta=truth_tree['MC_Wdecay1_from_'+t+'_afterFSR_eta'][i],mass=truth_tree['MC_Wdecay1_from_'+t+'_afterFSR_m'][i])
-
-            # Add to get W vector
-            W_vec = Wdecay1_vec + Wdecay2_vec
-
-            # Append vector values to list
-            W_pt.append(W_vec.pt)
-            W_phi.append(W_vec.phi)
-            W_eta.append(W_vec.eta)
-            W_m.append(W_vec.mass)
-
-        print('Appending W values to dataframe ...')
-
-        # Put values in dataframe
-        df_truth_W['w_from_'+t+'_pt'] = W_pt
-        df_truth_W['w_from_'+t+'_phi'] = W_phi
-        df_truth_W['w_from_'+t+'_eta'] = W_eta
-        df_truth_W['w_from_'+t+'_m'] = W_m
-
-
-    # Add 4-vectors of two decay products from same W
-    #W_from_tbar_vec = decay_vec[0] + decay_vec[2]
-    #W_from_t_vec = decay_vec[1] + decay_vec[3]
-
-    # Append pt, eta, phi, and m to the data frame for both W's
-    #df_truth_W['w_from_tbar_pt'] = W_from_tbar_vec.pt
-    #df_truth_W['w_from_tbar_eta'] = W_from_tbar_vec.eta
-    #df_truth_W['w_from_tbar_phi'] = W_from_tbar_vec.phi
-    #df_truth_W['w_from_tbar_m'] = W_from_tbar_vec.mass
-    #df_truth_W['w_from_tbar_y'] = W_from_tbar_vec.y
-
-    #df_truth_W['w_from_t_pt'] = W_from_tbar_vec.pt
-    #df_truth_W['w_from_t_eta'] = W_from_tbar_vec.eta
-    #df_truth_W['w_from_t_phi'] = W_from_tbar_vec.phi
-    #df_truth_W['w_from_t_m'] = W_from_tbar_vec.mass
-    #df_truth_W['w_from_t_y'] = W_from_tbar_vec.y
-
-
-    # Define some helpful ranges
-    had_range = list(range(1,9))              # Quarks have pdgid 1 to 8
-    lep_range = list(range(11,19))            # Leptons have pdgid 11 to 18
-    bos_range = list(range(21,26))+[9,37]     # Bosons have pdgid 21 to 25, and 9, and 37
 
     # Determine if the W decay from tbar is a hadronic decay
     df_truth_W['Wdecay_from_tbar_isHadronicDecay'] = df_truth_W.apply(lambda x : True if abs(x['Wdecay1_from_tbar_pdgid']) in had_range and abs(x['Wdecay2_from_tbar_pdgid']) in had_range else False if abs(x['Wdecay1_from_tbar_pdgid']) in lep_range and abs(x['Wdecay2_from_tbar_pdgid']) in lep_range  else 'Error: Boson' if abs(x['Wdecay1_from_tbar_pdgid']) in bos_range or abs(x['Wdecay2_from_tbar_pdgid']) in bos_range else 'Error: 0' if abs(x['Wdecay1_from_tbar_pdgid'])==0 or abs(x['Wdecay2_from_tbar_pdgid'])==0 else 'Error: Mismatch' ,axis=1)
@@ -221,28 +385,28 @@ def getTruthData(truth_tree,ttbar_addon):
         print("WARNING: W from t stil has an error somewhere. This may mess up data sorting.")
 
 
-    print("Hadronic and leptonic W's identified and sorted.")
+    print("Hadronic and leptonic W's identified.")
 
 
     # Make truth df
-    df_truth = ak.to_pandas(truth_tree['isDummy'])
+    df_truth = ak.to_pandas(parton_tree['isDummy'])
     df_truth.rename(columns={'values':'isDummy'},inplace=True)
 
     # Loop through each of the main variables
     for v in ['pt','eta','phi','m']:
-        df_truth['th_'+v] = truth_tree['MC_thad_afterFSR_'+v]    # Append thad from ROOT file
-        df_truth['tl_'+v] = truth_tree['MC_tlep_afterFSR_'+v]    # Append tlep from ROOT file 
+        df_truth['th_'+v] = parton_tree['MC_thad_afterFSR_'+v]    # Append thad from ROOT file
+        df_truth['tl_'+v] = parton_tree['MC_tlep_afterFSR_'+v]    # Append tlep from ROOT file 
 
         # Set wh and wl variables using isHadronicDecay information
-        df_truth['wh_'+v] = df_truth_W.apply(lambda x : x['w_from_tbar_'+v] if x['Wdecay_from_tbar_isHadronicDecay']==True else x['w_from_t_'+v],axis=1)    # Sort through W df and find whad
-        df_truth['wl_'+v] = df_truth_W.apply(lambda x : x['w_from_t_'+v] if x['Wdecay_from_tbar_isHadronicDecay']==True else x['w_from_tbar_'+v],axis=1)    # Sort through W df and find wlep
+        df_truth['wh_'+v] = df_truth_W.apply(lambda x : x['MC_W_from_tbar_afterFSR_'+v] if x['Wdecay_from_tbar_isHadronicDecay']==True else x['MC_W_from_t_afterFSR_'+v],axis=1)    # Sort through W df and find whad
+        df_truth['wl_'+v] = df_truth_W.apply(lambda x : x['MC_W_from_t_afterFSR_'+v] if x['Wdecay_from_tbar_isHadronicDecay']==True else x['MC_W_from_tbar_afterFSR_'+v],axis=1)    # Sort through W df and find wlep
 
         # Append ttbar variables from ROOT file (ONLY for new architecture)
         if ttbar_addon:
             if v=='pt' or v=='m':
-                df_truth['ttbar_'+v] = truth_tree['MC_ttbar_afterFSR_'+v]/1000
+                df_truth['ttbar_'+v] = parton_tree['MC_ttbar_afterFSR_'+v]/1000
             else:
-                df_truth['ttbar_'+v] = truth_tree['MC_ttbar_afterFSR_'+v]
+                df_truth['ttbar_'+v] = parton_tree['MC_ttbar_afterFSR_'+v]
 
         # Convert from MeV to GeV
         if v=='pt' or v=='m':
@@ -255,44 +419,48 @@ def getTruthData(truth_tree,ttbar_addon):
     return df_truth
 
 
+
 # ---------- FUNCTION FOR OBTAINING DATAFRAMES FOR A FILE ---------- #
 
-# Create the jet, other, and truth dataframes from a specified file
-# Input: file name, true or false for extra ttbar variables
-def getDataframes(name,ttbar_addon):
+def getDataframes(name,ttbar_addon,withJetMatch,jn=6):
+    """
+    Create the jet, other, and truth dataframes from a specified file
+    Input: file name (e.g.'1_parton_ejets'), bool for extra ttbar variables, bool for jet matching, number of jets (default=6)
+    Output: array of jet dataframes, other dataframe, and truth dataframe
+    """
 
     # Import the root file data
-    root_file = uproot.open('/data/jchishol/mc16e/mntuple_ttbar_'+name+'.root')
+    root_file = uproot.open('/data/jchishol/mc16e/mntuple_ttbar_'+name+'_fixed.root')
     reco_tree = root_file['reco'].arrays()
-    truth_tree = root_file['parton'].arrays()
+    parton_tree = root_file['parton'].arrays()
 
     # Remove events with nan y values
     for var in ['MC_thad_afterFSR_y','MC_tlep_afterFSR_y','MC_Wdecay1_from_t_afterFSR_y','MC_Wdecay2_from_t_afterFSR_y','MC_Wdecay1_from_tbar_afterFSR_y','MC_Wdecay2_from_tbar_afterFSR_y']:
-        sel = np.invert(np.isnan(truth_tree[var]))
-        truth_tree = truth_tree[sel]
+        sel = np.invert(np.isnan(parton_tree[var]))
+        parton_tree = parton_tree[sel]
         reco_tree = reco_tree[sel]
 
-    # Remove events with met_met < 20 (to match Tao's cut) (not sure KLFitter does this though)
+    # Remove events with met_met < 20 GeV (to match Tao's cut) (not sure KLFitter does this though)
     sel = reco_tree['met_met']/1000 >= 20
-    truth_tree = truth_tree[sel]
+    parton_tree = parton_tree[sel]
     reco_tree = reco_tree[sel]
 
     # Remove isDummy events and !isMatched events
     sel = reco_tree['isMatched']==1
-    truth_tree = truth_tree[sel]
+    parton_tree = parton_tree[sel]
     reco_tree = reco_tree[sel]
-    sel = truth_tree['isDummy']==0
-    truth_tree = truth_tree[sel]
+    sel = parton_tree['isDummy']==0
+    parton_tree = parton_tree[sel]
     reco_tree = reco_tree[sel]
 
     # Get the array of jet dataframes
-    df_jets = getJetsData(reco_tree)
+    df_jets = getJetsData(parton_tree,reco_tree,withJetMatch,jn)
 
     # Get the other reco dataframe
     df_other = getOtherData(reco_tree)
 
     # Get the truth dataframe
-    df_truth = getTruthData(truth_tree,ttbar_addon)
+    df_truth = getTruthData(parton_tree,ttbar_addon)
 
     # Close root file
     root_file.close()
@@ -302,12 +470,15 @@ def getDataframes(name,ttbar_addon):
 
 # ---------- FUNCTION FOR SAVING H5 FILE ---------- #
 
-# Create and save h5 file with the reco and truth variables
-# Input: array of jet dataframes, other dataframe, truth dataframe, file number, and name
-def saveH5File(df_jets,df_other,df_truth,n,name):
+def saveH5File(df_jets,df_other,df_truth,save_name):
+    """
+    Create and save h5 file with the reco and truth variables
+    Input: array of jet dataframes, other dataframe, truth dataframe, and save file name (e.g.'1_parton_ejets_addon_ttbar+jetMatch')
+    Output: h5 file with jet, other, and truth (th, tl, and possibly ttbar) 4-vectors
+    """
 
     # Creating h5 file for input in the neural network
-    f = h5py.File("/data/jchishol/ML_Data/variables_ttbar_"+str(n)+name+".h5","r+")  # "w" means initializing file
+    f = h5py.File("/data/jchishol/ML_Data/variables_ttbar_"+save_name+".h5","r+")  # "w" means initializing file
 
     # Create datasets for jets 1 to 6
     for i in range(1,7):
@@ -323,102 +494,21 @@ def saveH5File(df_jets,df_other,df_truth,n,name):
         f.create_dataset(v,data=df_truth[v])
 
 
-    print('Saved: variables_ttbar_'+str(n)+name+'.h5')
+    print('Saved: variables_ttbar_'+save_name+'.h5')
 
-
-# ---------- FUNCTION FOR SAVING XMAXMEAN ---------- #
-
-# Saves numpy array of [max,mean] values for X and Y variables
-# Input: file name type
-def saveMaxMean(name):
-
-    print('Opening file ...')
-
-    # Load data
-    f = h5py.File('/data/jchishol/ML_Data/variables_ttbar_'+name+'.h5','r')    
-
-    print('File opened.')
-
-    # Create data frame
-    df = pd.DataFrame({'j1_isbtag':np.array(f.get('j1_isbtag'))})
-    for key in list(f.keys()):
-        df[key] = np.array(f.get(key))
-
-    print('Dataframe created')
-    f.close()
-
-    # Initialize arrays of maxmean
-    X_maxmean=[]
-    Y_maxmean=[]
-
-    # Jets
-    for i in range(6):
-
-        # Calculate px and py
-        df['j'+str(i+1)+'_px'] = df['j'+str(i+1)+'_pt']*np.cos(df['j'+str(i+1)+'_phi'])
-        df['j'+str(i+1)+'_py'] = df['j'+str(i+1)+'_pt']*np.sin(df['j'+str(i+1)+'_phi'])
-   
-        # Append max and mean
-        for v in ['pt','px','py','eta','m','isbtag']:
-            X_maxmean.append([df['j'+str(i+1)+'_'+v].abs().max(),df['j'+str(i+1)+'_'+v].mean()])
-
-    print('Jets done')
-
-    # Calculate px and py of lep
-    df['lep_px'] = df['lep_pt']*np.cos(df['lep_phi'])
-    df['lep_py'] = df['lep_pt']*np.sin(df['lep_phi'])
-
-    print('Calculated lep_px and lep_py.')
-
-    # Calculate sin(met_phi) and cos(met_phi)
-    df['met_phi-sin'] = np.sin(df['met_phi'])
-    df['met_phi-cos'] = np.cos(df['met_phi'])
-
-    print('Calculated met_phi-sin and met_phi-cos.')
-
-    # Append maxmean for other variables
-    for v in ['lep_pt','lep_px','lep_py','lep_eta','met_met','met_phi-sin','met_phi-cos']:
-        print('Appending maxmean for '+v)
-        X_maxmean.append([df[v].abs().max(),df[v].mean()])
-
-    print('Other done')
-
-    # Save array of X maxmean values
-    np.save('X_maxmean_'+name,X_maxmean)
-    print('Saved: X_maxmean_'+name+'.npy')
-
-    # Calculate px and py for truth
-    for p in ['th_','wh_','tl_','wl_','ttbar_']:
-        df[p+'px'] = df[p+'pt']*np.cos(df[p+'phi'])
-        df[p+'py'] = df[p+'pt']*np.sin(df[p+'phi'])
-
-        # Append maxmean for all truth variables
-        for v in ['pt','px','py','eta','m']:
-            Y_maxmean.append([df[p+v].abs().max(),df[p+v].mean()])
-
-            print('Appended '+p+v)
-
-    # Save Y maxmean arrays
-    np.save('Y_maxmean_'+name,Y_maxmean)
-    print('Saved: Y_maxmean_'+name+'.npy')
 
 
 # ---------- FUNCTION FOR COMBINING H5 FILES ---------- #
 
-# Combines the h5 files into one file
-# Input: the file name types as an array (e.g. ['parton_ejets', 'parton_mjets'], the file numbers, save file name
-def combineH5Files(names,file_nums,f_name):
-
-    # Set the name the new file will be called based on what's going into it
-    #if len(names)==2:
-    #    f_name = 'parton_e+mjets'
-    #elif len(names)==1:
-    #    f_name = names[0]
-    #else:
-    #    sys.exit('Too many or too little file names.')
+def combineH5Files(names,file_nums,save_name):
+    """
+    Combines the h5 files into one file
+    Input: the file name types as an array (e.g. ['parton_ejets_ttbar_addon', 'parton_mjets_ttbar_addon'], the file numbers, and save file name
+    Output: saves combined h5 file
+    """
 
     # Create a file to combine the data in
-    with h5py.File('/data/jchishol/ML_Data/variables_ttbar_'+f_name+'.h5','w') as h5fw:
+    with h5py.File('/data/jchishol/ML_Data/variables_ttbar_'+save_name+'.h5','w') as h5fw:
         
         current_row = 0   # Keeps track of how many rows of data we have written
         total_len = 0     # Keeps track of how much data we have read
@@ -456,6 +546,89 @@ def combineH5Files(names,file_nums,f_name):
                 print('File '+str(i)+' appended.')
 
 
+# ---------- FUNCTION FOR SAVING XMAXMEAN ---------- #
+
+def saveMaxMean(name,ttbar_addon,withJetMatch):
+    """
+    Saves numpy array of [max,mean] values for X and Y variables
+    Input: file name type, bool for ttbar addon, bool for if it includes jet matches
+    Output: two numpy files of [max, mean] values for X and Y variables
+    """
+
+    print('Opening file ...')
+
+    # Load data
+    f = h5py.File('/data/jchishol/ML_Data/variables_ttbar_'+name+'.h5','r')    
+
+    print('File opened.')
+
+    # Create data frame
+    df = pd.DataFrame({'j1_isbtag':np.array(f.get('j1_isbtag'))})
+    for key in list(f.keys()):
+        df[key] = np.array(f.get(key))
+
+    print('Dataframe created')
+    f.close()
+
+    # Initialize arrays of maxmean
+    X_maxmean=[]
+    Y_maxmean=[]
+
+    # Jets
+    for i in range(6):
+
+        # Calculate px and py
+        df['j'+str(i+1)+'_px'] = df['j'+str(i+1)+'_pt']*np.cos(df['j'+str(i+1)+'_phi'])
+        df['j'+str(i+1)+'_py'] = df['j'+str(i+1)+'_pt']*np.sin(df['j'+str(i+1)+'_phi'])
+   
+        # Append max and mean
+        for v in ['pt','px','py','eta','m','isbtag']:
+            X_maxmean.append([df['j'+str(i+1)+'_'+v].abs().max(),df['j'+str(i+1)+'_'+v].mean()])
+        
+        # Also append isTrue if using the jet matching
+        if withJetMatch:
+            X_maxmean.append([df['j'+str(i+1)+'_isTrue'].abs().max(),df['j'+str(i+1)+'_isTrue'].mean()])
+
+    print('Jets done')
+
+    # Calculate px and py of lep
+    df['lep_px'] = df['lep_pt']*np.cos(df['lep_phi'])
+    df['lep_py'] = df['lep_pt']*np.sin(df['lep_phi'])
+
+    print('Calculated lep_px and lep_py.')
+
+    # Calculate sin(met_phi) and cos(met_phi)
+    df['met_phi-sin'] = np.sin(df['met_phi'])
+    df['met_phi-cos'] = np.cos(df['met_phi'])
+
+    print('Calculated met_phi-sin and met_phi-cos.')
+
+    # Append maxmean for other variables
+    for v in ['lep_pt','lep_px','lep_py','lep_eta','met_met','met_phi-sin','met_phi-cos']:
+        print('Appending maxmean for '+v)
+        X_maxmean.append([df[v].abs().max(),df[v].mean()])
+
+    print('Other done')
+
+    # Save array of X maxmean values
+    np.save('X_maxmean_'+name,X_maxmean)
+    print('Saved: X_maxmean_'+name+'.npy')
+
+    # Calculate px and py for truth
+    particles = ['th_','wh_','tl_','wl_','ttbar_'] if ttbar_addon else ['th_','wh_','tl_','wl_']
+    for p in particles:
+        df[p+'px'] = df[p+'pt']*np.cos(df[p+'phi'])
+        df[p+'py'] = df[p+'pt']*np.sin(df[p+'phi'])
+
+        # Append maxmean for all truth variables
+        for v in ['pt','px','py','eta','m']:
+            Y_maxmean.append([df[p+v].abs().max(),df[p+v].mean()])
+
+            print('Appended '+p+v)
+
+    # Save Y maxmean arrays
+    np.save('Y_maxmean_'+name,Y_maxmean)
+    print('Saved: Y_maxmean_'+name+'.npy')
 
 
 
@@ -463,21 +636,30 @@ def combineH5Files(names,file_nums,f_name):
 
 # Need to perform the parts separately (otherwise ssh session dies -- not really sure why)
 
-# Part 1: create separate h5 files (will need to change the file number each time this is run)
-file_num = 7
-file_name = '_parton_mjets'
-df_jets, df_other, df_truth = getDataframes(str(file_num)+file_name,True)
-saveH5File(df_jets,df_other,df_truth,file_num,file_name+'_ttbar_addon')
+ttbar_addon = True
+withJetMatch = True
+addon_tag = '_addon_ttbar+jetMatch' if ttbar_addon*withJetMatch else '_addon_ttbar' if ttbar_addon else '_addon_jetMatch' if withJetMatch else ''
 
+# Part 1: create separate h5 files (will need to change the file number each time this is run)
+file_num = 0
+file_name = '_parton_ejets'
+df_jets, df_other, df_truth = getDataframes(str(file_num)+file_name,ttbar_addon,withJetMatch,jn=6)
+print(df_jets[0]['isTrue'])
+print(df_jets[1]['isTrue'])
+print(df_jets[2]['isTrue'])
+print(df_jets[3]['isTrue'])
+print(df_jets[4]['isTrue'])
+print(df_jets[5]['isTrue'])
+#saveH5File(df_jets,df_other,df_truth,str(file_num)+file_name+addon_tag)
 
 # Part 2: Put the h5 files together
-combineH5Files(['parton_ejets_ttbar_addon','parton_mjets_ttbar_addon'],[0,1,2,3,4,6,7],'parton_e+mjets_ttbar_addon_train')  # Use files 0-4 for training
-combineH5Files(['parton_ejets_ttbar_addon'],[5],'parton_ejets_ttbar_addon_test')        # Use file 5 for testing
-combineH5Files(['parton_mjets_ttbar_addon'],[5],'parton_mjets_ttbar_addon_test')        # Use file 5 for testing
+#combineH5Files(['parton_ejets'+addon_tag,'parton_mjets'+addon_tag],[0,1,2,3,4,6,7],'parton_e+mjets'+addon_tag+'_train')  # Use files 0-4 for training
+#combineH5Files(['parton_ejets'+addon_tag],[5],'parton_ejets'+addon_tag+'_test')        # Use file 5 for testing
+#combineH5Files(['parton_mjets'+addon_tag],[5],'parton_mjets'+addon_tag+'_test')        # Use file 5 for testing
 
 
 # Part 3: Create and save numpy array of X and Y max and mean values
-saveMaxMean('parton_e+mjets_ttbar_addon_train')
+saveMaxMean('parton_e+mjets'+addon_tag+'_train',ttbar_addon,withJetMatch)
 
 
 
