@@ -214,8 +214,6 @@ def getDataframes(name,ttbar_addon,withJetMatch,jn=6):
     # Get the truth dataframe
     print('Getting truth dataframe ...')
     df_truth = getTruthData(parton_tree,reco_tree,ttbar_addon,withJetMatch)
-
-    print(df_truth)
     
 
     return df_jets, df_other, df_truth
@@ -394,17 +392,17 @@ def saveMaxMean(name):
 
 ttbar_addon = True
 withJetMatch = True
-addon_tag = '_addon_ttbar+jetMatch' if ttbar_addon*withJetMatch else '_addon_ttbar' if ttbar_addon else '_addon_jetMatch' if withJetMatch else ''
+addon_tag = '_addon_ttbar+jetMatch04' if ttbar_addon*withJetMatch else '_addon_ttbar' if ttbar_addon else '_addon_jetMatch04' if withJetMatch else ''
 
 # Part 1: create separate h5 files (will need to change the file number each time this is run)
-file_num = 0
-file_name = '_parton_ejets'
-for file_num in range(1):
-    df_jets, df_other, df_truth = getDataframes(str(file_num)+file_name+'_fixed+match0d4',ttbar_addon,withJetMatch,jn=6)
-    saveH5File(df_jets,df_other,df_truth,str(file_num)+file_name+addon_tag)
-    del df_jets
-    del df_other
-    del df_truth
+# file_num = 0
+# file_name = '_parton_mjets'
+# for file_num in range(8):
+#     df_jets, df_other, df_truth = getDataframes(str(file_num)+file_name+'_fixed+match0d4',ttbar_addon,withJetMatch,jn=6)
+#     saveH5File(df_jets,df_other,df_truth,str(file_num)+file_name+addon_tag)
+#     del df_jets
+#     del df_other
+#     del df_truth
 
 # Part 2: Put the h5 files together
 #combineH5Files(['parton_ejets'+addon_tag,'parton_mjets'+addon_tag],[0,1,2,3,4,6,7],'parton_e+mjets'+addon_tag+'_train')  # Use files 0-4 for training
@@ -413,7 +411,7 @@ for file_num in range(1):
 
 
 # Part 3: Create and save numpy array of X and Y max and mean values
-saveMaxMean('0_parton_ejets_addon_ttbar+jetMatch')
+saveMaxMean('parton_e+mjets'+addon_tag+'_train')
 
 
 

@@ -306,8 +306,8 @@ def fixRootFile(name,dR_cut,allowDoubleMatching=False):
     fix_file.close()
 
     # Save the matching info separately, since it's a weird shape
-    np.save('matching_info/matching_info_'+name+dR_str,matching_info)
-    print('Saved file: matching_info/matching_info_'+name+dR_str)
+    np.save('/data/jchishol/mc16e/matching_info/matching_info_'+name+dR_str,matching_info)
+    print('Saved file: /data/jchishol/mc16e/matching_info/matching_info_'+name+dR_str)
 
 
 
@@ -734,8 +734,13 @@ def addJetMatchLabels2(name,dR_cut,allowDoubleMatching=False):
 
 #fixRootFile('5_parton_mjets')
 
-fixRootFile('2_parton_ejets',dR_cut=0.4,allowDoubleMatching=True)
-fixRootFile('2_parton_ejets',dR_cut=0.6,allowDoubleMatching=True)
+
+fixRootFile('5_parton_mjets',dR_cut=0.4,allowDoubleMatching=True)
+fixRootFile('5_parton_mjets',dR_cut=0.6,allowDoubleMatching=True)
+fixRootFile('6_parton_mjets',dR_cut=0.4,allowDoubleMatching=True)
+fixRootFile('6_parton_mjets',dR_cut=0.6,allowDoubleMatching=True)
+fixRootFile('7_parton_mjets',dR_cut=0.4,allowDoubleMatching=True)
+fixRootFile('7_parton_mjets',dR_cut=0.6,allowDoubleMatching=True)
 
 
 
