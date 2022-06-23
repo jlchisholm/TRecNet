@@ -13,13 +13,13 @@ class Scale_variables:
         self.boxcox_ptlamb = 1
     
     def final_maxmean(self,array, names, maxmean0):
-        dont = np.array([1 if 'phi' in name or 'isbtag' in name or 'DL1r' in name or 'isMA' in name else 0 for name in names])
+        dont = np.array([1 if 'phi' in name or 'isbtag' in name or 'DL1r' in name or 'isMA' in name or 'isTruth' in name else 0 for name in names])
         z = (array - maxmean0[:,1])/maxmean0[:,0]
         z = z*(1-dont) + array*dont
         return z
 
     def inverse_final_maxmean(self, array, maxmean0, names):
-        dont = np.array([1 if 'phi' in name or 'isbtag' in name or 'DL1r' in name or 'isMA' in name else 0 for name in names])
+        dont = np.array([1 if 'phi' in name or 'isbtag' in name or 'DL1r' in name or 'isMA' in name or 'isTruth' in name else 0 for name in names])
         z = array*maxmean0[:,0] + maxmean0[:,1]
         z = z*(1-dont) + array*dont
         return z
@@ -28,18 +28,18 @@ class Scale_variables:
         names = []
         arrays = []
         i = 0
-        while i < len(keys):
+        while i < len(keys):  # weird way of looping through keys ...
             key = keys[i]
-            ktype = keys[i].split('_')[1]
+            ktype = keys[i].split('_')[1]   # This gives variable (e.g. 'pt')
             var = np.array(dataset.get(key))[0:crop0]
-            if 'pt' in ktype: 
+            if 'pt' in ktype: # do pt, eta, and phi triplets ...
                 var1, var2 = np.array(dataset.get(keys[i+1]))[0:crop0], np.array(dataset.get(keys[i+2]))[0:crop0] # J: this would get eta and phi I think
                 ptbox,px,py,eta = cart_pt_transform(var,var1,var2,self.boxcox_ptlamb)
                 short = key.split('_')[0]
                 names = names + [short + '_ptbox', short + '_px', short + '_py', short + '_eta']
                 arrays = arrays + [ptbox, px, py, eta]
                 i+=3
-            elif 'phi' in ktype:
+            elif 'phi' in ktype:  # this is just for met_phi I think
                 exist = self.exist_dict[key]
                 zsin, zcos = phi4_transform(var, exist)
                 arrays = arrays + [zsin, zcos]
@@ -52,6 +52,9 @@ class Scale_variables:
         arrays = np.stack(arrays, axis=1)
         z = self.final_maxmean(arrays, names, maxmean0)
         return z, names
+
+
+
     
     def invscale_arrays(self, z, names, maxmean0):
         arrays = self.inverse_final_maxmean(z, maxmean0, names)
