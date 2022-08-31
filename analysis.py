@@ -47,17 +47,30 @@ class Analysis:
             plt.title(names[i] + " MSE: " + str(MSE))
             plt.legend()
     
-    def display_errors(compare, true, names, wrap_phi):
-        MSE = 1/compare.size*np.sum((compare- true)**2)
+    def display_errors(compare, true, names, wrap_phi):      # Jenna: changed some calculations to np.mean to provide clarity
+        MSE = np.mean((compare- true)**2)
         print("total MSE: " + str(MSE))
         print(" ")
         for i in range(len(names)):
             diff = compare[:,i] -true[:,i]
             if wrap_phi and "phi" in names[i]:
                 diff = Analysis.wrap_phi(diff)
-            MSE = 1/compare[:,i].size*np.sum((diff)**2)
-            MAE = 1/compare[:,i].size*np.sum(np.abs(diff))
-            print("{0} MSE, MAE : ".format(names[i]), '%.10f'%MSE, '%.10f'%MAE)
+            mse = np.mean((diff)**2)
+            mae = np.mean(np.abs(diff))
+            print("{0} MSE, MAE : ".format(names[i]), '%.10f'%mse, '%.10f'%mae)
+
+    # Jenna:
+    def save_errors(compare, true, names, wrap_phi, save_name):
+        mse = []
+        mae = []
+        for i in range(len(names)):
+            diff = compare[:,i] -true[:,i]
+            if wrap_phi and "phi" in names[i]:
+                diff = Analysis.wrap_phi(diff)
+            mse.append(np.mean((diff)**2))
+            mae.append(np.mean(np.abs(diff)))
+        errors = {names[i]:{'mse':mse[i],'mae':mae[i]} for i in range(len(names))}
+        np.save(save_name,errors)
     
     def difference_histogram(compare, true, names, wrap_phi, bins):
         plt.figure(figsize=(Analysis.fsize*2,Analysis.fsize*len(names)))
