@@ -1,3 +1,19 @@
+######################################################################
+#                                                                    #
+#  MLPrep.py                                                         #
+#  Author: Jenna Chisholm                                            #
+#  Updated: Sept.1/22                                                #
+#                                                                    #
+#  For matching ttbar decay products to reco level jets, making h5   #
+#  data files, and calculating maxmean of data (all prep necessary   #
+#  for TRecNet).                                                     #
+#                                                                    #
+#  Thoughts for improvements: could take in names for the truth and  #
+#  reco trees.                                                       #
+#                                                                    #
+######################################################################
+
+
 import uproot
 import h5py
 import numpy as np
@@ -6,7 +22,8 @@ import pandas as pd
 import matplotlib
 #matplotlib.use('GTK3Agg')   # need this one if you want plots displayed
 import vector
-import os
+import os, sys, argparse
+from argparse import ArgumentParser
 from __main__ import *
 
 # Define some helpful ranges
@@ -17,7 +34,6 @@ light_quarks = list(range(-4,0)) + list(range(1,5))
 b_quarks = [-5,5]
 
 
-
 class jetMatcher:
     """ 
     A class for matching ttbar decay products to reco level jets.
@@ -25,7 +41,7 @@ class jetMatcher:
         Methods:
             pruneTrees: Removes events we can't use from the trees (i.e. events with nan y and non-semileptonic events)
             getMatches: Matches ttbar decay products to reco-level jets.
-            addMatchesToFile: Gets the jet match tags and creates a new root file from the old one, including these new tags.
+            appendJetMatches: Gets the jet match tags and creates a new root file from the old one, including these new tags.
 
     """
 
@@ -60,16 +76,14 @@ class jetMatcher:
         return nom_tree
 
 
-    def getMatches(self,nom_tree, dR_cut=1.0, allowDoubleMatch=True):
+    def getMatches(self,nom_tree, dR_cut, allowDoubleMatch):
         """
         Matches ttbar decay products to reco-level jets.
 
             Parameters:
                 nom_tree (root tree): Nominal tree from the root file.
-            
-            Options:
-                dR_cut (float): A threshold which the dR for all matches must be below (default: 1.0).
-                allowDoubleMatch (bool): Whether or not two or more decay products are allowed to be matched to the same jet (default: True).
+                dR_cut (float): A threshold which the dR for all matches must be below.
+                allowDoubleMatch (bool): Whether or not two or more decay products are allowed to be matched to the same jet.
 
             Returns:
                 isttbarJet (jagged array of bools): Tags for each jet in each event, where 0 means it was not matched to something, and 1 means it was.
@@ -171,28 +185,31 @@ class jetMatcher:
         return isttbarJet, match_info
 
 
-    def addMatchesToFile(self,file,dR_cut=1.0,allowDoubleMatching=True):
+    def appendJetMatches(self,input_file,save_dir,dR_cut,allowDoubleMatching):
         """
         Gets the jet match tags and creates a new root file from the old one, including these new tags.
 
             Parameters:
-                file (root file): Root file you'd like to add the jet matches to.
-
-            Options:
-                dR_cut (float): A threshold which the dR for all matches must be below (default: 1.0).
-                allowDoubleMatch (bool): Whether or not two or more decay products are allowed to be matched to the same jet (default: True).
+                input_file (str): Name (including path) of the root file you'd like to add the jet matches to.
+                save_dir (str): Desired directory to save the output root file in.
+                dR_cut (float): A threshold which the dR for all matches must be below.
+                allowDoubleMatch (bool): Whether or not two or more decay products are allowed to be matched to the same jet.
 
             Returns:
                 Creates a new root file that includes the systematic uncertainty trees, as well as the nominal tree with the new jet match tags included as 'jet_isTruth'.
         """
+
+        # Separate input file name and its path
+        in_path = os.path.split(input_file)[0]
+        in_name = os.path.split(input_file)[1]
 
         # Just need this little string for file saving purposes
         match_tag = '_jetMatch'+str(dR_cut).replace('.','')
 
         # Open the original file and a new file to write to
         print('Opening root files ...')
-        og_file = uproot.open(file.path)
-        fix_file = uproot.recreate(file.path.split('.root')[0]+match_tag+'.root')
+        og_file = uproot.open(input_file)
+        fix_file = uproot.recreate(save_dir+'/'+in_name.split('.root')[0]+match_tag+'.root')
 
         # Get the reco and parton trees from the original file
         down_tree = og_file['CategoryReduction_JET_Pileup_RhoTopology__1down'].arrays()
@@ -225,14 +242,16 @@ class jetMatcher:
         fix_file['CategoryReduction_JET_Pileup_RhoTopology__1up'] = {key:up_tree[key] for key in up_keys}
         fix_file['nominal'] = {key:nom_tree[key] for key in nom_keys}
 
-        print('Saved file: '+file.path.split('.root')[0]+match_tag+'.root')
+        print('Saved file: '+save_dir+'/'+in_name.split('.root')[0]+match_tag+'.root')
 
         # Close new file
         fix_file.close()
 
-        # Save the matching info separately, since it's a weird shape
-        np.save(file.path.split(file.name)[0]+'matching_info/matching_info_'+file.name.split('.root')[0]+match_tag,matching_info)
-        print('Saved file: '+file.path.split(file.name)[0]+'matching_info/matching_info_'+file.name.split('.root')[0]+match_tag+'.npy')
+        # Save the matching info separately, since it's a weird shape, and save in its own folder
+        if not os.path.exists(save_dir+'/matching_info'):
+            os.mkdir(save_dir+'/matching_info')
+        np.save(save_dir+'/matching_info/'+in_name.split('.root')[0]+match_tag,matching_info)
+        print('Saved file: '+save_dir+'/matching_info/'+in_name.split('.root')[0]+match_tag,matching_info)
 
 
 
@@ -248,23 +267,19 @@ class filePrep:
             makeH5File: Creates and saves h5 file with the reco and truth variables.
             combineH5Files: Combines several h5 files into one file.
             saveMaxMean: Saves numpy array of [max,mean] values for X (reco) and Y (truth) variables.
-            
-
     """
 
     def __init__(self):
         print("Creating filePrepper.")
 
 
-    def getJetsData(self,reco_tree,jn=6):
+    def getJetsData(self,reco_tree,jn):
         """
         Creates an array of dataframes for the jets, including pt, eta, phi, m, and btag for each jet.
 
             Parameters:
-                reco_tree (root tree): Reco level tree from ROOT file
-
-            Options:
-                jn (int): Number of jets you want per event, with padding where need be (default: 6)
+                reco_tree (root tree): Reco level tree from ROOT file.
+                jn (int): Number of jets you want per event, with padding where need be.
 
             Returns:
                 df_jets (array of dataframes): An array of <jn> dataframes (one for each of the jets), containing jet data.
@@ -325,15 +340,13 @@ class filePrep:
         return df_other
 
 
-    def getTruthData(self,nom_tree,jn=6):
+    def getTruthData(self,truth_tree,jn):
         """
         Creates a dataframe for the truth variables, including: pt, eta, phi, m, y, E, and pout for thad and tlep; and pt, eta, phi, m, y, E, dphi, Ht, chi, and yboost for ttbar; pt, eta, phi, m for whad and wlep; and isTruth for each of the jets.
         
             Parameters: 
-                nom_tree (root tree): Parton level tree from ROOT file.
-            
-            Options:
-                jn (int): Number of jets you want per event, with padding where need be (default: 6).
+                truth_tree (root tree): Parton level tree from ROOT file.
+                jn (int): Number of jets you want per event, with padding where need be.
             
             Returns:
                 df_truth (dataframe): Dataframe for the truth variables.
@@ -344,28 +357,28 @@ class filePrep:
         for v in ['pt','eta','phi','m','y','E']:
             for p in ['MC_thad_afterFSR_','MC_tlep_afterFSR_']:
                 truth_keys.append(p+v)
-        df_truth = ak.to_pandas({key.split('_')[1][0:2]+'_'+key.split('_')[-1]:nom_tree[key] for key in truth_keys})
-        df_truth['th_pout'] = nom_tree['MC_thad_Pout']
-        df_truth['tl_pout'] = nom_tree['MC_tlep_Pout']
+        df_truth = ak.to_pandas({key.split('_')[1][0:2]+'_'+key.split('_')[-1]:truth_tree[key] for key in truth_keys})
+        df_truth['th_pout'] = truth_tree['MC_thad_Pout']
+        df_truth['tl_pout'] = truth_tree['MC_tlep_Pout']
 
         # Include ttbar
         for v in ['pt','eta','phi','m','y','E']:
-            df_truth['ttbar_'+v] = nom_tree['MC_ttbar_afterFSR_'+v]
-        df_truth['ttbar_dphi'] = nom_tree['MC_deltaPhi_tt']
-        df_truth['ttbar_Ht'] = nom_tree['MC_HT_tt']
-        df_truth['ttbar_chi'] = nom_tree['MC_chi_tt']
-        df_truth['ttbar_yboost'] = nom_tree['MC_y_boost']
+            df_truth['ttbar_'+v] = truth_tree['MC_ttbar_afterFSR_'+v]
+        df_truth['ttbar_dphi'] = truth_tree['MC_deltaPhi_tt']
+        df_truth['ttbar_Ht'] = truth_tree['MC_HT_tt']
+        df_truth['ttbar_chi'] = truth_tree['MC_chi_tt']
+        df_truth['ttbar_yboost'] = truth_tree['MC_y_boost']
 
 
         # Get the wh and wl information
         for v in ['pt','eta','phi','m']:
 
             # Set wh and wl variables using isHadronicDecay information
-            df_truth['wh_'+v] = nom_tree['MC_W_from_thad_'+v] 
-            df_truth['wl_'+v] = nom_tree['MC_W_from_tlep_'+v] 
+            df_truth['wh_'+v] = truth_tree['MC_W_from_thad_'+v] 
+            df_truth['wl_'+v] = truth_tree['MC_W_from_tlep_'+v] 
 
         # Include jet match info (if desired)
-        padded_matches = np.asarray(ak.fill_none(ak.pad_none(nom_tree['jet_isTruth'], jn, clip=True), 0))
+        padded_matches = np.asarray(ak.fill_none(ak.pad_none(truth_tree['jet_isTruth'], jn, clip=True), 0))
         for j in range(jn):
             df_truth['j'+str(j+1)+'_isTruth'] = padded_matches[:,j]
 
@@ -374,22 +387,23 @@ class filePrep:
             if col.split('_')[1] in ['pt','m','E','pout','Ht']:
                 df_truth[col] = df_truth[col]/1000
 
+        # Include event number (might be useful later)
+        df_truth['eventNumber'] = truth_tree['eventNumber']
+
 
         print('Truth dataframe created.')
 
         return df_truth
 
 
-    def getDataframes(self,root_file,jn=6,met_cut=0):
+    def getDataframes(self,root_file,jn,met_cut):
         """
         Creates the jet, other, and truth dataframes from a specified file.
 
             Parameters: 
-                root_file (root file): Root file you'd like to extract data from.
-
-            Options:
-                jn (int): Number of jets you want per event, with padding where need be (default: 6).
-                met_cut (int or float): Minimum cut on met_met values (default: 0).
+                root_file (str): Name (and path) of the root file you'd like to extract data from.
+                n (int): Number of jets you want per event, with padding where need be.
+                met_cut (int or float): Minimum cut on met_met values.
         
             Returns: 
                 df_jets (array of dataframes): An array of <jn> dataframes (one for each of the jets), containing jet data.
@@ -398,7 +412,7 @@ class filePrep:
         """
 
         # Import the root file data
-        root_file = uproot.open(root_file.path)
+        root_file = uproot.open(root_file)
         nom_tree = root_file['nominal'].arrays()
 
         # Close root file
@@ -424,28 +438,25 @@ class filePrep:
         return df_jets, df_other, df_truth
 
 
-    def makeH5File(self,file,save_name,jn=6,met_cut=0,save_loc='./'):
+    def makeH5File(self,input,output,jn,met_cut):
         """
         Creates and saves h5 file with the reco and truth variables.
 
             Parameters: 
-                file (root file): Root file you'd like to extract data from.
-                save_name (str): Name the file will be saved as.
-                
-            Options:
-                save_loc (str): Location the file will be saved in (default: current directory).
-                jn (int): Number of jets you want per event, with padding where need be (default: 6).
-                met_cut (int or float): Minimum cut on met_met values (default: 0).
+                input (str): Name (and path) of the root file you'd like to extract data from.
+                output (str): Name (and path) the file will be saved to.
+                jn (int): Number of jets you want per event, with padding where need be.
+                met_cut (int or float): Minimum cut on met_met values.
 
             Returns: 
                 Saves an h5 file with jet, other, and truth data. See getJetData, getOtherData, and getTruthData for details on what's included.
         """
 
         # Get the data to be saved
-        df_jets, df_other, df_truth = self.getDataframes(file,jn=jn,met_cut=met_cut)
+        df_jets, df_other, df_truth = self.getDataframes(input,jn,met_cut)
 
         # Creating h5 file for input in the neural network
-        f = h5py.File(save_loc+save_name+".h5","w")  # "w" means initializing file
+        f = h5py.File(output+".h5","w")  # "w" means initializing file
 
         # Create datasets for jets
         for j,df in enumerate(df_jets):
@@ -461,23 +472,23 @@ class filePrep:
             f.create_dataset(v,data=df_truth[v])
 
 
-        print('Saved: '+save_loc+save_name+'.h5')
+        print('Saved: '+output+'.h5')
 
 
-    def combineH5Files(self,file_list,save_name):
+    def combineH5Files(self,file_list,output):
         """
         Combines several h5 files into one file.
 
             Parameters: 
-                file_list (array of files): All the h5 files you want to combine.
-                save_name (str): Name the file will be saved as.
+                file_list (list of str): List of the h5 file names (and their paths) you want to combine.
+                save_name (str): Name (and path) the file will be saved to.
 
             Returns: 
                 Saves the combined h5 file (in the same location as the last h5 file in the list).
         """
 
         # Create a file to combine the data in
-        with h5py.File('/data/jchishol/ML_Data/'+save_name+'.h5','w') as h5fw:
+        with h5py.File(output+'.h5','w') as h5fw:
             
             current_row = 0   # Keeps track of how many rows of data we have written
             total_len = 0     # Keeps track of how much data we have read
@@ -486,7 +497,7 @@ class filePrep:
             for file in file_list:
                 
                 # Read the file
-                h5fr = h5py.File(file.path,'r')    # Read the file
+                h5fr = h5py.File(file,'r')    # Read the file
                 
                 # Get the file length and add to the total length of data
                 dslen = h5fr['j1_isbtag'].shape[0]
@@ -509,26 +520,27 @@ class filePrep:
                 # Update the current row
                 current_row = total_len
 
-                print(file.name+' appended.')
+                print(file+' appended.')
 
-        print('Saved: '+file.path.split(file.name)[0]+save_name+'.h5')
+        print('Saved: '+output+'.h5')
 
 
-    def saveMaxMean(self,name):
+    def saveMaxMean(self,name,save_dir):
         """
         Saves dictionary of [max,mean] values for X (reco) and Y (truth) variables.
         
             Parameters: 
-                name (str): Name of the h5 file you want to calculate the max mean values for.
+                name (str): Name (and path) of the h5 file you want to calculate the max mean values for.
+                save_dir (str): Directory where you would like to save the max mean values.
 
             Returns: 
-                Saves two numpy files of [max, mean] values; one for X (reco) variables and one for Y (truth) variables
+                Saves two numpy files of [max, mean] values; one for X (reco) variables and one for Y (truth) variables.
         """
 
         print('Opening file ...')
 
         # Load data
-        f = h5py.File('/data/jchishol/ML_Data/'+name+'.h5','r')    
+        f = h5py.File(name,'r')    
 
         print('File opened.')
 
@@ -580,8 +592,8 @@ class filePrep:
         print('Other done')
 
         # Save array of X maxmean values
-        np.save('X_maxmean_'+name,X_maxmean)
-        print('Saved: X_maxmean_'+name+'.npy')
+        np.save(save_dir+'/X_maxmean_'+name,X_maxmean)
+        print('Saved: '+save_dir+'/X_maxmean_'+name+'.npy')
 
         # Calculate px and py for truth
         particles = ['th_','wh_','tl_','wl_','ttbar_']
@@ -596,5 +608,58 @@ class filePrep:
                 print('Appended '+p+v)
 
         # Save Y maxmean arrays
-        np.save('Y_maxmean_'+name,Y_maxmean)
-        print('Saved: Y_maxmean_'+name+'.npy')
+        np.save(save_dir+'/Y_maxmean_'+name,Y_maxmean)
+        print('Saved: '+save_dir+'/Y_maxmean_'+name+'.npy')
+
+
+
+
+
+
+
+# ---------- GET ARGUMENTS FROM COMMAND LINE ---------- #
+
+# Create the main parser and subparsers
+parser = ArgumentParser()
+subparser = parser.add_subparsers(dest='function',required=True)
+p_appendJetMatches = subparser.add_parser('appendJetMatches')
+p_makeH5File = subparser.add_parser('makeH5File')
+p_combineH5Files = subparser.add_parser('combineH5Files')
+p_saveMaxMean = subparser.add_parser('saveMaxMean')
+
+# Define arguments for appendJetMatches
+p_appendJetMatches.add_argument('--input',help='Input file (including path).',required=True)
+p_appendJetMatches.add_argument('--save_dir',help='Path for directory where file will be saved.',required=True)
+p_appendJetMatches.add_argument('--dR_cut',help='Maximum dR for the cut on dR (default: 1.0).',type=float,default=1.0)
+p_appendJetMatches.add_argument('--allow_double_matching',help='Use this flag to allow double matching.',action='store_false')
+
+# Define arguments for makeH5File
+p_makeH5File.add_argument('--input',help='Input file (including path).',required=True)
+p_makeH5File.add_argument('--output',help='Output file (including path).',required=True)
+p_makeH5File.add_argument('--jn',help='Number of jets to include per event (using padding if necessary) (default: 6).',type=int,default=6)
+p_makeH5File.add_argument('--met_cut',help='Minimum cut value for met_met (default: 20).',type=float,default=20.)
+
+# Define arguments for combineH5Files
+p_combineH5Files.add_argument('--input',help='Text file containing list of input files (including path).',required=True, type=argparse.FileType('r'))
+p_combineH5Files.add_argument('--output',help='Output file (including path).',required=True)
+
+# Define arguments for saveMaxMean
+p_saveMaxMean.add_argument('--input',help='Input file (including path).',required=True)
+p_saveMaxMean.add_argument('--save_dir',help='Path for directory where file will be saved.',required=True)
+
+
+# Parse the arguments and proceed with stuff
+args = parser.parse_args()
+if args.function == 'appendjetMatches':
+  matcher = jetMatcher()
+  matcher.appendJetMatches(args.input,args.save_dir,args.dR_cut,args.allow_double_matching)
+elif args.function == 'makeH5File':
+  prepper = filePrep()
+  prepper.makeH5File(args.input,args.output,args.jn,args.met_cut)
+elif args.function == 'combineH5Files':
+  file_list = [file.strip() for file in args.input]
+  prepper = filePrep()
+  prepper.combineH5Files(args.file_list, args.output)
+elif args.function == 'saveMaxMean':
+    prepper = filePrep()
+    prepper.saveMaxMean(args.input,args.save_dir)

@@ -1,5 +1,10 @@
 from MLPrep import jetMatcher, filePrep
-import os
+import sys, os
+import argparse
+from argparse import ArgumentParser
+
+
+
 
 
 
@@ -7,13 +12,13 @@ import os
 
 # ---------- PUT JET MATCHES IN ROOT FILES ---------- #
 
-matcher = jetMatcher()
+# matcher = jetMatcher()
 
-directory = '/data/jchishol/mc16d'
-for file in sorted(os.scandir(directory),key=lambda f: f.name):
-    if file.is_file() and ('jetMatch' not in file.name):
-        print('On file',file.name)
-        matcher.addMatchesToFile(file,dR_cut=0.4,allowDoubleMatching=True)
+# directory = '/data/jchishol/mc16d'
+# for file in sorted(os.scandir(directory),key=lambda f: f.name):
+#     if file.is_file() and ('jetMatch' not in file.name):
+#         print('On file',file.name)
+#         matcher.addMatchesToFile(file,dR_cut=0.4,allowDoubleMatching=True)
 
 
 
