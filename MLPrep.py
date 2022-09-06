@@ -22,6 +22,7 @@ import pandas as pd
 import matplotlib
 #matplotlib.use('GTK3Agg')   # need this one if you want plots displayed
 import vector
+import tracemalloc
 import os, sys, argparse
 from argparse import ArgumentParser
 from __main__ import *
@@ -48,32 +49,32 @@ class jetMatcher:
     def __init__(self):
         print("Creating jetMatcher.")
 
-    def pruneTree(self,nom_tree):
+    def pruneTree(self,tree):
         """ 
         Removes events we can't use from the trees (i.e. events with nan y and non-semileptonic events)
 
             Parameters:
-                nom_tree (root tree): Nominal tree from the root file.
+                tree (root tree): Nominal tree from the root file.
 
             Returns:
-                nom_tree (root tree): Nominal tree, with bad events removed.
+                tree (root tree): Nominal tree, with bad events removed.
         """
 
         # Don't want nan (or ridiculously negative) values
         #for var in ['MC_thad_afterFSR_y','MC_tlep_afterFSR_y','MC_W_from_thad_y','MC_W_from_tlep_y']:
-        #    sel = np.invert(np.isnan(nom_tree[var]))
+        #    sel = np.invert(np.isnan(tree[var]))
         
         #for var in ['MC_thad_afterFSR_eta','MC_tlep_afterFSR_eta','MC_W_from_thad_eta','MC_W_from_tlep_eta']:
-        #    sel = sel * (nom_tree[var]>=-100)
-        sel = nom_tree['MC_ttbar_afterFSR_eta']>-100
+        #    sel = sel * (tree[var]>=-100)
+        sel = tree['MC_ttbar_afterFSR_eta']>-100
 
         # Only want semi-leptonic events
-        sel = sel*(nom_tree['semileptonicEvent']==1)
+        sel = sel*(tree['semileptonicEvent']==1)
 
         # Make these selections
-        nom_tree = nom_tree[sel]
+        tree = tree[sel]
 
-        return nom_tree
+        return tree
 
 
     def getMatches(self,nom_tree, dR_cut, allowDoubleMatch):
@@ -251,7 +252,7 @@ class jetMatcher:
         if not os.path.exists(save_dir+'/matching_info'):
             os.mkdir(save_dir+'/matching_info')
         np.save(save_dir+'/matching_info/'+in_name.split('.root')[0]+match_tag,matching_info)
-        print('Saved file: '+save_dir+'/matching_info/'+in_name.split('.root')[0]+match_tag,matching_info)
+        print('Saved file: '+save_dir+'/matching_info/'+in_name.split('.root')[0]+match_tag+'.npy')
 
 
 
@@ -265,6 +266,7 @@ class filePrep:
             getTruthData: Creates a dataframe for the truth variables, including: pt, eta, phi, m, y, E, and pout for thad and tlep; and pt, eta, phi, m, y, E, dphi, Ht, chi, and yboost for ttbar; pt, eta, phi, m for whad and wlep; and isTruth for each of the jets.
             getDataframes: Creates the jet, other, and truth dataframes from a specified file.
             makeH5File: Creates and saves h5 file with the reco and truth variables.
+            makeTrainTestH5Files: Creates and saves two h5 files with the reco and truth variables; one for testing and one for training.
             combineH5Files: Combines several h5 files into one file.
             saveMaxMean: Saves numpy array of [max,mean] values for X (reco) and Y (truth) variables.
     """
@@ -481,7 +483,7 @@ class filePrep:
 
             Parameters: 
                 file_list (list of str): List of the h5 file names (and their paths) you want to combine.
-                save_name (str): Name (and path) the file will be saved to.
+                output (str): Name (and path) the file will be saved to.
 
             Returns: 
                 Saves the combined h5 file (in the same location as the last h5 file in the list).
@@ -523,6 +525,78 @@ class filePrep:
                 print(file+' appended.')
 
         print('Saved: '+output+'.h5')
+
+
+    def makeTrainTestH5Files(self,file_list,output,split):
+        """
+        Combines several h5 files. The first <split>% of events in each file go into a 'train' file, while the remaining events go into a 'test' file.
+
+            Parameters: 
+                file_list (list of str): List of the h5 file names (and their paths) you want to combine.
+                output (str): Name (and path) the file will be saved to (note: '_train' and '_test' will be appended to the end of this name appropriately).
+                split (int or double or float): Percentage of events that will go into the training file, while 1-<split> goes to the testing file.
+
+            Returns: 
+                Saves the combined h5 file (in the same location as the last h5 file in the list).
+        """
+
+        if split<0 or split>100:
+            print('Please enter a valid split percentage.')
+            sys.exit()
+
+        # Create a file to combine the data in
+        h5f_train = h5py.File(output+'_train.h5','w')
+        h5f_test = h5py.File(output+'_test.h5','w')
+            
+        current_train_row = 0   # Keeps track of how many rows of data we have written in the train file
+        current_test_row = 0   # Keeps track of how many rows of data we have written in the test file
+        total_train_len = 0     # Keeps track of how much data we have read for the train file
+        total_test_len = 0     # Keeps track of how much data we have read for the test file
+            
+        # For each file in the list
+        for file in file_list:
+                
+            # Read the file
+            with h5py.File(file,'r') as h5fr:
+                
+                # Get the file length, split it, and add to the total length of each dataset
+                dslen = h5fr['j1_isbtag'].shape[0]
+                split_point = int(np.round(dslen*split))
+
+                total_train_len += split_point
+                total_test_len += (dslen - split_point)
+
+                # For each of the variables
+                for key in list(h5fr.keys()):
+
+                    # Get the data
+                    train_arr_data = h5fr[key][0:split_point]
+                    test_arr_data = h5fr[key][split_point:]
+                    
+                    # If this is the first data file we're looking at, create the dataset from scratch
+                    if current_train_row == 0:
+                        h5f_train.create_dataset(key,data=train_arr_data,maxshape=(None,))
+                    # Else, resize the dataset length so that it will fit the new data and then append that data
+                    else:
+                        h5f_train[key].resize((total_train_len,))
+                        h5f_train[key][current_train_row:total_train_len] = train_arr_data
+
+                    # If this is the first data file we're looking at, create the dataset from scratch
+                    if current_test_row == 0:
+                        h5f_test.create_dataset(key,data=test_arr_data,maxshape=(None,))
+                    # Else, resize the dataset length so that it will fit the new data and then append that data
+                    else:
+                        h5f_test[key].resize((total_test_len,))
+                        h5f_test[key][current_test_row:total_test_len] = test_arr_data
+
+                # Update the current row
+                current_train_row = total_train_len
+                current_test_row = total_test_len
+
+            print(file+' data appended.')
+
+        print('Saved: '+output+'_train.h5')
+        print('Saved: '+output+'_test.h5')
 
 
     def saveMaxMean(self,name,save_dir):
@@ -615,16 +689,18 @@ class filePrep:
 
 
 
-
+tracemalloc.start()
 
 # ---------- GET ARGUMENTS FROM COMMAND LINE ---------- #
 
 # Create the main parser and subparsers
 parser = ArgumentParser()
-subparser = parser.add_subparsers(dest='function',required=True)
+subparser = parser.add_subparsers(dest='function')
+subparser.required = True
 p_appendJetMatches = subparser.add_parser('appendJetMatches')
 p_makeH5File = subparser.add_parser('makeH5File')
 p_combineH5Files = subparser.add_parser('combineH5Files')
+p_makeTrainTest = subparser.add_parser('makeTrainTestH5Files')
 p_saveMaxMean = subparser.add_parser('saveMaxMean')
 
 # Define arguments for appendJetMatches
@@ -640,8 +716,13 @@ p_makeH5File.add_argument('--jn',help='Number of jets to include per event (usin
 p_makeH5File.add_argument('--met_cut',help='Minimum cut value for met_met (default: 20).',type=float,default=20.)
 
 # Define arguments for combineH5Files
-p_combineH5Files.add_argument('--input',help='Text file containing list of input files (including path).',required=True, type=argparse.FileType('r'))
+p_combineH5Files.add_argument('--file_list',help='Text file containing list of input files (including path).',required=True, type=argparse.FileType('r'))
 p_combineH5Files.add_argument('--output',help='Output file (including path).',required=True)
+
+# Define arguments for combineH5Files
+p_makeTrainTest.add_argument('--file_list',help='Text file containing list of input files (including path).',required=True, type=argparse.FileType('r'))
+p_makeTrainTest.add_argument('--output',help='Output file (including path).',required=True)
+p_makeTrainTest.add_argument('--split',help='Percentage of events (expressed as a decimal number) to include in training file (default: 0.75).',type=float,default=0.75)
 
 # Define arguments for saveMaxMean
 p_saveMaxMean.add_argument('--input',help='Input file (including path).',required=True)
@@ -650,16 +731,26 @@ p_saveMaxMean.add_argument('--save_dir',help='Path for directory where file will
 
 # Parse the arguments and proceed with stuff
 args = parser.parse_args()
-if args.function == 'appendjetMatches':
-  matcher = jetMatcher()
-  matcher.appendJetMatches(args.input,args.save_dir,args.dR_cut,args.allow_double_matching)
+if args.function == 'appendJetMatches':
+    matcher = jetMatcher()
+    matcher.appendJetMatches(args.input,args.save_dir,args.dR_cut,args.allow_double_matching)
 elif args.function == 'makeH5File':
-  prepper = filePrep()
-  prepper.makeH5File(args.input,args.output,args.jn,args.met_cut)
+    prepper = filePrep()
+    prepper.makeH5File(args.input,args.output,args.jn,args.met_cut)
 elif args.function == 'combineH5Files':
-  file_list = [file.strip() for file in args.input]
-  prepper = filePrep()
-  prepper.combineH5Files(args.file_list, args.output)
+    file_list = [file.strip() for file in args.file_list]
+    prepper = filePrep()
+    prepper.combineH5Files(file_list, args.output)
+elif args.function == 'makeTrainTestH5Files':
+    file_list = [file.strip() for file in args.file_list]
+    prepper = filePrep()
+    prepper.makeTrainTestH5Files(file_list,args.output,args.split)
 elif args.function == 'saveMaxMean':
     prepper = filePrep()
     prepper.saveMaxMean(args.input,args.save_dir)
+else:
+    print('Invalid function type.')
+
+
+print('Maximum memory usage:',tracemalloc.get_traced_memory()[0])
+tracemalloc.stop()
