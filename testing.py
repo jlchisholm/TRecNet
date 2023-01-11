@@ -214,6 +214,7 @@ parser.add_argument('--type',choices=['full','sysUP','sysDOWN'],help='Type of da
 
 # Parse the arguments and proceed with stuff
 args = parser.parse_args()
+print('made it here at least')
 testing.getTestResults(args.model,args.type)
 
 print('done :)')
