@@ -290,15 +290,15 @@ class filePrep:
         # Create an array of <jn> jet dataframes
         df_jets = [pd.DataFrame() for _ in range(jn)]
         
-        # Pad pt, eta, phi, e with 0's for events with less than <jn> jets, and add these variables to each of the jet dataframes
+        # Pad pt, eta, phi, e with -2.'s for events with less than <jn> jets, and add these variables to each of the jet dataframes
         for v in ['pt','eta','phi','e']:
-            padded_vars = np.asarray(ak.fill_none(ak.pad_none(reco_tree['jet_'+v], jn, clip=True), 0.))
+            padded_vars = np.asarray(ak.fill_none(ak.pad_none(reco_tree['jet_'+v], jn, clip=True), -2.))
             for j, df in enumerate(df_jets):
                 df[v] = padded_vars[:,j]
 
-        # Pad btag with -1.'s
-        #padded_btags = np.asarray(ak.fill_none(ak.pad_none(reco_tree['jet_btagged'], jn, clip=True), -1))
-        padded_btags = np.asarray(ak.fill_none(ak.pad_none(reco_tree['jet_isbtagged_DL1r_70'], jn, clip=True), -1))
+        # Pad btag with -2.'s
+        #padded_btags = np.asarray(ak.fill_none(ak.pad_none(reco_tree['jet_btagged'], jn, clip=True), -2.))
+        padded_btags = np.asarray(ak.fill_none(ak.pad_none(reco_tree['jet_isbtagged_DL1r_70'], jn, clip=True), -2.))
 
         # Finish off the dataframes
         for j, df in enumerate(df_jets):
@@ -398,13 +398,14 @@ class filePrep:
         return df_truth
 
 
-    def getDataframes(self,root_file,jn,met_cut):
+    def getDataframes(self,root_file,tree_name,jn,met_cut):
         """
         Creates the jet, other, and truth dataframes from a specified file.
 
             Parameters: 
                 root_file (str): Name (and path) of the root file you'd like to extract data from.
                 n (int): Number of jets you want per event, with padding where need be.
+                tree_name (str): Name of the tree from which to extract the data.
                 met_cut (int or float): Minimum cut on met_met values.
         
             Returns: 
@@ -415,38 +416,42 @@ class filePrep:
 
         # Import the root file data
         root_file = uproot.open(root_file)
-        nom_tree = root_file['nominal'].arrays()
+        tree = root_file[tree_name].arrays()
 
         # Close root file
         root_file.close()
 
         # Remove events with met_met < 20 GeV (to match Tao's cut)
-        sel = nom_tree['met_met']/1000 >= met_cut
-        nom_tree = nom_tree[sel]
+        sel = tree['met_met']/1000 >= met_cut
+        tree = tree[sel]
 
         # Get the array of jet dataframes
         print('Getting jet dataframes ...')
-        df_jets = self.getJetsData(nom_tree,jn)
+        df_jets = self.getJetsData(tree,jn)
 
         # Get the other reco dataframe
         print('Getting other dataframe ...')
-        df_other = self.getOtherData(nom_tree)
+        df_other = self.getOtherData(tree)
 
-        # Get the truth dataframe
-        print('Getting truth dataframe ...')
-        df_truth = self.getTruthData(nom_tree,jn)
+        # Get the truth dataframe (only for nominal)
+        if tree_name=='nominal':
+            print('Getting truth dataframe ...')
+            df_truth = self.getTruthData(tree,jn)
+        else:
+            df_truth = ak.to_pandas({'eventNumber':tree['eventNumber']})
         
 
         return df_jets, df_other, df_truth
 
 
-    def makeH5File(self,input,output,jn,met_cut):
+    def makeH5File(self,input,output,tree_name,jn,met_cut):
         """
         Creates and saves h5 file with the reco and truth variables.
 
             Parameters: 
                 input (str): Name (and path) of the root file you'd like to extract data from.
                 output (str): Name (and path) the file will be saved to.
+                tree_name (str): Name of the tree from which to extract the data.
                 jn (int): Number of jets you want per event, with padding where need be.
                 met_cut (int or float): Minimum cut on met_met values.
 
@@ -455,10 +460,16 @@ class filePrep:
         """
 
         # Get the data to be saved
-        df_jets, df_other, df_truth = self.getDataframes(input,jn,met_cut)
+        df_jets, df_other, df_truth = self.getDataframes(input,tree_name, jn,met_cut)
+
+        # Add a tag for the file name
+        tag = '_sysUP' if '__1up' in tree_name else '_sysDOWN' if '__1down' in tree_name else ''
+        print('Tree name is:',tree_name)
+        print('Using file tag:',tag)
+
 
         # Creating h5 file for input in the neural network
-        f = h5py.File(output+".h5","w")  # "w" means initializing file
+        f = h5py.File(output+tag+".h5","w")  # "w" means initializing file
 
         # Create datasets for jets
         for j,df in enumerate(df_jets):
@@ -469,7 +480,7 @@ class filePrep:
         for v in df_other.columns:
             f.create_dataset(v,data=df_other[v])
 
-        # Data sets for truth variables
+        # Data sets for truth variables (only if tree is nominal)
         for v in df_truth.columns:        
             f.create_dataset(v,data=df_truth[v])
 
@@ -534,19 +545,19 @@ class filePrep:
             Parameters: 
                 file_list (list of str): List of the h5 file names (and their paths) you want to combine.
                 output (str): Name (and path) the file will be saved to (note: '_train' and '_test' will be appended to the end of this name appropriately).
-                split (int or double or float): Percentage of events that will go into the training file, while 1-<split> goes to the testing file.
+                split (int or double or float): Percentage of events (expressed as a decimal number) that will go into the training file, while 1-<split> goes to the testing file.
 
             Returns: 
                 Saves the combined h5 file (in the same location as the last h5 file in the list).
         """
 
-        if split<0 or split>100:
+        if split<0 or split>1:
             print('Please enter a valid split percentage.')
             sys.exit()
 
         # Create a file to combine the data in
-        h5f_train = h5py.File(output+'_train.h5','w')
-        h5f_test = h5py.File(output+'_test.h5','w')
+        if split!=0: h5f_train = h5py.File(output+'_train.h5','w')
+        if split!=1: h5f_test = h5py.File(output+'_test.h5','w')
             
         current_train_row = 0   # Keeps track of how many rows of data we have written in the train file
         current_test_row = 0   # Keeps track of how many rows of data we have written in the test file
@@ -569,25 +580,27 @@ class filePrep:
                 # For each of the variables
                 for key in list(h5fr.keys()):
 
-                    # Get the data
-                    train_arr_data = h5fr[key][0:split_point]
-                    test_arr_data = h5fr[key][split_point:]
-                    
-                    # If this is the first data file we're looking at, create the dataset from scratch
-                    if current_train_row == 0:
-                        h5f_train.create_dataset(key,data=train_arr_data,maxshape=(None,))
-                    # Else, resize the dataset length so that it will fit the new data and then append that data
-                    else:
-                        h5f_train[key].resize((total_train_len,))
-                        h5f_train[key][current_train_row:total_train_len] = train_arr_data
+                    # As long as it's not all going to testing, append to test data file
+                    if split!=0: 
+                        train_arr_data = h5fr[key][0:split_point]
+                        # If this is the first data file we're looking at, create the dataset from scratch
+                        if current_train_row == 0:
+                            h5f_train.create_dataset(key,data=train_arr_data,maxshape=(None,))
+                        # Else, resize the dataset length so that it will fit the new data and then append that data
+                        else:
+                            h5f_train[key].resize((total_train_len,))
+                            h5f_train[key][current_train_row:total_train_len] = train_arr_data
 
-                    # If this is the first data file we're looking at, create the dataset from scratch
-                    if current_test_row == 0:
-                        h5f_test.create_dataset(key,data=test_arr_data,maxshape=(None,))
-                    # Else, resize the dataset length so that it will fit the new data and then append that data
-                    else:
-                        h5f_test[key].resize((total_test_len,))
-                        h5f_test[key][current_test_row:total_test_len] = test_arr_data
+                    # As long as it's not all going to training, append to test data file
+                    if split!=1: 
+                        test_arr_data = h5fr[key][split_point:]
+                        # If this is the first data file we're looking at, create the dataset from scratch
+                        if current_test_row == 0:
+                            h5f_test.create_dataset(key,data=test_arr_data,maxshape=(None,))
+                        # Else, resize the dataset length so that it will fit the new data and then append that data
+                        else:
+                            h5f_test[key].resize((total_test_len,))
+                            h5f_test[key][current_test_row:total_test_len] = test_arr_data
 
                 # Update the current row
                 current_train_row = total_train_len
@@ -712,6 +725,7 @@ p_appendJetMatches.add_argument('--allow_double_matching',help='Use this flag to
 # Define arguments for makeH5File
 p_makeH5File.add_argument('--input',help='Input file (including path).',required=True)
 p_makeH5File.add_argument('--output',help='Output file (including path).',required=True)
+p_makeH5File.add_argument('--tree_name',help='Name of the tree from which to extract the data.',required=True)
 p_makeH5File.add_argument('--jn',help='Number of jets to include per event (using padding if necessary) (default: 6).',type=int,default=6)
 p_makeH5File.add_argument('--met_cut',help='Minimum cut value for met_met (default: 20).',type=float,default=20.)
 
@@ -719,7 +733,7 @@ p_makeH5File.add_argument('--met_cut',help='Minimum cut value for met_met (defau
 p_combineH5Files.add_argument('--file_list',help='Text file containing list of input files (including path).',required=True, type=argparse.FileType('r'))
 p_combineH5Files.add_argument('--output',help='Output file (including path).',required=True)
 
-# Define arguments for combineH5Files
+# Define arguments for makeTrainTest
 p_makeTrainTest.add_argument('--file_list',help='Text file containing list of input files (including path).',required=True, type=argparse.FileType('r'))
 p_makeTrainTest.add_argument('--output',help='Output file (including path).',required=True)
 p_makeTrainTest.add_argument('--split',help='Percentage of events (expressed as a decimal number) to include in training file (default: 0.75).',type=float,default=0.75)
@@ -736,7 +750,7 @@ if args.function == 'appendJetMatches':
     matcher.appendJetMatches(args.input,args.save_dir,args.dR_cut,args.allow_double_matching)
 elif args.function == 'makeH5File':
     prepper = filePrep()
-    prepper.makeH5File(args.input,args.output,args.jn,args.met_cut)
+    prepper.makeH5File(args.input,args.output,args.tree_name,args.jn,args.met_cut)
 elif args.function == 'combineH5Files':
     file_list = [file.strip() for file in args.file_list]
     prepper = filePrep()
@@ -752,5 +766,5 @@ else:
     print('Invalid function type.')
 
 
-print('Maximum memory usage:',tracemalloc.get_traced_memory()[0])
-tracemalloc.stop()
+#print('Maximum memory usage:',tracemalloc.get_traced_memory()[0])
+#tracemalloc.stop()
