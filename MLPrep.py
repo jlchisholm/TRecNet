@@ -2,14 +2,13 @@
 #                                                                    #
 #  MLPrep.py                                                         #
 #  Author: Jenna Chisholm                                            #
-#  Updated: Sept.1/22                                                #
+#  Updated: Jan.11/23                                                #
 #                                                                    #
 #  For matching ttbar decay products to reco level jets, making h5   #
 #  data files, and calculating maxmean of data (all prep necessary   #
 #  for TRecNet).                                                     #
 #                                                                    #
-#  Thoughts for improvements: could take in names for the truth and  #
-#  reco trees.                                                       #
+#  Thoughts for improvements:                                        #
 #                                                                    #
 ######################################################################
 
@@ -22,7 +21,6 @@ import pandas as pd
 import matplotlib
 #matplotlib.use('GTK3Agg')   # need this one if you want plots displayed
 import vector
-import tracemalloc
 import os, sys, argparse
 from argparse import ArgumentParser
 from __main__ import *
@@ -329,11 +327,10 @@ class filePrep:
             
             Returns:
                 df_other (dataframe): Dataframe for the other (lep, met) variables.
-
         """
 
         # Create dataframe for other variables (note divide lep_pt and met_met by 1000 to convert from MeV to GeV)
-        # NOTE: also including jet_n so we can later make a cut on these perhaps?
+        # NOTE: also including jet_n so we can later make a cut on these
         keys = ['lep_pt','lep_eta','lep_phi','met_met','met_phi','jet_n']
         df_other = ak.to_pandas({key:reco_tree[key]/1000 if key=='lep_pt' or key=='met_met' else reco_tree[key] for key in keys})
 
@@ -450,7 +447,7 @@ class filePrep:
 
             Parameters: 
                 input (str): Name (and path) of the root file you'd like to extract data from.
-                output (str): Name (and path) the file will be saved to.
+                output (str): Prefix of name (and path) the file will be saved to.
                 tree_name (str): Name of the tree from which to extract the data.
                 jn (int): Number of jets you want per event, with padding where need be.
                 met_cut (int or float): Minimum cut on met_met values.
@@ -460,12 +457,16 @@ class filePrep:
         """
 
         # Get the data to be saved
-        df_jets, df_other, df_truth = self.getDataframes(input,tree_name, jn,met_cut)
+        df_jets, df_other, df_truth = self.getDataframes(input,tree_name,jn,met_cut)
 
         # Add a tag for the file name
         tag = '_sysUP' if '__1up' in tree_name else '_sysDOWN' if '__1down' in tree_name else ''
-        print('Tree name is:',tree_name)
-        print('Using file tag:',tag)
+
+        # Add a tag indicating the number of jets included
+        tag = '_'+str(jn)+'jets'+tag
+
+        # Add a tag indicating met_met cut
+        tag = '_'+str(int(met_cut))+'metcut'+tag
 
 
         # Creating h5 file for input in the neural network
@@ -560,9 +561,9 @@ class filePrep:
         if split!=1: h5f_test = h5py.File(output+'_test.h5','w')
             
         current_train_row = 0   # Keeps track of how many rows of data we have written in the train file
-        current_test_row = 0   # Keeps track of how many rows of data we have written in the test file
+        current_test_row = 0    # Keeps track of how many rows of data we have written in the test file
         total_train_len = 0     # Keeps track of how much data we have read for the train file
-        total_test_len = 0     # Keeps track of how much data we have read for the test file
+        total_test_len = 0      # Keeps track of how much data we have read for the test file
             
         # For each file in the list
         for file in file_list:
@@ -612,7 +613,7 @@ class filePrep:
         print('Saved: '+output+'_test.h5')
 
 
-    def saveMaxMean(self,name,save_dir):
+    def saveMaxMean(self,input_file,save_dir):
         """
         Saves dictionary of [max,mean] values for X (reco) and Y (truth) variables.
         
@@ -624,12 +625,16 @@ class filePrep:
                 Saves two numpy files of [max, mean] values; one for X (reco) variables and one for Y (truth) variables.
         """
 
+        
+
         print('Opening file ...')
 
         # Load data
-        f = h5py.File(name,'r')    
+        f = h5py.File(input_file,'r')    
 
         print('File opened.')
+
+        name = input_file.split('/')[-1].split('.h5')[0]
 
         # Create data frame
         df = pd.DataFrame({key: np.array(f.get(key)) for key in list(f.keys())})
@@ -699,11 +704,6 @@ class filePrep:
         print('Saved: '+save_dir+'/Y_maxmean_'+name+'.npy')
 
 
-
-
-
-tracemalloc.start()
-
 # ---------- GET ARGUMENTS FROM COMMAND LINE ---------- #
 
 # Create the main parser and subparsers
@@ -724,7 +724,7 @@ p_appendJetMatches.add_argument('--allow_double_matching',help='Use this flag to
 
 # Define arguments for makeH5File
 p_makeH5File.add_argument('--input',help='Input file (including path).',required=True)
-p_makeH5File.add_argument('--output',help='Output file (including path).',required=True)
+p_makeH5File.add_argument('--output',help='Output file (including path). Note: Tags will be appended to the file name (e.g. _6jets if you include 6 jets).',required=True)
 p_makeH5File.add_argument('--tree_name',help='Name of the tree from which to extract the data.',required=True)
 p_makeH5File.add_argument('--jn',help='Number of jets to include per event (using padding if necessary) (default: 6).',type=int,default=6)
 p_makeH5File.add_argument('--met_cut',help='Minimum cut value for met_met (default: 20).',type=float,default=20.)
@@ -764,7 +764,3 @@ elif args.function == 'saveMaxMean':
     prepper.saveMaxMean(args.input,args.save_dir)
 else:
     print('Invalid function type.')
-
-
-#print('Maximum memory usage:',tracemalloc.get_traced_memory()[0])
-#tracemalloc.stop()
