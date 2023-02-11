@@ -14,15 +14,15 @@ class Shape_timesteps:
         self.num_Yfeatures = None
         self.mask_value = -2
     
-    def create_mask(self):
-        exist = Utilities.jet_existence_dict()
+    def create_mask(self,phi_keys,dataset,crop0):
+        exist = Utilities.jet_existence_dict(phi_keys,dataset,crop0)
         mask = [exist[list(exist.keys())[i]] for i in range(int(self.num_jets))] 
         samples_jets = np.stack(mask,axis=1)
         samples_jets = samples_jets.reshape((samples_jets.shape[0], samples_jets.shape[1], 1))
         return np.repeat(samples_jets, self.num_jet_features, axis=2) # 5 feature mask
     
     
-    def reshape_X(self, X_total, X_names, timestep_other=False, mask=True):
+    def reshape_X(self, dataset, X_total, X_names, phi_keys, crop0, timestep_other=False, mask=True):
         jet_names = list(filter(lambda a: bool(re.match('^j[0-9]+$', a.split('_')[0])), X_names))
         other_names = list(filter(lambda a: a not in jet_names, X_names))
         self.num_jet_features = len(list(filter(lambda a: a.split('_')[0]=='j1',jet_names)))
@@ -33,7 +33,7 @@ class Shape_timesteps:
         X_other = X_total[:, len(jet_names):]
         X_timestep_jets = np.stack(np.split(X_jets, self.num_jets, axis=1), axis=1)
         if mask:
-            mask1 = self.create_mask()
+            mask1 = self.create_mask(phi_keys,dataset,crop0)
             X_timestep_jets = X_timestep_jets*mask1 + (1-mask1)*(self.mask_value) 
         if timestep_other:
             X_other = X_other.reshape(X_other.shape[0], X_other.shape[1], 1)

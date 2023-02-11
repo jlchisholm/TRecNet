@@ -8,8 +8,8 @@ from utilities import Utilities
 importlib.reload(utilities)
 
 class Scale_variables:
-    def __init__(self): 
-        self.exist_dict = Utilities.jet_existence_dict()
+    def __init__(self,phi_keys,dataset,crop0): 
+        self.exist_dict = Utilities.jet_existence_dict(phi_keys,dataset,crop0)
         self.boxcox_ptlamb = 1
     
     def final_maxmean(self,array, names, maxmean0):
@@ -24,7 +24,7 @@ class Scale_variables:
         z = z*(1-dont) + array*dont
         return z
     
-    def scale_arrays(self, keys, maxmean0):
+    def scale_arrays(self, dataset, keys, maxmean0, crop0):
         names = []
         arrays = []
         i = 0

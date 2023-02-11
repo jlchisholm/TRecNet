@@ -17,7 +17,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="1"
 
 
 class testing:
-    def getTestResults(model_name,data_type):
+    def getTestResults(model_name,data_type,version):
 
 
         print('Loading model and data...')
@@ -33,7 +33,10 @@ class testing:
             dataset = h5py.File('/mnt/xrootdg/jchishol/mntuples_08_01_22/variables_ttbar_ljets_'+data_type+'_test.h5','r')
 
         # Model
-        model = keras.models.load_model(model_name+'/'+model_name+'_full.keras')
+        if version=='_take2':
+            model = keras.models.load_model(model_name+'/'+model_name+'_full_take2.keras')
+        else:
+            model = keras.models.load_model(model_name+'/'+model_name+'_full.keras')
 
 
         # Number of events in dataset
@@ -197,7 +200,7 @@ class testing:
         print('Saving results ...')
 
         # Save as a tree root file
-        results_file = uproot.recreate('/mnt/xrootdg/jchishol/'+model_name+'_'+data_type+'_Results.root')
+        results_file = uproot.recreate('/mnt/xrootdg/jchishol/mntuples_08_01_22/'+model_name+'_'+data_type+version+'_Results.root')
         results_file["reco"] = {key:preds[key] for key in list(preds.keys())}
         if data_type=='full': results_file["parton"] = {key:truths[key] for key in list(truths.keys())}
 
@@ -211,10 +214,12 @@ class testing:
 parser = ArgumentParser()
 parser.add_argument('--model',choices=['Model_Custom', 'Model_Custom+ttbar', 'Model_JetPretrain+ttbar'],help='TRecNet version you would like to use.', required=True)
 parser.add_argument('--type',choices=['full','sysUP','sysDOWN'],help='Type of data.', required=True)
+parser.add_argument('--version',choices=['_take2'],help='Version of that models training.',default='')
 
 # Parse the arguments and proceed with stuff
 args = parser.parse_args()
 print('made it here at least')
-testing.getTestResults(args.model,args.type)
+print(args.version)
+testing.getTestResults(args.model,args.type,args.version)
 
 print('done :)')
