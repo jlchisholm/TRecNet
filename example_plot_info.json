@@ -136,7 +136,7 @@
     {
         "TruthReco":
         {
-            "make_plots": true,
+            "make_plots": false,
             "models":
             {
                 "TRecNet":
@@ -173,7 +173,7 @@
         },
         "CM":
         {
-            "make_plots": true,
+            "make_plots": false,
             "models":
             {
                 "TRecNet":
@@ -181,7 +181,9 @@
                     "plot": true,
                     "pt_cuts": 
                     [
-                        {}
+                        {},
+                        {"pt_low":100, "pt_high": 200},
+                        {"pt_low":200}
                     ]
                 },
                 "TRecNet+ttbar":
@@ -189,7 +191,9 @@
                     "plot": true,
                     "pt_cuts": 
                     [
-                        {}
+                        {},
+                        {"pt_low":100, "pt_high": 200},
+                        {"pt_low":200}
                     ]
                 },
                 "TRecNet+ttbar+JetPretrain":
@@ -197,7 +201,9 @@
                     "plot": true,
                     "pt_cuts": 
                     [
-                        {}
+                        {},
+                        {"pt_low":100, "pt_high": 200},
+                        {"pt_low":200}
                     ]
                 },
                 "KLFitter6":
@@ -205,7 +211,9 @@
                     "plot": true,
                     "pt_cuts": 
                     [
-                        {}
+                        {},
+                        {"pt_low":100, "pt_high": 200},
+                        {"pt_low":200}
                     ]
                 },
                 "PseudoTop":
@@ -228,7 +236,7 @@
         },
         "Sys":
         {
-            "make_plots": true,
+            "make_plots": false,
             "include_model":
             {
                 "TRecNet": true,

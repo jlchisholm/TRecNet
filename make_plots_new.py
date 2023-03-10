@@ -14,7 +14,9 @@ matplotlib.use('Agg')  # need for not displaying plots when running batch jobs
 from matplotlib import pyplot as plt
 from matplotlib import colors
 from Plotter import *
-import sys
+import os, sys
+from argparse import ArgumentParser
+
 
 
 
@@ -40,124 +42,92 @@ def readInData(reco_method,filename,eventnumbers):
     # Open root file and its trees
     f = uproot.open(filename)
 
-    # For TRecNet-based models ...
-    if 'TRecNet' in reco_method and 'sys' not in reco_method:
-
-        # Load the truth and reco data
-        truth_arr = f['parton'].arrays()
-        reco_arr = f['reco'].arrays()
-
-        # Create dataframe with truth and reco data, as well as event numbers
-        truth_df = ak.to_pandas(truth_arr)
-        truth_df = truth_df.add_prefix('truth_')
-        reco_df = ak.to_pandas(reco_arr)
-        reco_df = reco_df.add_prefix('reco_')
-        df = pd.concat([truth_df,reco_df], axis=1)
-        df['eventNumber'] = truth_arr['eventNumber']
-
-    # Systematics for TRecNet models
-    elif 'TRecNet' in reco_method and 'sys' in reco_method:
+    # When loading systematics ...
+    if 'sys' in reco_method:
 
         # Get whether it's up or down systematics
         sys_type = reco_method.split('_')[0]
 
-        # Load sys data
-        sys_arr = f['reco'].arrays()
+        # Slightly different names for neural network and other models -- something that could be fixed later
+        if 'TRecNet' in reco_method:
 
-        # ISSUE: this is cutting all events! Not sure why but shouldn't matter once it's all the new data? Idk, it really shouldnt be happening
-        # Only take events with the same event numbers as the test data
-        sel = np.isin(sys_arr['eventNumber'],eventnumbers)
-        sys_arr = sys_arr[sel]
+            # Load systematics data
+            sys_arr = f['reco'].arrays()
 
+            # Create dataframe with systematics data, as well as event numbers, jet number, and log likelihood
+            # And rename such that the naming is the same that it is in the other systematics datasets
+            # Hold up hold up -- log likelihood???
+            df = ak.to_pandas(sys_arr)
+            df = df.add_prefix(sys_type+'_')   # Want to add sysUP or sysDOWN prefix to match the other files
+            df = df.rename(columns={sys_type+'_eventNumber':'eventNumber',sys_type+'_jet_n':'jet_n',sys_type+'_logLikelihood':'logLikelihood'})
 
-        # Create dataframe with reco data, as well as event numbers
-        df = ak.to_pandas(sys_arr)
-        #df = df.drop('index',axis=1) # index not in df I guess
+        else:
 
-        # Bit of a hack for now:
-        df = df.add_prefix('reco_')
-        df = df.rename(columns={'reco_eventNumber':'eventNumber'})
+            # Load sys data and create dataframe with systematics data
+            sys_arr = f[sys_type].arrays()
+            df = ak.to_pandas(sys_arr)
 
-    # Systematics for non-TRecNet models
-    elif 'TRecNet' not in reco_method and 'sys' in reco_method:
-
-        # Get whether it's up or down systematics
-        sys_type = reco_method.split('_')[0]
-
-        # Load sys data
-        sys_arr = f[sys_type].arrays()
-
-        # ISSUE: this is cutting all events! Not sure why but shouldn't matter once it's all the new data? Idk, it really shouldnt be happening
-        # Only take events with the same event numbers as the test data
-        sel = np.isin(sys_arr['eventNumber'],eventnumbers)
-        sys_arr = sys_arr[sel]
-
-
-        # Create dataframe with reco data, as well as event numbers
-        df = ak.to_pandas(sys_arr)
-        #df = df.drop('index',axis=1) # index not in df I guess
-
-        # Bit of a hack for now:
-        df = df.add_prefix('reco_')
-        df = df.rename(columns={'reco_eventNumber':'eventNumber'})
-
-
-
-
-    # For likelihood-based models ... 
+    # For non systematics things ...
     else:
 
-        # Load truth and reco data
-        truth_arr = f['truth'].arrays()
-        reco_arr = f['reco'].arrays()
+        # Slightly different names for neural network and other models -- something that could be fixed later
+        if 'TRecNet' in reco_method:
 
-        # ISSUE: this is cutting all events! Not sure why but shouldn't matter once it's all the new data? Idk, it really shouldnt be happening
-        # Only take events with the same event numbers as the test data
-        sel = np.isin(truth_arr['eventNumber'],eventnumbers)
-        truth_arr = truth_arr[sel]
-        reco_arr = reco_arr[sel]
+            # Load the truth and reco data
+            truth_arr = f['parton'].arrays()
+            reco_arr = f['reco'].arrays()
 
+            # Create dataframe with truth and reco data, as well as event numbers
+            truth_df = ak.to_pandas(truth_arr)
+            truth_df = truth_df.add_prefix('truth_')
+            truth_df = truth_df.rename(columns={'truth_eventNumber':'eventNumber'})
+            reco_df = ak.to_pandas(reco_arr)
+            reco_df = reco_df.add_prefix('reco_')
+            df = pd.concat([truth_df,reco_df], axis=1)
 
-        # Create dataframe with truth and reco data, as well as event numbers
-        truth_df = ak.to_pandas(truth_arr)
-        truth_df = truth_df.drop('index',axis=1)
-        reco_df = ak.to_pandas(reco_arr)
-        reco_df = reco_df.drop('index',axis=1)
-        df = pd.concat([truth_df,reco_df], axis=1)
+        else:
 
-    
+            # Load truth and reco data
+            truth_arr = f['truth'].arrays()
+            reco_arr = f['reco'].arrays()
+
+            # Only take events with the same event numbers as the test data, for a more apples to apples comparison
+            sel = np.isin(truth_arr['eventNumber'],eventnumbers)
+            truth_arr = truth_arr[sel]
+            reco_arr = reco_arr[sel]
+
+            # Create dataframe with truth and reco data, as well as event numbers
+            truth_df = ak.to_pandas(truth_arr)
+            truth_df = truth_df.drop('index',axis=1)
+            reco_df = ak.to_pandas(reco_arr)
+            reco_df = reco_df.drop('index',axis=1)
+            df = pd.concat([truth_df,reco_df], axis=1)
 
     return df
 
 
-
-
-
-def Append_Calculations(df,model):
+def appendCalculations(df,model_name):
     """
         Calculate a few more observables that we might want to plot.
 
             Parameters:
                 df (pd.DataFrame): Dataframe from which new observables will be calculated and to which they'll be appended.
-                model (str): Name of the model for this dataframe.
+                model_name (str): Name of the model for this dataframe.
 
             Returns:
                 df (pd.DataFrame): Input dataframe with the new observables appended.
     """
 
-    # Do so for both truth and reco
-    for level in ['truth','reco']:
-
-        # Skip doing this systematics ???? Bit confused about what this is ...
-        if level=='truth' and 'sys' in model:
-            continue
+    # Do so for both truth and reco, or sysUP or sysDOWN, depending on the dataframe
+    levels = ['truth','reco'] if 'sys' not in model_name else [model_name.split('_')[0]]
+    for level in levels:
 
         # Append calculations for px and py for ttbar 
         df[level+'_ttbar_px'] = df[level+'_ttbar_pt']*np.cos(df[level+'_ttbar_phi'])
         df[level+'_ttbar_py'] = df[level+'_ttbar_pt']*np.sin(df[level+'_ttbar_phi'])
 
         # Chi2 doesn't have hadronic or leptonic tops, so we can't do the following for that model
-        if model!='Chi2':
+        if 'Chi2' not in model_name:
 
             # Append calculations for px and py for th and tl
             df[level+'_th_px'] = df[level+'_th_pt']*np.cos(df[level+'_th_phi'])
@@ -171,7 +141,7 @@ def Append_Calculations(df,model):
             df[level+'_ttbar_deta'] = abs(th_vec.deltaeta(tl_vec))
 
             # If the model is KLFitter or PseudoTop ...
-            if model=='KLFitter4' or model=='KLFitter6' or model=='PseudoTop':
+            if 'TRecNet' not in model_name:
 
                 # Calculate and append dphi, Ht, yboost, and ystar for ttbar
                 df[level+'_ttbar_dphi'] = abs(th_vec.deltaphi(tl_vec))
@@ -183,11 +153,20 @@ def Append_Calculations(df,model):
     return df
 
 
-
-
-
-
 def convertUnits(df_col,from_units,to_units):
+    """
+    Converts the data in <df_col> from <from_units> to <to_units>.
+    Note: Can currently only handle particular energy units.
+
+        Parameters:
+            df_col (pd.DataFrame column): Observable data to be converted.
+            from_units (str): Units the data is currently in (can currently handle 'eV', 'MeV', 'GeV', and 'TeV').
+            to_units (str): Units to the convert the data into (can currently handle 'eV', 'MeV', 'GeV', and 'TeV').
+
+        Returns:
+            df_col (pd.DataFrame column): Observable data after the unit conversion.
+
+    """
 
     # Only bother converting if units are actually different
     if from_units!=to_units:
@@ -216,9 +195,20 @@ def convertUnits(df_col,from_units,to_units):
     return df_col
 
 
+def scaleData(df,truth_units,reco_units,par_specs):
+    """
+    Scales all the data so everything is in the same units, specified in the particle specifications read in from the JSON file.
+    Note: Can currently only handle particular energy units.
 
-# CURRENTLY ONLY FOR ENERGY, INCLUDE OTHERS LATER???
-def Scale_Data(df,truth_units,reco_units,par_specs):
+        Parameters:
+            df (pd.DataFrame): Data to be scaled.
+            truth_units (str): Units used in the truth data for energies.
+            reco_units (str): Units used in the reco data for energies.
+            par_specs (dict): Particle specifications, read in from the JSON file.
+
+        Returns:
+            df (pd.DataFrame): Data, after scaling.
+    """
 
     # Go through all the observables
     for (par,spec) in par_specs.items():
@@ -238,42 +228,7 @@ def Scale_Data(df,truth_units,reco_units,par_specs):
     return df
 
 
-
-def Check(df,reco):
-
-    print('Checking ...',reco)
-
-    for level in ['truth','reco']:
-    
-        # Check pt, m, and E are not negative, and phi is within (-pi, pi)
-        for par in ['th', 'tl', 'ttbar']:
-            for var in ['pt','m','E']:
-                if min(df[level+'_'+par+'_'+var]) < 0:
-                    print('WARNING: '+reco+' has '+par+'_'+var+' < 0 at the '+level+' level!')
-                    print(df[df[level+'_'+par+'_'+var]<0])
-            if max(df[level+'_'+par+'_phi']) > np.pi:
-                print('WARNING: '+reco+' has '+par+'_phi'+' > pi at the '+level+' level!')  
-                print(df[df[level+'_'+par+'_phi'] > np.pi][level+'_'+par+'_phi'])
-                print(df[df[level+'_'+par+'_phi'] > np.pi]['eventNumber'])
-            if min(df[level+'_'+par+'_phi']) < -np.pi:
-                print('WARNING: '+reco+' has '+par+'_phi'+' < -pi at the '+level+' level!')    
-                print(df[df[level+'_'+par+'_phi'] < -np.pi])    
-
-        # Check Ht, chi, dphi, deta are all above zero
-        for var in ['Ht','chi','dphi','deta']:
-            if min(df[level+'_ttbar_'+var]) < 0:
-                print('WARNING: '+reco+' has ttbar_'+var+' < 0 at the '+level+' level!')  
-                print(df[df[level+'_ttbar_'+var] < 0])       
-
-        # Check ttbar_dphi < pi
-        if max(df[level+'_ttbar_dphi']) > np.pi:
-            print('WARNING: '+reco+' has ttbar_dphi > pi at the '+level+' level!')  
-            print(df[df[level+'_ttbar_dphi'] > np.pi])
-
-        
-
-
-def unpack_observables(obs_specs):
+def unpackObservables(obs_specs):
     """
     Unpacks the observable definitions from the given dictionary (likely from a JSON file).
 
@@ -299,8 +254,7 @@ def unpack_observables(obs_specs):
     return observables
 
 
-
-def unpack_particles(par_specs):
+def unpackParticles(par_specs):
     """
     Unpacks the particle definitions from the given dictionary (likely from a JSON file).
 
@@ -318,15 +272,12 @@ def unpack_particles(par_specs):
     for par, specs in par_specs.items():
 
         # Get the observables for that particle
-        observables = unpack_observables(specs['observables'])
+        observables = unpackObservables(specs['observables'])
 
         # Create the particle object and append it to the list
         particles.append(Particle(par,specs['label'],observables,alt_names=specs['alt_names']))
 
     return particles
-
-
-
 
 
 def getCutDF(df,cut_on,max,min):
@@ -363,10 +314,6 @@ def getCutDF(df,cut_on,max,min):
     return df_cut
 
 
-
-
-
-
 def makeAllDatasets(par_specs,model_specs,models_to_load,sys_to_load,datatype,eventnumbers):
     """
     Makes datasets objects for all of the models we'll want to plots.
@@ -394,10 +341,8 @@ def makeAllDatasets(par_specs,model_specs,models_to_load,sys_to_load,datatype,ev
 
         # Create a dataframe for that model, append some other variables we might want to plot, and scale data to desired units of energy
         df = readInData(model_name,model_specs[model_name]["input_file"],eventnumbers)
-        df = Append_Calculations(df,model_name)
-        print(df[['truth_th_m','reco_th_m']])
-        df = Scale_Data(df,model_specs[model_name]["truth_units"],model_specs[model_name]["reco_units"],par_specs)
-        print(df[['truth_th_m','reco_th_m']])
+        df = appendCalculations(df,model_name)
+        df = scaleData(df,model_specs[model_name]["truth_units"],model_specs[model_name]["reco_units"],par_specs)
 
 
         # If we're going to need systematics for plots with this model ...
@@ -405,13 +350,13 @@ def makeAllDatasets(par_specs,model_specs,models_to_load,sys_to_load,datatype,ev
 
             # Create dataframe for up systematics
             up_df = readInData('sysUP_'+model_name,model_specs[model_name]["sysUP_input"],eventnumbers)
-            up_df = Append_Calculations(df,model_name)
-            up_df = Scale_Data(up_df,model_specs[model_name]["truth_units"],model_specs[model_name]["reco_units"],par_specs)
+            up_df = appendCalculations(up_df,'sysUP_'+model_name)
+            up_df = scaleData(up_df,model_specs[model_name]["truth_units"],model_specs[model_name]["reco_units"],par_specs)
 
             # Create dataframe for down systematics
             down_df = readInData('sysDOWN_'+model_name,model_specs[model_name]["sysDOWN_input"],eventnumbers)
-            down_df = Append_Calculations(df,model_name)
-            down_df = Scale_Data(down_df,model_specs[model_name]["truth_units"],model_specs[model_name]["reco_units"],par_specs)
+            down_df = appendCalculations(down_df,'sysDOWN_'+model_name)
+            down_df = scaleData(down_df,model_specs[model_name]["truth_units"],model_specs[model_name]["reco_units"],par_specs)
 
             # Create a dataset for each cut of the model we want to look at (is there a better way to do this, like within the plotting framework, so we don't have to make a bunch of dataframes?)
             for cut in model_specs[model_name]["cuts"]:
@@ -448,121 +393,181 @@ def makeAllDatasets(par_specs,model_specs,models_to_load,sys_to_load,datatype,ev
 
     return datasets
 
-            
-    
+
+def createDirectories(main_dir):
+    """
+    Creates directories to store the plots in, if they do not already exist.
+
+        Parameters: 
+            main_dir (str): Name (including path) of the primary directory you want to save the plots in.
+
+        Returns:
+            Creates all the <main_dir>, with directories 'th/', 'tl/', and 'ttbar/' within, and directories 'TruthReco/', 'Sys/', 'CM/', and 'Res/' within each of the three aforementioned directories.
+    """
+    if not os.path.exists(main_dir):
+        os.mkdir(main_dir)
+    for par_dir in ['th/','tl/','ttbar/']:
+        if not os.path.exists(main_dir+par_dir):
+            os.mkdir(main_dir+par_dir) 
+    for plot_dir in ['TruthReco/','Sys/','CM/','Res/']:
+        for par_dir in ['th/','tl/','ttbar/']:
+            if not os.path.exists(main_dir+par_dir+plot_dir):
+                os.mkdir(main_dir+par_dir+plot_dir)
 
 
-# ------------- MAIN CODE ------------- #
+def getLoadLists(plotting_instr):
+    """
+    Gets lists of the models and systematics we'll need to load to make the desired plots.
+
+        Parameters:
+            plotting_instr (dict): Dictionary containing the types of plots we want to make and their specifications (from the JSON file).
+
+        Returns:
+            models_to_load (list of str): Names of the models we'll need data from.
+            sys_to_load (list of str): Names of the models we'll need systematics from.
+    """
+
+    models_to_load = []
+    sys_to_load = []
+    for plot_type, instr in plotting_instr.items():
+        if plot_type=='TruthReco' or plot_type=='CM':
+            for model_name, model_instr in instr['models'].items():
+                if model_instr['plot']:
+                    models_to_load.append(model_name) if model_name not in models_to_load else models_to_load
+        elif plot_type=='Sys':
+            for model_name, plot_model in instr['include_model'].items():
+                if plot_model:
+                    models_to_load.append(model_name) if model_name not in models_to_load else models_to_load
+                    sys_to_load.append(model_name) if model_name not in sys_to_load else sys_to_load
+        else:
+            for model_name, plot_model in instr['include_model'].items():
+                if plot_model:
+                    models_to_load.append(model_name) if model_name not in models_to_load else models_to_load
+
+    print('Preparing to load results for the following models: ',models_to_load)
+    print('Preparing to load systematics for the following models: ',sys_to_load)    
+
+    return models_to_load, sys_to_load
 
 
-# Get the model specifications, plotting specifications, and observable specifications from the JSON file
-plotting_info = json.load(open('plotting_info.json'))
-model_specs = plotting_info['model_specs']
-plot_specs = plotting_info['plot_specs']
-par_specs = plotting_info['par_specs']
+def makeTruthRecoPlots(loaded_models, TruthReco_Instructions, par, var, main_dir):
+    """
+    Makes all the desired truth-reco plots.
 
-# Get the total number of test events and the list of test events
-f_test = h5py.File(plotting_info['test_filename'],'r')
-eventnumbers = np.array(f_test.get('eventNumber'))
-f_test.close()
+        Parameters:
+            loaded_models (list of dataset objects): Datasets that are loaded and available to use in plots.
+            TruthReco_Instructions (dict): Specifications for making the truth-reco histograms (from JSON file).
+            par (particle object): Particle to be plotted.
+            var (observable object): Observable to be plotted.
+            main_dir (str): Main directory where all plots will be saved.
 
-# Make particle definitions from the info in the JSON file
-particles = unpack_particles(par_specs)
+        Returns:
+            Saves several truth-reco histograms as images in <main_dir>.
+    """
 
-# Create lists of what models and systematics will need to be loaded
-models_to_load = []
-sys_to_load = []
-for model_name in model_specs.keys():
-    for plot, specs in plot_specs.items():
-        if specs['models'][model_name]['plot']==True:
-            models_to_load.append(model_name) if model_name not in models_to_load else models_to_load
-        if specs['models'][model_name]['include_systematics']==True:
-            sys_to_load.append(model_name) if model_name not in sys_to_load else sys_to_load
-print('Preparing to load results for the following models: ',models_to_load)
-print('Preparing to load systematics for the following models: ',sys_to_load)
+    truthreco_models = [model for model in loaded_models if TruthReco_Instructions['models'][model.reco_method]['plot'] and 'reco_'+par.name+'_'+var.name in model.df.keys()]
 
-# Make dataframes for models
-loaded_models = makeAllDatasets(par_specs,model_specs,models_to_load,sys_to_load,plotting_info["datatype"],eventnumbers)
-print("All data loaded.")
+    if truthreco_models != []:
+        for dataset in truthreco_models:
+            Plot.TruthReco_Hist(dataset,par,var,save_loc=main_dir+par.name+'/TruthReco/',nbins=plotting_instr['TruthReco']['models'][dataset.reco_method]['nbins'])
+    else:
+        print('Please select models if you want truth-reco plots to be produced.')
 
 
+def makeCMPlots(loaded_models, CM_Instructions, par, var, main_dir):
+    """
+    Makes all the desired confusion matrix plots.
 
-# Then later we plot (this should all be broken down more)
+        Parameters:
+            loaded_models (list of dataset objects): Datasets that are loaded and available to use in plots.
+            CM_Instructions (dict): Specifications for making the confusion matrix plots (from JSON file).
+            par (particle object): Particle to be plotted.
+            var (observable object): Observable to be plotted.
+            main_dir (str): Main directory where all plots will be saved.
 
-dir = 'full_plots/'    # This needs to probably be specified in json, and maybe we do something that (re)creates folders to put plots in
+        Returns:
+            Saves several confusion matrix plots as images in <main_dir>.
+    """
 
-for par in particles:
-    for var in par.observables:
+    cm_models = [model for model in loaded_models if CM_Instructions['models'][model.reco_method]['plot'] and 'reco_'+par.name+'_'+var.name in model.df.keys()]
 
-        # Go through each of the models we loaded
-        for dataset in loaded_models:
-
-            # Check that we have this variable in our dataframe for this model
-            if 'reco_'+par.name+'_'+var.name in dataset.df.keys():
-
-                # If the json file says to plot TruthReco for that model, we do so
-                TruthReco_Instructions = plot_specs['TruthReco']['models'][dataset.reco_method]
-                if TruthReco_Instructions['plot']==True:
-                    Plot.TruthReco_Hist(dataset,par,var,save_loc=dir+par.name+'/TruthReco/',nbins=TruthReco_Instructions['nbins'])
-
-
-                # If the json file says to plot CM for that model, we do so
-                CM_Instructions = plot_specs['CM']['models'][dataset.reco_method]
-                if CM_Instructions['plot']==True:
-                    for cut in CM_Instructions['pt_cuts']:
-                        if cut=={}:
-                            Plot.Confusion_Matrix(dataset,par,var,save_loc=dir+par.name+'/CM/')
-                        elif len(cut)==1 and 'pt_low' in cut.keys():
-                            Plot.Confusion_Matrix(dataset,par,var,save_loc=dir+par.name+'/CM/',pt_low=cut['pt_low'])
-                        elif len(cut)==1 and 'pt_high' in cut.keys():
-                            Plot.Confusion_Matrix(dataset,par,var,save_loc=dir+par.name+'/CM/',pt_high=cut['pt_high'])
-                        else:
-                            Plot.Confusion_Matrix(dataset,par,var,save_loc=dir+par.name+'/CM/',pt_low=cut['pt_low'],pt_high=cut['pt_high'])
-
-            # If we can't plot this variable, skip it
-            else:
-
-                print(par.name+'_'+var.name+' was not reconstructed or calculated for '+dataset.reco_method+'. Skipping plot.')
-
-
-
-        # Now for the resolution plots
-
-        # Get the instructions for the resolution and res vs var plots
-        Res_Instructions = plot_specs['Res']
-
-        # Get the datasets for the models to be included in the resolution plots
-        res_models = []
-        for model in loaded_models:
-            if Res_Instructions['models'][model.reco_method]['plot']==True and 'reco_'+par.name+'_'+var.name in model.df.keys():
-                res_models.append(model)
-
-        # Make sure we actually have something to plot!
-        if res_models !=[]:
-
-            # For each desired pt cut listed, create the resolution plot
-            for cut in Res_Instructions['pt_cuts']:
+    if cm_models != []:
+        for dataset in cm_models:
+            for cut in CM_Instructions['models'][dataset.reco_method]['pt_cuts']:
                 if cut=={}:
-                    Plot.Res(res_models,par,var,save_loc=dir+par.name+'/Res/',nbins=Res_Instructions['nbins'],core_fit='nofit')
+                    Plot.Confusion_Matrix(dataset,par,var,save_loc=main_dir+par.name+'/CM/')
                 elif len(cut)==1 and 'pt_low' in cut.keys():
-                    Plot.Res(res_models,par,var,save_loc=dir+par.name+'/Res/',nbins=Res_Instructions['nbins'],core_fit='nofit',pt_low=cut['pt_low'])
+                    Plot.Confusion_Matrix(dataset,par,var,save_loc=main_dir+par.name+'/CM/',pt_low=cut['pt_low'])
                 elif len(cut)==1 and 'pt_high' in cut.keys():
-                    Plot.Res(res_models,par,var,save_loc=dir+par.name+'/Res/',nbins=Res_Instructions['nbins'],core_fit='nofit',pt_high=cut['pt_high'])
+                    Plot.Confusion_Matrix(dataset,par,var,save_loc=main_dir+par.name+'/CM/',pt_high=cut['pt_high'])
                 else:
-                    Plot.Res(res_models,par,var,save_loc=dir+par.name+'/Res/',nbins=Res_Instructions['nbins'],core_fit='nofit',pt_low=cut['pt_low'],pt_high=cut['pt_high'])
+                    Plot.Confusion_Matrix(dataset,par,var,save_loc=main_dir+par.name+'/CM/',pt_low=cut['pt_low'],pt_high=cut['pt_high'])
+    else: 
+        print('Please select models if you want confusion matrix plots to be produced.')
 
 
+def makeSysPlots(loaded_models, Sys_Instructions, par, var, main_dir):
+
+    sys_models = [model for model in loaded_models if Sys_Instructions['include_model'][model.reco_method] and 'reco_'+par.name+'_'+var.name in model.df.keys()]
+
+    if sys_models != []:
+        Plot.Sys_Hist(sys_models,par,var,save_loc=main_dir+par.name+'/Sys/')
+
+    else:
+        print('Please select models if you want systematics plots to be produced.')
 
 
-# Get the instructions for the res vs var plots
-Res_vs_Var_Instructions = plot_specs['Res_vs_Var']
+def makeResPlots(loaded_models, Res_Instructions, par, var, main_dir):
+    """
+    Makes all the desired resolution (or residual) plots.
+
+        Parameters:
+            loaded_models (list of dataset objects): Datasets that are loaded and available to use in plots.
+            Res_Instructions (dict): Specifications for making the resolution (or residual) histograms (from JSON file).
+            par (particle object): Particle to be plotted.
+            var (observable object): Observable to be plotted.
+            main_dir (str): Main directory where all plots will be saved.
+
+        Returns:
+            Saves several resolution (or residual) histograms as images in <main_dir>.
+    """
 
 
+    # Get the datasets for the models to be included in the resolution plots
+    res_models = [model for model in loaded_models if Res_Instructions['include_model'][model.reco_method] and 'reco_'+par.name+'_'+var.name in model.df.keys()]
+
+    # Make sure we actually have something to plot!
+    if res_models !=[]:
+
+        # For each desired pt cut listed, create the resolution plot
+        for cut in Res_Instructions['pt_cuts']:
+            if cut=={}:
+                Plot.Res_Hist(res_models,par,var,save_loc=main_dir+par.name+'/Res/',nbins=Res_Instructions['nbins'],core_fit=Res_Instructions['core_fit'],include_moments=Res_Instructions['include_moments'])
+            elif len(cut)==1 and 'pt_low' in cut.keys():
+                Plot.Res_Hist(res_models,par,var,save_loc=main_dir+par.name+'/Res/',nbins=Res_Instructions['nbins'],core_fit=Res_Instructions['core_fit'],include_moments=Res_Instructions['include_moments'],pt_low=cut['pt_low'])
+            elif len(cut)==1 and 'pt_high' in cut.keys():
+                Plot.Res_Hist(res_models,par,var,save_loc=main_dir+par.name+'/Res/',nbins=Res_Instructions['nbins'],core_fit=Res_Instructions['core_fit'],include_moments=Res_Instructions['include_moments'],pt_high=cut['pt_high'])
+            else:
+                Plot.Res_Hist(res_models,par,var,save_loc=main_dir+par.name+'/Res/',nbins=Res_Instructions['nbins'],core_fit=Res_Instructions['core_fit'],include_moments=Res_Instructions['include_moments'],pt_low=cut['pt_low'],pt_high=cut['pt_high'])
+    else:
+        print('Please select models if you want resolution (or residual) plots to be produced.')
 
 
+def makeResVsVarPlots(loaded_models, Res_vs_Var_Instructions, par, main_dir):
+    """
+    Makes all the desired resolution (or residual) vs variable plots.
 
-# Go through each particle
-for par in particles:
+        Parameters:
+            loaded_models (list of dataset objects): Datasets that are loaded and available to use in plots.
+            Res_vs_Var_Instructions (dict): Specifications for making the resolution (or residual) vs variable plots (from JSON file).
+            par (particle object): Particle to be plotted.
+            var (observable object): Observable to be plotted.
+            main_dir (str): Main directory where all plots will be saved.
+
+        Returns:
+            Saves several resolution (or residual) vs variable plots as images in <main_dir>.
+    """
+
 
     # For each of the res vs var plots we want to make for this particle
     for plot in Res_vs_Var_Instructions['plots'][par.name]:
@@ -575,12 +580,102 @@ for par in particles:
         # Get the datasets for the models to be included in the resolution plots, which ALSO can reconstruct both the x and y variables
         res_vs_var_models = []
         for model in loaded_models:
-            if Res_vs_Var_Instructions['models'][model.reco_method]['plot']==True and 'reco_'+par.name+'_'+y_var.name in model.df.keys() and 'reco_'+par.name+'_'+x_var.name in model.df.keys():
+            if Res_vs_Var_Instructions['include_model'][model.reco_method] and 'reco_'+par.name+'_'+y_var.name in model.df.keys() and 'reco_'+par.name+'_'+x_var.name in model.df.keys():
                 res_vs_var_models.append(model)
 
         # Make the plot
-        Plot.Res_vs_Var(res_vs_var_models,par,y_var,x_var,plot['xbins'],save_loc=dir+par.name+'/Res/',core_fit=Res_vs_Var_Instructions['core_fit'])
-    
+        if res_vs_var_models != []:
+            Plot.Res_vs_Var(res_vs_var_models,par,y_var,x_var,plot['xbins'],save_loc=main_dir+par.name+'/Res/',core_fit=Res_vs_Var_Instructions['core_fit'])
+        else:
+            print('Please select models if you want resolution (or residual) vs variable plots to be produced.')
+
+        
+def makePlots(loaded_models, plotting_instr, particles, main_dir):
+    """
+    Makes all the desired plots.
+
+        Parameters:
+            loaded_models (list of dataset objects): Datasets that are loaded and available to use in plots.
+            plotting_instr (dict): Plotting specifications (from the JSON file) for the plot types that we actually want to make.
+            particles (list of particle objects): Particles to be plotted.
+            main_dir (str): Main directory where all plots will be saved.
+
+        Returns:
+            Saves several plots as images in <main_dir>.
+    """
+
+    for par in particles:
+
+        # For these plots, we'll just plot all the observables (for now anyways) instead of specifying them in the json file
+        if 'TruthReco' in plotting_instr or 'CM' in plotting_instr or 'Res' in plotting_instr or 'Sys' in plotting_instr:
+            for var in par.observables:
+                if 'TruthReco' in plotting_instr:
+                    makeTruthRecoPlots(loaded_models,plotting_instr['TruthReco'],par,var, main_dir)
+                if 'CM' in plotting_instr:
+                    makeCMPlots(loaded_models, plotting_instr['CM'], par, var, main_dir)  
+                if 'Sys' in plotting_instr:
+                    makeSysPlots(loaded_models, plotting_instr['Sys'], par, var, main_dir)     
+                if 'Res' in plotting_instr:
+                    makeResPlots(loaded_models, plotting_instr['Res'], par, var, main_dir)
+
+                    
+        # Res vs Var plots don't go through each observable -- only some variables are plotted against eachother (specified in json file)
+        if 'Res_vs_Var' in plotting_instr:
+            makeResVsVarPlots(loaded_models, plotting_instr['Res_vs_Var'],par, main_dir)
+
+
+
+
+
+
+# ------------- MAIN CODE ------------- #
+
+
+# Get JSON file name of plotting info from command line and load the file
+parser = ArgumentParser()
+parser.add_argument('--plotting_info', help='JSON file name (including path) that contains the plotting specifications you wish to use.', type=str, required=True)
+args = parser.parse_args()
+f_plotting_info = args.plotting_info
+plotting_info = json.load(open(f_plotting_info))
+
+# Create directories for plots if they don't already exist
+main_dir = plotting_info['save_loc']+'plots/'
+createDirectories(main_dir)
+
+# Get the model specifications, plotting specifications, and observable specifications from the JSON file
+model_specs = plotting_info['model_specs']
+plot_specs = plotting_info['plot_specs']
+par_specs = plotting_info['par_specs']
+
+# Get the total number of test events and the list of test events
+f_test = h5py.File(plotting_info['test_filename'],'r')
+eventnumbers = np.array(f_test.get('eventNumber'))
+f_test.close()
+
+# Make particle definitions from the info in the JSON file
+particles = unpackParticles(par_specs)
+
+# Get plotting instructions for the things we actually want to plot
+plotting_instr = {}
+for plot, specs in plot_specs.items():
+    if specs['makePlots']:
+        plotting_instr[plot] = plot_specs[plot]
+if plotting_instr == {}:
+    print('Please select something to be plotted.')
+    sys.exit()
+
+# Create lists of what models and systematics will need to be loaded
+models_to_load,sys_to_load = getLoadLists(plotting_instr)
+if models_to_load == []:
+    print('Please select models to be plotted.')
+    sys.exit()
+
+# Make dataframes for models
+loaded_models = makeAllDatasets(par_specs,model_specs,models_to_load,sys_to_load,plotting_info["datatype"],eventnumbers)
+print("All data loaded.")
+
+# Make the desired plots
+makePlots(loaded_models, plotting_instr,particles, main_dir)
 
 print('done! :)')
 
