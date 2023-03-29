@@ -24,10 +24,10 @@ class Utilities:
         for key in phi_keys:
             variable = key.split('_')[0]
             if bool(re.match('^j[0-9]+$', variable)): # If the variable is a jet
-                v = np.array(dataset.get(variable + '_pt'))[0:crop0]
-                dic[key] = (v>1)*1    # Interesting ... seems to mark a jet as existing if pt > 0
+                v = np.array(dataset.get(variable + '_pt'))[0:crop0]   # Get the jet's pt
+                dic[key] = (v>1)*1    # Interesting ... seems to mark a jet as existing if pt > 1 
             else:
-                dic[key] = np.ones(crop0, dtype=int)
+                dic[key] = np.ones(crop0, dtype=int)  # All other variables just exist I guess lol
         return dic
 
     

@@ -12,7 +12,7 @@ class Shape_timesteps:
         self.num_other_Xfeatures = None
         self.num_Ytimesteps = None
         self.num_Yfeatures = None
-        self.mask_value = -2
+        self.mask_value = -2    # Mask non-existent jets with -2 (needs to match the network build later)
     
     def create_mask(self,phi_keys,dataset,crop0):
         exist = Utilities.jet_existence_dict(phi_keys,dataset,crop0)
