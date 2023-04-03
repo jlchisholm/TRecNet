@@ -119,7 +119,7 @@ def appendCalculations(df,model_name):
     """
 
     # Do so for both truth and reco, or sysUP or sysDOWN, depending on the dataframe
-    levels = ['truth','reco'] if 'sys' not in model_name else [model_name.split('_')[0]]
+    levels = ['truth','reco'] if 'sys' not in model_name and 'test' not in model_name else [model_name.split('_')[0]]
     for level in levels:
 
         # Append calculations for px and py for ttbar 
@@ -390,7 +390,7 @@ def makeAllDatasets(par_specs,model_specs,models_to_load,sys_to_load,datatype,ev
                 p = int(100*len(df_cut)/total_test_events)
                 dataset = Dataset(df_cut,model_name,datatype,color_scheme,shortname=model_specs[model_name]["shortname"],cuts=tag,perc_events=p)
                 datasets.append(dataset)
-
+        
     return datasets
 
 
@@ -474,7 +474,7 @@ def makeTruthRecoPlots(loaded_models, TruthReco_Instructions, par, var, main_dir
         print('Please select models if you want truth-reco plots to be produced.')
 
 
-def makeCMPlots(loaded_models, CM_Instructions, par, var, main_dir):
+def makeCMPlots(loaded_models, CM_Instructions, par, var, main_dir, test_truth_df):
     """
     Makes all the desired confusion matrix plots.
 
@@ -484,6 +484,7 @@ def makeCMPlots(loaded_models, CM_Instructions, par, var, main_dir):
             par (particle object): Particle to be plotted.
             var (observable object): Observable to be plotted.
             main_dir (str): Main directory where all plots will be saved.
+            test_truth_df (pd.DataFrame): Dataframe of all truth data from the test datafile.
 
         Returns:
             Saves several confusion matrix plots as images in <main_dir>.
@@ -495,13 +496,13 @@ def makeCMPlots(loaded_models, CM_Instructions, par, var, main_dir):
         for dataset in cm_models:
             for cut in CM_Instructions['models'][dataset.reco_method]['pt_cuts']:
                 if cut=={}:
-                    Plot.Confusion_Matrix(dataset,par,var,save_loc=main_dir+par.name+'/CM/')
+                    Plot.Confusion_Matrix(dataset,par,var,test_truth_df,even_stats_binning=CM_Instructions['stats_binning'],save_loc=main_dir+par.name+'/CM/')
                 elif len(cut)==1 and 'pt_low' in cut.keys():
-                    Plot.Confusion_Matrix(dataset,par,var,save_loc=main_dir+par.name+'/CM/',pt_low=cut['pt_low'])
+                    Plot.Confusion_Matrix(dataset,par,var,test_truth_df,even_stats_binning=CM_Instructions['stats_binning'],save_loc=main_dir+par.name+'/CM/',pt_low=cut['pt_low'])
                 elif len(cut)==1 and 'pt_high' in cut.keys():
-                    Plot.Confusion_Matrix(dataset,par,var,save_loc=main_dir+par.name+'/CM/',pt_high=cut['pt_high'])
+                    Plot.Confusion_Matrix(dataset,par,var,test_truth_df,even_stats_binning=CM_Instructions['stats_binning'],save_loc=main_dir+par.name+'/CM/',pt_high=cut['pt_high'])
                 else:
-                    Plot.Confusion_Matrix(dataset,par,var,save_loc=main_dir+par.name+'/CM/',pt_low=cut['pt_low'],pt_high=cut['pt_high'])
+                    Plot.Confusion_Matrix(dataset,par,var,test_truth_df,even_stats_binning=CM_Instructions['stats_binning'],save_loc=main_dir+par.name+'/CM/',pt_low=cut['pt_low'],pt_high=cut['pt_high'])
     else: 
         print('Please select models if you want confusion matrix plots to be produced.')
 
@@ -590,7 +591,7 @@ def makeResVsVarPlots(loaded_models, Res_vs_Var_Instructions, par, main_dir):
             print('Please select models if you want resolution (or residual) vs variable plots to be produced.')
 
         
-def makePlots(loaded_models, plotting_instr, particles, main_dir):
+def makePlots(loaded_models, plotting_instr, particles, main_dir, test_truth_df):
     """
     Makes all the desired plots.
 
@@ -599,6 +600,7 @@ def makePlots(loaded_models, plotting_instr, particles, main_dir):
             plotting_instr (dict): Plotting specifications (from the JSON file) for the plot types that we actually want to make.
             particles (list of particle objects): Particles to be plotted.
             main_dir (str): Main directory where all plots will be saved.
+            test_truth_df (pd.DataFrame): Dataframe of all truth data from the test datafile.
 
         Returns:
             Saves several plots as images in <main_dir>.
@@ -612,7 +614,7 @@ def makePlots(loaded_models, plotting_instr, particles, main_dir):
                 if 'TruthReco' in plotting_instr:
                     makeTruthRecoPlots(loaded_models,plotting_instr['TruthReco'],par,var, main_dir)
                 if 'CM' in plotting_instr:
-                    makeCMPlots(loaded_models, plotting_instr['CM'], par, var, main_dir)  
+                    makeCMPlots(loaded_models, plotting_instr['CM'], par, var, main_dir, test_truth_df)  
                 if 'Sys' in plotting_instr:
                     makeSysPlots(loaded_models, plotting_instr['Sys'], par, var, main_dir)     
                 if 'Res' in plotting_instr:
@@ -650,7 +652,13 @@ par_specs = plotting_info['par_specs']
 # Get the total number of test events and the list of test events
 f_test = h5py.File(plotting_info['test_filename'],'r')
 eventnumbers = np.array(f_test.get('eventNumber'))
+# Also load the truth data (though this is also contained in the other datasets, we'll want it seperate too)
+test_truth_df = pd.DataFrame({key:np.array(f_test.get(key)) for key in f_test.keys()})
 f_test.close()
+test_truth_df = test_truth_df.add_prefix('truth_')
+test_truth_df['eventNumber'] = test_truth_df['truth_eventNumber']
+
+test_truth_df = appendCalculations(test_truth_df,'truth_test')
 
 # Make particle definitions from the info in the JSON file
 particles = unpackParticles(par_specs)
@@ -658,7 +666,7 @@ particles = unpackParticles(par_specs)
 # Get plotting instructions for the things we actually want to plot
 plotting_instr = {}
 for plot, specs in plot_specs.items():
-    if specs['makePlots']:
+    if specs['make_plots']:
         plotting_instr[plot] = plot_specs[plot]
 if plotting_instr == {}:
     print('Please select something to be plotted.')
@@ -675,7 +683,7 @@ loaded_models = makeAllDatasets(par_specs,model_specs,models_to_load,sys_to_load
 print("All data loaded.")
 
 # Make the desired plots
-makePlots(loaded_models, plotting_instr,particles, main_dir)
+makePlots(loaded_models, plotting_instr, particles, main_dir, test_truth_df)
 
 print('done! :)')
 

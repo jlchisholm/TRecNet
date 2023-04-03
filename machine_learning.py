@@ -4,6 +4,8 @@ sys.path.append("home/jchishol/")
 
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from tensorflow import keras
@@ -26,6 +28,11 @@ import time
 import vector
 import uproot
 from argparse import ArgumentParser
+
+
+import psutil
+import GPUtil
+
 
 
 
@@ -75,8 +82,8 @@ class Utilities:
     def scale(self, dataset, X_keys, Y_keys, X_maxmean_dic, Y_maxmean_dic):
 
         scaler = normalize_new.Scaler()
-        X_df = scaler.scale_arrays(dataset, X_keys, X_maxmean_dic)
-        Y_df = scaler.scale_arrays(dataset, Y_keys, Y_maxmean_dic)
+        X_df = scaler.scale_arrays(dataset, X_keys, X_maxmean_dic,process)
+        Y_df = scaler.scale_arrays(dataset, Y_keys, Y_maxmean_dic,process)
         scaled_X_keys = X_df.keys()
         scaled_Y_keys = Y_df.keys()
 
@@ -339,24 +346,48 @@ class Training:
 
     def train(self, Model):
 
+
+        print('RAM memory percent used:', process.memory_percent())
+        print('CPU percent used: ', process.cpu_percent())
+
+
         # Create an object to use utilities
         processor = Utilities()
-
-        # Load things we'll need
-        print('Loading data ...')
-        dataset = h5py.File(self.train_file,'r')
-        X_maxmean_dic, Y_maxmean_dic = processor.loadMaxMean(self.xmm_file, self.ymm_file)
 
         # These are the keys for what we're feeding into the pre-processing, and getting back in the end
         # X and Y variables to be used (NOTE: later have option to feed these in)
         self.X_keys, self.Y_keys = processor.getInputKeys(Model.model_name)
 
+        # Load maxmean
+        X_maxmean_dic, Y_maxmean_dic = processor.loadMaxMean(self.xmm_file, self.ymm_file)
+
+        print('RAM memory percent used:', process.memory_percent())
+        print('CPU percent used: ', process.cpu_percent())
+
+
         # Pre-process the data
-        totalX_jets, totalX_other, totalY, self.X_scaled_keys, self.Y_scaled_keys = processor.prepData(dataset, X_maxmean_dic, Y_maxmean_dic, self.X_keys, self.Y_keys)
+        with h5py.File(self.train_file,'r') as dataset:
+            totalX_jets, totalX_other, totalY, self.X_scaled_keys, self.Y_scaled_keys = processor.prepData(dataset, X_maxmean_dic, Y_maxmean_dic, self.X_keys, self.Y_keys)
+
+
+        print('RAM memory percent used:', process.memory_percent())
+        print('CPU percent used: ', process.cpu_percent())
+
+
 
         # Set how the data will be split (70 for training, 15 for validation, 15 for testing)
         split = 70/85   # Gave 85% to train file, now want 70% for the actual training
         trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = train_test_split(totalX_jets, totalX_other, totalY, train_size=split)
+
+        print('RAM memory percent used:', process.memory_percent())
+        print('CPU percent used: ', process.cpu_percent())
+
+
+        del totalX_jets, totalX_other, totalY   # Trying to make memory space
+
+        print('RAM memory percent used:', process.memory_percent())
+        print('CPU percent used: ', process.cpu_percent())
+
 
 
         # Need to load jet pretraining if TRecNet+ttbar+JetPretrain
@@ -375,11 +406,12 @@ class Training:
         early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=self.Patience)  # patience=4 means stop training after 4 epochs with no improvement
 
         # Set up tensorboard for monitoring
-        log_dir = "logs/fit/"+Model.model_id
+        log_dir = "tensorboard_logs/fit/"+Model.model_id
         tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+        custom_callback = CustomCallback()
 
         # Fit/train the model      
-        history = Model.model.fit([trainX_jets, trainX_other], trainY, verbose=1, epochs=self.Epochs, validation_data=([valX_jets, valX_other], valY), shuffle=True, callbacks=[early_stop, tensorboard_callback], batch_size=1000)
+        history = Model.model.fit([trainX_jets, trainX_other], trainY, verbose=1, epochs=self.Epochs, validation_data=([valX_jets, valX_other], valY), shuffle=True, callbacks=[early_stop, tensorboard_callback, custom_callback], batch_size=1000)
         Model.training_history = history.history
 
         # Save the model, its history, and loss plots
@@ -521,6 +553,12 @@ class Testing:
 
 
 # ------ MAIN CODE ------ #
+
+process = psutil.Process(os.getpid())
+print('RAM memory percent used:', process.memory_percent())
+print('CPU percent used: ', process.cpu_percent())
+
+
 
 # Set up argument parser
 parser = ArgumentParser()

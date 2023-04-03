@@ -6,10 +6,10 @@
 #                                                                    #
 #  Defines classes for observables, particles, and datasets, as      #
 #  well as a plotting class with functions for plotting truth vs.    #
-#  reco histograms, confusion matrices, resolution histograms, and   #
-#  plots of resolution as a function of a specified variable.        #
-#  Intended for visualizing and comparing the results of different   #
-#  ttbar reconstruction results.                                     # 
+#  reco histograms, confusion matrices, systematics histograms,      #
+#  resolution histograms, and plots of resolution as a function of   #
+#  a specified variable. Intended for visualizing and comparing the  #
+#  results of different ttbar reconstruction results.                # 
 #                                                                    #
 #  Thoughts for improvements: Include systematics, allow pt cuts     #
 #  for truth vs reco and confusion matrices, maybe better color      #
@@ -158,6 +158,42 @@ class Dataset:
             print('Please include both up and down sets of systematics to include in plots.')
 
 
+
+class Utilities:
+
+
+    def get_even_stats_bins(df_col,particle,observable,nbins=8):
+
+        # Define a useful string
+        name = particle.name+'_'+observable.name
+
+        # For variables evenly distributed about zero, we'll just make sure the positive data has even split, and then use the same binning values on the negative side
+        if observable.name in ['eta','phi','y','pout','px','py','yboost']:
+            pos_data = df_col[df_col>=0]
+            _, pos_ticks = pd.qcut(pos_data,q=int(nbins/2),retbins=True) 
+            neg_ticks = -np.flip(pos_ticks[1:])
+            ticks = np.concatenate((neg_ticks,pos_ticks))
+        # Otherwise, just split truth events equally into nbins
+        else:
+            _, ticks = pd.qcut(df_col,q=nbins,retbins=True)
+
+        # Round the ticks to nearest two decimal places (if necessary), else round to nearest tenth
+        two_dec_round = ['m','eta','phi','y','yboost','chi','deta','dphi']
+        tens_round = ['E','pout','pt','px','py','Ht']
+        ticks = np.round(ticks, 2) if observable.name in two_dec_round else np.round(ticks,-1) 
+
+        # Create labels for the ticks
+        tick_labels = [str(x) if observable.name in two_dec_round else str(int(x)) for x in ticks]
+        tick_labels[0] = '-'+r'$\pi$' if observable.name=='phi' else '-'+r'$\infty$' if observable.name in ['eta','y','pout','px','py','yboost'] else 0
+        tick_labels[-1] = r'$\pi$' if observable.name=='phi' else r'$\infty$'
+
+        return ticks, tick_labels
+
+
+
+
+
+
 class Plot:
     """ 
     A class for making various kinds of plots
@@ -229,7 +265,7 @@ class Plot:
         plt.close()
 
     
-    def Confusion_Matrix(dataset,particle,observable,norm=True,save_loc='./',text_color='k',pt_low=None,pt_high=None):
+    def Confusion_Matrix(dataset,particle,observable,test_truth_df,norm=True,even_stats_binning=False,save_loc='./',text_color='k',pt_low=None,pt_high=None):
         """ 
         Creates and saves a 2D histogram of true vs reconstructed data, normalized across rows, for a given dataset, particle, and observable.
 
@@ -237,9 +273,11 @@ class Plot:
                 dataset (Dataset object): Dataset object of the data you want to plot.
                 particle (Particle object): Particle object of the particle you want to plot.
                 observable (Observable object): Observable object of the observable you want to plot.
+                test_truth_df (pd.DataFrame): Dataframe of all truth data from the test datafile.
             
             Options:
                 norm (bool): Whether or not to normalize the confusion matrix across rows (default: True).
+                even_stats_binning (bool): Whether or not to have an approximately equal number of events in each bin (default: False). Note if this option is not selected, the observable's normal binning will be used.
                 save_loc (str): Directory where you want the histogram saved to (default: current directory).
                 text_color (str): Desired text color for the percentages written on the histogram (default: black or 'k').
                 pt_low (int): Lower edge for the range of pt you'd like to look at (non-inclusive) (default: None).
@@ -250,16 +288,23 @@ class Plot:
                 Saves histogram in <save_loc> as '<reco_method>_Confusion_Matrix_<data_type>_<particle>_<observable>.png'. 
         """
 
+
+
         # Make the appropriate color map
         color_map=colors.LinearSegmentedColormap.from_list('my_cmap', ['white', dataset.color])
-
 
         # Define a useful string
         name =particle.name+'_'+observable.name
 
-        # Define useful constants
-        tk = observable.ticks
-        tkls = observable.tick_labels
+        # Get the ticks and their labels
+        # We'll also create an extra label for which type of binning is used
+        if even_stats_binning:
+            tk, tkls = Utilities.get_even_stats_bins(test_truth_df['truth_'+name],particle,observable,nbins=8)
+            stats_tag = '(stats_binning)_'
+        else:
+            tk, tkls = observable.ticks, observable.tick_labels
+            stats_tag = '_'
+
         
         # Get the dataframe for this dataset
         df = dataset.df
@@ -296,6 +341,11 @@ class Plot:
 
 
 
+        
+
+
+
+
         # Create 2D array of truth vs reco observable (which can be plotted also)
         H, _, _, _ = plt.hist2d(np.clip(df['reco_'+name],tk[0],tk[-1]),np.clip(df['truth_'+name],tk[0],tk[-1]),bins=tk,range=[ran,ran])
 
@@ -326,7 +376,7 @@ class Plot:
                     plt.text(j+0.5,k+0.5,masked_cm.T[j,k],color=text_color,fontsize=6,weight="bold",ha="center",va="center")
 
         # Save the figure in save location as a png
-        fig_name = dataset.reco_method+'('+dataset.cuts+')_Confusion_Matrix_'+dataset.data_type+'_'+name+pt_tag
+        fig_name = dataset.reco_method+'('+dataset.cuts+')_Confusion_Matrix'+stats_tag+dataset.data_type+'_'+name+pt_tag
         plt.savefig(save_loc+fig_name,bbox_inches='tight')
         print('Saved Figure: '+fig_name)
 

@@ -6,30 +6,35 @@ from __main__ import *
 
 class Scaler:
     def __init__(self):
-        print("Creating Scaler.")
+        pass
 
-    def final_maxmean(self, data_dic, maxmean):
+    def final_maxmean(self, data_dic, maxmean, process):
 
         # Putting it into a dataframe for easier manipulation
-        df_unscaled = pd.DataFrame(data_dic)
+        df = pd.DataFrame(data_dic)
 
-        # Get the maxs and means of the variables we're using and do a max mean scaling of the data
-        maxs = {key:maxmean[key][0] for key in df_unscaled.keys()}
-        means = {key:maxmean[key][1] for key in df_unscaled.keys()}
-        df_scaled = (df_unscaled-means)/maxs
+        print('RAM memory percent used:', process.memory_percent())
+        print('CPU percent used: ', process.cpu_percent())
 
         # Figure out which variables you do and don't want to scale
-        dont = {key:1 if 'phi' in key or 'isbtag' in key or 'DL1r' in key or 'isTruth' in key else 0 for key in df_unscaled.keys()}
+        dont = {key:1 if 'phi' in key or 'isbtag' in key or 'DL1r' in key or 'isTruth' in key else 0 for key in df.keys()}
         do = {key:1-i for key, i in dont.items()}
-        
-        # Get a final dataset, with the desired variables scaled
-        df_final = df_scaled*do + df_unscaled*dont
+
+        # Get the maxs and means of the variables we're using
+        maxs = {key:maxmean[key][0] for key in df.keys()}
+        means = {key:maxmean[key][1] for key in df.keys()}
+
+        # Scale the desired variables
+        df = ((df-means)/maxs)*do + df*dont   # Temporarily uses a lot of memory (about 15%) but drops back after finishing
+
+        print('RAM memory percent used:', process.memory_percent())
+        print('CPU percent used: ', process.cpu_percent())
 
         # Converting back to array, for machine learning purposes
         #data_arr = np.array(df_final)
         #return data_arr
 
-        return df_final
+        return df
     
 
 
@@ -59,7 +64,7 @@ class Scaler:
 
 
 
-    def scale_arrays(self, dataset, keys, maxmean):
+    def scale_arrays(self, dataset, keys, maxmean,process):
 
         # Create a dictionary to hold all the data
         data_dic = {}
@@ -70,19 +75,25 @@ class Scaler:
                 par = key.split('_')[0]
                 pts, etas, phis = np.array(dataset.get(key)), np.array(dataset.get(par+'_eta')), np.array(dataset.get(par+'_phi'))
                 pts, pxs, pys, etas = self.cart_pt_transform(pts, etas, phis)
-                data_dic.update({key:pts,par+'_px':pxs,par+'_py':pys,par+'_eta':etas})
+                #data_dic.update({key:pts,par+'_px':pxs,par+'_py':pys,par+'_eta':etas}) # Twice as slow
+                data_dic[key], data_dic[par+'_px'], data_dic[par+'_py'], data_dic[par+'_eta'] = pts, pxs, pys, etas
             # Encode met_phi with triangle wave encoding of sin and cos
             elif key=='met_phi':
                 phis = np.array(dataset.get(key))
                 sins, coss = self.phi_triangle_transform(phis)
-                data_dic.update({key+'-sin':sins,key+'-cos':coss})
+                #data_dic.update({key+'-sin':sins,key+'-cos':coss})
+                data_dic[key+'-sin'], data_dic[key+'-cos'] = sins, coss
             # All other variables not yet added have no changes and can just be included as is
             elif 'm' in key or 'btag' in key or 'isTruth' in key or key=='met_met':
-                data_dic.update({key:np.array(dataset.get(key))})
+                #data_dic.update({key:np.array(dataset.get(key))})
+                data_dic[key] = np.array(dataset.get(key))
+
+        print('RAM memory percent used:', process.memory_percent())
+        print('CPU percent used: ', process.cpu_percent())
 
         # Do a maxmean scaling of the data
         #data_arr = self.final_maxmean(data_dic,maxmean)
-        df = self.final_maxmean(data_dic,maxmean)
+        df = self.final_maxmean(data_dic,maxmean, process)
 
         # Get the names
         #names = list(data_dic.keys())
