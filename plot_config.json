@@ -1,12 +1,12 @@
 {   "test_filename": "/mnt/xrootdg/jchishol/mntuples_08_01_22/variables_ttbar_ljets_jetMatch04_6jets_test.h5",
     "datatype": "parton_e+mjets",
-    "save_loc": "./",
+    "save_loc": "./testing/",
     "model_specs":
     {
         "TRecNet":
         {
             "shortname": "TRN",
-            "input_file": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Model_Custom_full_Results.root",
+            "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet_6jets_20230411_161458_nominal_Results.root",
             "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Model_Custom_sysUP_Results.root",
             "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Model_Custom_sysDOWN_Results.root",
             "truth_units": "GeV",
@@ -25,7 +25,7 @@
         "TRecNet+ttbar":
         {
             "shortname": "TRN+ttbar",
-            "input_file": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Model_Custom+ttbar_full_Results.root",
+            "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Model_Custom+ttbar_full_Results.root",
             "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Model_Custom+ttbar_sysUP_Results.root",
             "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Model_Custom+ttbar_sysDOWN_Results.root",
             "truth_units": "GeV",
@@ -44,7 +44,7 @@
         "TRecNet+ttbar+JetPretrain":
         {
             "shortname": "TRN+ttbar+JP",
-            "input_file": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Model_JetPretrain+ttbar_full_Results.root",
+            "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Model_JetPretrain+ttbar_full_Results.root",
             "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Model_JetPretrain+ttbar_sysUP_Results.root",
             "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Model_JetPretrain+ttbar_sysDOWN_Results.root",
             "truth_units": "GeV",
@@ -63,7 +63,7 @@
         "KLFitter6":
         {
             "shortname": "KLF6",
-            "input_file": "/mnt/xrootdg/jchishol/mntuples_08_01_22/KLF6_Results.root",
+            "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/KLF6_Results.root",
             "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/KLF6_Results.root",
             "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/KLF6_Results.root",
             "truth_units": "MeV",
@@ -89,7 +89,7 @@
         "PseudoTop":
         {
             "shortname": "PT",
-            "input_file": "/mnt/xrootdg/jchishol/mntuples_08_01_22/PT_Results.root",
+            "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/PT_Results.root",
             "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/PT_Results.root",
             "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/PT_Results.root",
             "truth_units": "MeV",
@@ -108,7 +108,7 @@
         "Chi2":
         {
             "shortname": "Chi2",
-            "input_file": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Chi2_Results.root",
+            "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Chi2_Results.root",
             "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Chi2_Results.root",
             "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Chi2_Results.root",
             "truth_units": "MeV",
@@ -136,7 +136,7 @@
     {
         "TruthReco":
         {
-            "make_plots": false,
+            "make_plots": true,
             "models":
             {
                 "TRecNet":
@@ -146,34 +146,34 @@
                 },
                 "TRecNet+ttbar":
                 {
-                    "plot": true,
+                    "plot": false,
                     "nbins": 30
                 },
                 "TRecNet+ttbar+JetPretrain":
                 {
-                    "plot": true,
+                    "plot": false,
                     "nbins": 30
                 },
                 "KLFitter6":
                 {
-                    "plot": true,
+                    "plot": false,
                     "nbins": 30
                 },
                 "PseudoTop":
                 {
-                    "plot": true,
+                    "plot": false,
                     "nbins": 30
                 },
                 "Chi2":
                 {
-                    "plot": true,
+                    "plot": false,
                     "nbins": 30
                 }
             }
         },
         "CM":
         {
-            "make_plots": true,
+            "make_plots": false,
             "stats_binning": false,
             "models":
             {

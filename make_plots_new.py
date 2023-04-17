@@ -139,6 +139,7 @@ def appendCalculations(df,model_name):
             th_vec = vector.arr({"pt": df[level+'_th_pt'], "phi": df[level+'_th_phi'], "eta": df[level+'_th_eta'],"mass": df[level+'_th_m']})
             tl_vec = vector.arr({"pt": df[level+'_tl_pt'], "phi": df[level+'_tl_phi'], "eta": df[level+'_tl_eta'],"mass": df[level+'_tl_m']}) 
             df[level+'_ttbar_deta'] = abs(th_vec.deltaeta(tl_vec))
+            df[level+'_ttbar_ystar'] = 0.5*(df[level+'_th_y']-df[level+'_tl_y'])
 
             # If the model is KLFitter or PseudoTop ...
             if 'TRecNet' not in model_name:
@@ -147,7 +148,6 @@ def appendCalculations(df,model_name):
                 df[level+'_ttbar_dphi'] = abs(th_vec.deltaphi(tl_vec))
                 df[level+'_ttbar_Ht'] = df[level+'_th_pt']+df[level+'_tl_pt']
                 df[level+'_ttbar_yboost'] = 0.5*(df[level+'_th_y']+df[level+'_tl_y'])
-                df[level+'_ttbar_ystar'] = 0.5*(df[level+'_th_y']-df[level+'_tl_y'])
 
 
     return df
@@ -340,7 +340,7 @@ def makeAllDatasets(par_specs,model_specs,models_to_load,sys_to_load,datatype,ev
     for model_name in models_to_load:
 
         # Create a dataframe for that model, append some other variables we might want to plot, and scale data to desired units of energy
-        df = readInData(model_name,model_specs[model_name]["input_file"],eventnumbers)
+        df = readInData(model_name,model_specs[model_name]["nom_input"],eventnumbers)
         df = appendCalculations(df,model_name)
         df = scaleData(df,model_specs[model_name]["truth_units"],model_specs[model_name]["reco_units"],par_specs)
 

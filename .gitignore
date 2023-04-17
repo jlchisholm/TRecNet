@@ -1,5 +1,6 @@
 __pycache__/
 .ipynb_checkpoints/
+.tensorboard_logs/
 .vscode/
 full_plots/
 plots/
