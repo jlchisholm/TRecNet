@@ -3,29 +3,40 @@ import re
 import numpy as np
 
 class Shape_timesteps:
-    def __init__(self):
+    def __init__(self, dataset, jn, mask_value):
         #self.num_jet_features = None
         #self.num_jets = None
         #self.num_other_Xfeatures = None
         #self.num_Ytimesteps = None
         #self.num_Yfeatures = None
-        self.mask_value = -2    # Mask non-existent jets with -2 (needs to match the network build later)
-
-
-    def jet_existence_dict(self,jet_names,dataset):
+        self.mask_value = mask_value    # Mask non-existent jets with -2 (needs to match the network build later)
+        self.jet_exist_dic = self.create_jet_exist_dic(dataset,jn)
+        
+        
+    def create_jet_exist_dic(self,dataset,jn):
         dic = {}
-        jet_pt_names = list(filter(lambda a: bool(re.match('^j[0-9]+_pt$', a)), jet_names))
-        for jetpt in jet_pt_names:  # For each jet
-            v = np.array(dataset.get(jetpt))  # Get the jet's pt
-            dic[jetpt.split('_')[0]+'_exists'] = (v>0)*1   # Mark jet as existing if pt > 0
+        for i in range(jn):
+            pt = np.array(dataset.get('j'+str(i+1)+'_pt'))
+            dic['j'+str(i+1)+'_exists'] = (pt>0)*1
+        return dic
+
+
+    def jet_existence_dict(self,jet_names,X_total_df):
+        dic = {}
+        jet_btag_names = list(filter(lambda a: bool(re.match('^j[0-9]+_isbtag$', a)), jet_names))
+        for jet_tag in jet_btag_names:  # For each jet
+            v = np.array(X_total_df[jet_tag])  # Get the jet's pt
+            dic[jet_tag.split('_')[0]+'_exists'] = (v!=self.mask_value)*1   # Mark jet as existing if btag is not -2 (the padded value)
         return dic
 
     
-    def create_mask(self,jet_names,num_jets,num_jet_features,dataset):
+    def create_mask(self,jet_names,num_jets,num_jet_features,X_total_df):
 
         # Figure out which jets are actually existent vs. padded (probably a better way to do this)
         # Dictionary with phi keys as keys, gives 0 for non-existing jet and 1 for existing (e.g. {'j1_phi':[1,1,1,0,1,1,0,0,1,1,1,1,0,...],...})
-        exist = self.jet_existence_dict(jet_names,dataset)
+        
+        #exist = self.jet_existence_dict(jet_names,X_total_df)
+        exist = self.jet_exist_dic
 
         # Goes through each of the jets, gets the array of existence keys (list of jn arrays, each with num_events entries)
         mask = [exist[list(exist.keys())[i]] for i in range(int(num_jets))] 
@@ -43,7 +54,7 @@ class Shape_timesteps:
     
 
 
-    def reshape_X(self, dataset, X_total_df):
+    def reshape_X(self, X_total_df):
 
 
 
@@ -58,7 +69,7 @@ class Shape_timesteps:
         num_jet_features = len(list(filter(lambda a: a.split('_')[0]=='j1',jet_names)))
 
         # The number of jets is how many jet names we have, divided by these features
-        num_jets = len(jet_names)/num_jet_features
+        num_jets = int(len(jet_names)/num_jet_features) 
 
         # Number of other is just the length
         num_other_Xfeatures = len(other_names)
@@ -74,7 +85,7 @@ class Shape_timesteps:
         X_timestep_jets = np.stack(np.split(np.array(X_jets_df),num_jets,axis=1),axis=1)
 
         # If mask1=1, we just get the jet back. If mask1=0, we get -2 for that jet
-        mask1 = self.create_mask(jet_names,num_jets,num_jet_features,dataset)
+        mask1 = self.create_mask(jet_names,num_jets,num_jet_features,X_total_df)
         X_timestep_jets = X_timestep_jets*mask1 + (1-mask1)*(self.mask_value) 
 
         # Will want arrays later so ...

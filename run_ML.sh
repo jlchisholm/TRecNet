@@ -4,4 +4,9 @@
 # Then run enviornment: source /home/jchishol/myVenv/bin/activate
 # WITHIN THAT run this script
 
-python machine_learning.py training --model_name TRecNet --data /mnt/xrootdg/jchishol/mntuples_08_01_22/variables_ttbar_ljets_6j_train.h5 --xmaxmean /home/jchishol/TRecNet/X_maxmean_variables_ttbar_ljets_6j_train.npy --ymaxmean /home/jchishol/TRecNet/Y_maxmean_variables_ttbar_ljets_6j_train.npy --epochs 256 --patience 4
+# For training:
+python machine_learning.py training --model_name TRecNet+ttbar+JetPretrain --data /mnt/xrootdg/jchishol/mntuples_08_01_22/variables_ttbar_ljets_10j_train.h5 --xmaxmean /mnt/xrootdg/jchishol/mntuples_08_01_22/X_maxmean_variables_ttbar_ljets_10j_train.npy --ymaxmean /mnt/xrootdg/jchishol/mntuples_08_01_22/Y_maxmean_variables_ttbar_ljets_10j_train.npy --epochs 256 --patience 4 --jet_pretrain_model /home/jchishol/TRecNet/JetPretrainer/JetPretrainer_6jets_20230412_144558/JetPretrainer_6jets_20230412_144558.keras
+
+
+# For testing:
+#python machine_learning.py testing --model_name TRecNet+ttbar --data /mnt/xrootdg/jchishol/mntuples_08_01_22/variables_ttbar_ljets_10j_test.h5 --xmaxmean /mnt/xrootdg/jchishol/mntuples_08_01_22/X_maxmean_variables_ttbar_ljets_10j_train.npy --ymaxmean /mnt/xrootdg/jchishol/mntuples_08_01_22/Y_maxmean_variables_ttbar_ljets_10j_train.npy --model_id TRecNet+ttbar_6jets_20230411_234414 --data_type nominal --save_loc /mnt/xrootdg/jchishol/mntuples_08_01_22/Results/
