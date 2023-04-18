@@ -16,7 +16,7 @@
 import os, sys, time
 sys.path.append("/home/jchishol/TRecNet")
 sys.path.append("home/jchishol/")
-os.environ["CUDA_VISIBLE_DEVICES"]="1"    # These are the GPUs visible for training
+os.environ["CUDA_VISIBLE_DEVICES"]="0"    # These are the GPUs visible for training
 from argparse import ArgumentParser
 
 import numpy as np
@@ -533,8 +533,9 @@ class Training:
             # Copy the old model (just alter the name and id)
             Unfrozen_Model = TRecNet_Model(model_name=Model.model_name+'Unfrozen')
             Unfrozen_Model.model = Model.model
-            Unfrozen_Model.frozen_model_id = Model.id
+            Unfrozen_Model.frozen_model_id = Model.model_id
             Unfrozen_Model.n_jets = Model.n_jets
+            del Model
             
             # Double check that we're unfreezing the correct layer
             if Unfrozen_Model.model.layers[4].trainable:
@@ -546,7 +547,7 @@ class Training:
             Unfrozen_Model.model.layers[4].trainable = True    
             
             # Use a smaller learning rate since we're fine-tuning now
-            lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=1e-4, decay_steps=10000,end_learning_rate=5e-6,power=0.25)
+            lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=1e-3, decay_steps=10000,end_learning_rate=5e-5,power=0.25)
             optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
             
             # Recompile the model    
