@@ -3,5 +3,8 @@ __pycache__/
 .tensorboard_logs/
 .vscode/
 full_plots/
-plots/
 other_plots/
+plots/
+tensorboard_logs/
+hypertuning_log*/
+*/val_plots/*
