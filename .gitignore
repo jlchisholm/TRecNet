@@ -6,5 +6,5 @@ full_plots/
 other_plots/
 plots/
 tensorboard_logs/
-hypertuning_log*/
+hypertuning_log*
 */val_plots/*
