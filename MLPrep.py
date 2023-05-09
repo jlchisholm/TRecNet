@@ -635,8 +635,8 @@ class filePrep:
         print('File opened.')
 
         # Separate input file name and its path
-        in_path = os.path.split(name)[0]
-        in_name = os.path.split(name)[1]
+        in_path = os.path.split(input_file)[0]
+        in_name = os.path.split(input_file)[1]
 
         # Create data frame
         df = pd.DataFrame({key: np.array(f.get(key)) for key in list(f.keys())})
@@ -661,7 +661,7 @@ class filePrep:
                 X_maxmean['j'+str(j+1)+'_'+v] = [df['j'+str(j+1)+'_'+v].abs().max(),df['j'+str(j+1)+'_'+v].mean()]
             
             # Also append isTrue if using the jet matching
-            if 'jetMatch' in name:
+            if 'jetMatch' in in_name:
                 Y_maxmean['j'+str(j+1)+'_isTruth'] = [df['j'+str(j+1)+'_isTruth'].abs().max(),df['j'+str(j+1)+'_isTruth'].mean()]
 
         print('Jets done.')
