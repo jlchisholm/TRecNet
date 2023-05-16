@@ -47,7 +47,10 @@ from MLUtil import *
 import normalize_new
 import shape_timesteps_new
 
-
+import tracemalloc
+tracemalloc.start()
+current, peak = tracemalloc.get_traced_memory()
+print(f"Current memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
 
 
 class Training:
@@ -150,9 +153,17 @@ class Training:
 
         # Load maxmean
         X_maxmean_dic, Y_maxmean_dic = processor.loadMaxMean(self.xmm_file, self.ymm_file)
+        
+        current, peak = tracemalloc.get_traced_memory()
+        print(f"Current memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
+
 
         # Pre-process the data
         totalX_jets, totalX_other, totalY, self.X_scaled_keys, self.Y_scaled_keys = processor.prepData(self.train_file, X_maxmean_dic, Y_maxmean_dic, self.X_keys, self.Y_keys, Model.n_jets, Model.mask_value)
+
+        current, peak = tracemalloc.get_traced_memory()
+        print(f"Current memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
+
 
         # Split the data
         trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = train_test_split(totalX_jets, totalX_other, totalY, train_size=self.split)
@@ -182,6 +193,17 @@ class Training:
             Returns:
                 model (Model object): Built model.
         """
+        
+        # Print before
+        current, peak = tracemalloc.get_traced_memory()
+        print(f"Current (before) memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
+        
+        # Might need to clear session so keras doesn't run out of memory
+        K.clear_session()
+        
+        # Print after
+        current, peak = tracemalloc.get_traced_memory()
+        print(f"Current (after) memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
          
         print('Building model...')
 
@@ -454,6 +476,7 @@ class Training:
         with redirect_stdout(file): tuner.results_summary(10)
         file.write("--------------------------------------------------- \n")
         best_hps = tuner.get_best_hyperparameters()[0]
+        #tuner.get_best_hyperparameters(num_trials=1).values
         file.write("Best initial_lr=%s: \n" % best_hps.get('initial_lr'))
         file.write("Best final_lr_div=%s: \n" % best_hps.get('final_lr_div'))
         file.write("Best lr_power=%s: \n" % best_hps.get('lr_power'))
@@ -501,12 +524,12 @@ class Training:
         # Use callbacks
         early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=self.patience)
         tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="tensorboard_logs/hypertuning/"+Model.model_id, histogram_freq=1)
-        csv_logger = CSVLogger(ht_dir+'/'+Model.model_id+'_Hypertuning/hypertuning_log.log',separator='\n')
+        #csv_logger = CSVLogger(ht_dir+'/'+Model.model_id+'_Hypertuning/hypertuning_log.log',separator='\n')     # This didn't work great :/
         
         # Perform the search
         print('Hypertuning commencing...')
         start = time.time()
-        tuner.search(x=[trainX_jets, trainX_other], y=trainY, validation_data=([valX_jets, valX_other], valY), epochs=self.max_epochs, callbacks=[early_stop, tensorboard_callback, csv_logger], shuffle=True)
+        tuner.search(x=[trainX_jets, trainX_other], y=trainY, validation_data=([valX_jets, valX_other], valY), epochs=self.max_epochs, callbacks=[early_stop, tensorboard_callback], shuffle=True,verbose=0)
         end = time.time()
         Model.training_time = round(end - start)
 
@@ -616,9 +639,9 @@ class Training:
                 # Need to load jet pretraining if TRecNet+ttbar+JetPretrain
                 if self.Model.model_name=='TRecNet+ttbar+JetPretrain':
                     pretrain_model = keras.models.load_model(self.trainer.pretrain_file)
-                    self.Model.model = self.build(self.Model.model_name, self.Model.mask_value, hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], pretrain_model = pretrain_model)
+                    self.Model.model = self.trainer.build_model(self.Model.model_name, self.Model.mask_value, hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], pretrain_model = pretrain_model)
                 else:
-                    self.Model.model = self.build(self.Model.model_name, self.Model.mask_value, hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'])
+                    self.Model.model = self.trainer.build_model(self.Model.model_name, self.Model.mask_value, hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'])
         
             return self.Model.model
             
