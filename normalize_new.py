@@ -108,6 +108,33 @@ class Scaler:
 
         # Might not be quite ready to return it in this format but thats fine whatever
         return unscaled_dic
+    
+    
+    def get_scaled_Ykeys(self, keys):
+ 
+        # Create a dictionary to hold all the data
+        scaled_Ykeys = []
+
+        for key in keys:
+            # Will be encoding phi as px and py when pt is available
+            if 'pt' in key:
+                par = key.split('_')[0]
+                scaled_Ykeys += [key, par+'_px', par+'_py', par+'_eta']
+                
+            # Encode met_phi with triangle wave encoding of sin and cos
+            elif key=='met_phi':
+                scaled_Ykeys += [key+'-sin',key+'-cos']
+                
+            # All other variables not yet added have no changes and can just be included as is
+            elif 'm' in key or 'btag' in key or 'isTruth' in key or key=='met_met':
+                scaled_Ykeys += [key]
+
+        return scaled_Ykeys    
+    
+    
+    
+    
+    
 
 
     # SEE IF VECTOR WILL DO THESE INSTEAD? Should do first two but not second two ...
