@@ -87,7 +87,7 @@ class Validating:
 
         # Set how the data will be split (70 for training, 15 for validation, 15 for testing)
         split = 70/85   # Gave 85% to train file, now want 70% for the actual training
-        trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = train_test_split(totalX_jets, totalX_other, totalY, train_size=split)
+        _, valX_jets, _, valX_other, _, valY = train_test_split(totalX_jets, totalX_other, totalY, train_size=split)
         
         # Predictions and truth BEFORE they're back to the original scale
         print('Making predictions ...')
@@ -95,7 +95,9 @@ class Validating:
         true_scaled = valY 
         
         # Invert scaling
-        preds_origscale_dic, true_origscale_dic = processor.unscale(preds_scaled, true_scaled, self.Y_scaled_keys, Y_maxmean_dic)
+        scaler = normalize_new.Scaler()
+        preds_origscale_dic = scaler.invscale_arrays(preds_scaled, self.Y_scaled_keys, Y_maxmean_dic)
+        true_origscale_dic = scaler.invscale_arrays(true_scaled, self.Y_scaled_keys, Y_maxmean_dic)
         
         # Create basic plots of results and save them
         # Create directory for saving things in if it doesn't exist
