@@ -332,7 +332,7 @@ class filePrep:
         # Create dataframe for other variables (note divide lep_pt and met_met by 1000 to convert from MeV to GeV)
         # NOTE: also including jet_n so we can later make a cut on these
         keys = ['lep_pt','lep_eta','lep_phi','met_met','met_phi','jet_n']
-        df_other = ak.to_pandas({key:reco_tree[key]/1000 if key=='lep_pt' or key=='met_met' else reco_tree[key] for key in keys})
+        df_other = ak.to_dataframe({key:reco_tree[key]/1000 if key=='lep_pt' or key=='met_met' else reco_tree[key] for key in keys})
 
         print('Other dataframe created.')
 
@@ -356,7 +356,7 @@ class filePrep:
         for v in ['pt','eta','phi','m','y','E']:
             for p in ['MC_thad_afterFSR_','MC_tlep_afterFSR_']:
                 truth_keys.append(p+v)
-        df_truth = ak.to_pandas({key.split('_')[1][0:2]+'_'+key.split('_')[-1]:truth_tree[key] for key in truth_keys})
+        df_truth = ak.to_dataframe({key.split('_')[1][0:2]+'_'+key.split('_')[-1]:truth_tree[key] for key in truth_keys})
         df_truth['th_pout'] = truth_tree['MC_thad_Pout']
         df_truth['tl_pout'] = truth_tree['MC_tlep_Pout']
 
@@ -435,7 +435,7 @@ class filePrep:
             print('Getting truth dataframe ...')
             df_truth = self.getTruthData(tree,jn)
         else:
-            df_truth = ak.to_pandas({'eventNumber':tree['eventNumber']})
+            df_truth = ak.to_dataframe({'eventNumber':tree['eventNumber']})
         
 
         return df_jets, df_other, df_truth
