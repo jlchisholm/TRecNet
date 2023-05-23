@@ -122,7 +122,7 @@ class Utilities:
         return X_maxmean_dic, Y_maxmean_dic
 
 
-    def scale(self, dataset, X_keys, Y_keys, X_maxmean_dic, Y_maxmean_dic):
+    def scale(self, dataset, X_keys, Y_keys, X_maxmean_dic, Y_maxmean_dic, onlyX=False):
         """
         Scale the X and Y data such that they have a mean of 0, range of (-1,1), and encode phi variables in px and py (or cosine and sine).
 
@@ -132,6 +132,9 @@ class Utilities:
                 Y_keys (list of str): Keys for the (original scale) Y variables.
                 X_maxmean_dic (dict): Dictionary of max and mean for X variables.
                 Y_maxmean_dic (dict): Dictionary of max and mean for Y variables.
+                
+            Optional:
+                onlyX (bool): Whether or not to also prepare Y Data, or only prepare X data (default: False).
 
             Returns:
                 X_df (pd.DataFrame): Scaled X data.
@@ -142,36 +145,20 @@ class Utilities:
 
         scaler = normalize_new.Scaler()
         X_df = scaler.scale_arrays(dataset, X_keys, X_maxmean_dic)
-        Y_df = scaler.scale_arrays(dataset, Y_keys, Y_maxmean_dic)
         scaled_X_keys = X_df.keys()
-        scaled_Y_keys = Y_df.keys()
+        
+        if onlyX:
+            Y_df = None
+            scaled_Y_keys = scaler.get_scaled_Ykeys(Y_keys)
+        else:
+            Y_df = scaler.scale_arrays(dataset, Y_keys, Y_maxmean_dic)
+            scaled_Y_keys = Y_df.keys()
 
         return X_df, Y_df, scaled_X_keys, scaled_Y_keys
-    
-
-    def unscale(self, preds_scaled, true_scaled, scaled_Y_keys, Y_maxmean_dic):
-        """
-        Unscale the Y data (predicted and true) back to the original scale and variables.
-
-            Parameters:
-                preds_scaled (np.array): Predicted Y values in maxmean scale.
-                true_scaled (np.array): True Y values in maxmean scale.
-                scaled_Y_keys (list of str): Scaled Y keys.
-                Y_maxmean_dic (dict): Dictionary of max and mean for Y variables.
-
-            Returns:
-                preds_origscale_dic (dict): Predicted Y values in original scale.
-                true_origiscale_dic: True Y values in original scale.
-        """
-
-        scaler = normalize_new.Scaler()
-        preds_origscale_dic = scaler.invscale_arrays(preds_scaled, scaled_Y_keys, Y_maxmean_dic)
-        true_origscale_dic = scaler.invscale_arrays(true_scaled, scaled_Y_keys, Y_maxmean_dic)
-    
-        return preds_origscale_dic, true_origscale_dic
 
 
-    def prepData(self, datafile, X_maxmean_dic, Y_maxmean_dic, X_keys, Y_keys, jn, mask_value):
+
+    def prepData(self, datafile, X_maxmean_dic, Y_maxmean_dic, X_keys, Y_keys, jn, mask_value, onlyX=False):
         """
         Prepares data for training by performing a mean-max scaling and phi-encoding, and then splitting dataset into (time-stepped) jets, other, and y data.
 
@@ -183,6 +170,9 @@ class Utilities:
                 Y_keys (list of str): Names of the (original) output variables.
                 jn (int): Number of jets we're training with.
                 mask_value (int): Value to mask non-existent jets with.
+                
+            Optional:
+                onlyX (bool): Whether or not to also prepare Y Data, or only prepare X data (default: False).
 
             Returns:
                 totalX_jets (np.array): Scaled, time-stepped jets.
@@ -201,7 +191,7 @@ class Utilities:
             timestep_builder = shape_timesteps_new.Shape_timesteps(dataset, jn, mask_value)
             
             # Scales data set to be between -1 and 1, with a mean of 0, and encodes phi in other variables (e.g. px, py)
-            X_df, Y_df, scaled_X_keys, scaled_Y_keys = self.scale(dataset, X_keys, Y_keys, X_maxmean_dic, Y_maxmean_dic)
+            X_df, Y_df, scaled_X_keys, scaled_Y_keys = self.scale(dataset, X_keys, Y_keys, X_maxmean_dic, Y_maxmean_dic, onlyX)
 
         # Split up jets and other for X, and Y just all stays together
         totalX_jets, totalX_other = timestep_builder.reshape_X(X_df)

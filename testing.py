@@ -48,6 +48,7 @@ class Testing:
         self.xmm_file = xmm_file
         self.ymm_file = ymm_file
         self.data_type = data_type
+        self.onlyX = False if data_type=='nominal' else True
         self.X_keys = None
         self.Y_keys = None
         self.X_scaled_keys = None
@@ -129,18 +130,18 @@ class Testing:
         Model.model = keras.models.load_model(Model.model_name+'/'+Model.model_id+'/'+Model.model_id+'.keras')
 
         # These are the keys for what we're feeding into the pre-processing, and getting back in the end
-        # X and Y variables to be used (NOTE: later have option to feed these in)
+        # X and Y variables to be used (NOTE: later have option to feed these in) OR read them in from the info file
         self.X_keys, self.Y_keys = processor.getInputKeys(Model.model_name,Model.n_jets)
 
         # Pre-process the data
-        testX_jets, testX_other, testY, self.X_scaled_keys, self.Y_scaled_keys = processor.prepData(self.test_file, X_maxmean_dic, Y_maxmean_dic, self.X_keys, self.Y_keys, Model.n_jets, Model.mask_value)
+        testX_jets, testX_other, _, self.X_scaled_keys, self.Y_scaled_keys = processor.prepData(self.test_file, X_maxmean_dic, Y_maxmean_dic, self.X_keys, self.Y_keys, Model.n_jets, Model.mask_value, onlyX=self.onlyX)
 
         # Predictions and truth BEFORE they're back to the original scale
         preds_scaled = Model.model.predict([testX_jets, testX_other])
-        true_scaled = testY 
 
         # Invert scaling
-        preds_origscale_dic, true_origscale_dic = processor.unscale(preds_scaled, true_scaled, self.Y_scaled_keys, Y_maxmean_dic)
+        scaler = normalize_new.Scaler()
+        preds_origscale_dic = scaler.invscale_arrays(preds_scaled, self.Y_scaled_keys, Y_maxmean_dic)
 
 
         # Get the true values
@@ -150,14 +151,14 @@ class Testing:
                 truth_keys = ['eventNumber','jet_n']+list(filter(lambda a: 'th_' in a or 'tl_' in a or 'ttbar_' in a or 'wh_' in a or 'wl_' in a, dataset.keys()))  
                 truths_df = pd.DataFrame({key:dataset.get(key) for key in truth_keys})
             else:
-                truths_df = None  # If working with systematics, we have no truth
+                truths_df = None  # If working with systematics or ttbb data, we have no truth
                 
         # Calculate all the same variables we had for truth, using the predicted values
         preds_df = pd.DataFrame(preds_origscale_dic)
         preds_df = self.calculateExtraVariables(Model.model_name, preds_df, eventNumbers)
 
         # Save results
-        self.save_results(Model, preds_df, truths_df)
+        self.save_results(Model, preds_df, truths_df, save_loc)
         
 
 
@@ -172,7 +173,7 @@ parser.add_argument('--data', help="Path and file name for the training data to 
 parser.add_argument('--xmaxmean', help="Path and file name for the X_maxmean file to be used (e.g. '/home/jchishol/TRecNet/X_maxmean_variables_ttbar_ljets_6j_train.npy')", type=str, required=True)
 parser.add_argument('--ymaxmean', help="Path and file name for the Y_maxmean file to be used (e.g. '/home/jchishol/TRecNet/Y_maxmean_variables_ttbar_ljets_6j_train.npy')", type=str, required=True)
 parser.add_argument('--model_id', help="Unique save name for the trained model.", type=str, required=True)
-parser.add_argument('--data_type', choices=['nominal','sysUP','sysDOWN'],help='Type of data.', required=True)
+parser.add_argument('--data_type', choices=['nominal','sysUP','sysDOWN','ttbb'],help='Type of data.', required=True)
 parser.add_argument('--save_loc', help="Directory in which to save the results (e.g. '/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/').", type=str, required=True)
 
 # Parse arguments
