@@ -327,6 +327,7 @@ class truthPrep:
                 tree (root tree): nominal tree with updated truth values
                 keys: fixed keys for nominal tree
         """
+        # TODO Speed this section up (way too slow!!!)
         # Specify range of events
         range_events = range(len(tree["eventNumber"]))
 
@@ -404,12 +405,12 @@ class truthPrep:
         # add keys, and rapidity and E to tree for thad and tlep (after FSR)
         keys.append('MC_thad_afterFSR_y')
         keys.append('MC_thad_afterFSR_E')
-        tree['MC_thad_afterFSR_y'] = t_had_vec_afterFSR.rapidity
+        tree['MC_thad_afterFSR_y'] = np.absolute(t_had_vec_afterFSR.rapidity) # I am pretty sure this needs to be absolute value (https://arxiv.org/pdf/1908.07305.pdf#page=20)
         tree['MC_thad_afterFSR_E'] = t_had_vec_afterFSR.E
 
         keys.append('MC_tlep_afterFSR_y')
         keys.append('MC_tlep_afterFSR_E')
-        tree['MC_tlep_afterFSR_y'] = t_lep_vec_afterFSR.rapidity
+        tree['MC_tlep_afterFSR_y'] = np.absolute(t_lep_vec_afterFSR.rapidity)
         tree['MC_tlep_afterFSR_E'] = t_lep_vec_afterFSR.E
 
         # add deltaPhi to keys and tree
@@ -422,7 +423,7 @@ class truthPrep:
 
         # add y_boost to keys and tree
         keys.append('MC_y_boost')
-        tree['MC_y_boost'] = 0.5 * np.add(t_had_vec_afterFSR.rapidity, t_lep_vec_afterFSR.rapidity)
+        tree['MC_y_boost'] = np.absolute(0.5 * np.add(t_had_vec_afterFSR.rapidity, t_lep_vec_afterFSR.rapidity))
 
         # add chi_tt to keys and tree
         keys.append('MC_chi_tt')
@@ -431,8 +432,8 @@ class truthPrep:
         # add pout for t and tbar
         keys.append('MC_thad_Pout')
         keys.append('MC_tlep_Pout')
-        tree['MC_thad_Pout'] = t_had_vec_afterFSR.dot(t_lep_vec_afterFSR.cross(vector.obj(x=0,y=0, z=1)).unit())
-        tree['MC_tlep_Pout'] = t_lep_vec_afterFSR.dot(t_had_vec_afterFSR.cross(vector.obj(x=0,y=0, z=1)).unit())
+        tree['MC_thad_Pout'] = np.absolute(t_had_vec_afterFSR.dot(t_lep_vec_afterFSR.cross(vector.obj(x=0,y=0, z=1)).unit()))
+        tree['MC_tlep_Pout'] = np.absolute(t_lep_vec_afterFSR.dot(t_had_vec_afterFSR.cross(vector.obj(x=0,y=0, z=1)).unit()))
 
         # store 4-vector for ttbar_afterFSR
         ttbar_vec_afterFSR = vector.array({"pt":tree['MC_ttbar_afterFSR_pt'],"eta":tree['MC_ttbar_afterFSR_eta'],"phi":tree['MC_ttbar_afterFSR_phi'],"m":tree['MC_ttbar_afterFSR_m']})
@@ -440,7 +441,7 @@ class truthPrep:
         # add keys, and rapidity and E to tree for ttbar (after FSR)
         keys.append('MC_ttbar_afterFSR_y')
         keys.append('MC_ttbar_afterFSR_E')
-        tree['MC_ttbar_afterFSR_y'] = ttbar_vec_afterFSR.rapidity
+        tree['MC_ttbar_afterFSR_y'] = np.absolute(ttbar_vec_afterFSR.rapidity)
         tree['MC_ttbar_afterFSR_E'] = ttbar_vec_afterFSR.E
 
         return tree, keys
