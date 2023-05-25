@@ -47,7 +47,7 @@ class jetMatcher:
     def __init__(self):
         print("Creating jetMatcher.")
 
-    def pruneTree(self,tree):
+    def pruneTree(self,tree, already_semi_lep):
         """ 
         Removes events we can't use from the trees (i.e. events with nan y and non-semileptonic events)
 
@@ -67,7 +67,8 @@ class jetMatcher:
         sel = tree['MC_ttbar_afterFSR_eta']>-100
 
         # Only want semi-leptonic events
-        sel = sel*(tree['semileptonicEvent']==1)
+        if not already_semi_lep:
+            sel = sel*(tree['semileptonicEvent']==1)
 
         # Make these selections
         tree = tree[sel]
@@ -184,7 +185,7 @@ class jetMatcher:
         return isttbarJet, match_info
 
 
-    def appendJetMatches(self,input_file,save_dir,dR_cut,allowDoubleMatching):
+    def appendJetMatches(self,input_file,save_dir,dR_cut,allowDoubleMatching, ignore_up_down, already_semi_lep, alternate_tree_name):
         """
         Gets the jet match tags and creates a new root file from the old one, including these new tags.
 
@@ -211,21 +212,31 @@ class jetMatcher:
         fix_file = uproot.recreate(save_dir+'/'+in_name.split('.root')[0]+match_tag+'.root')
 
         # Get the reco and parton trees from the original file
-        down_tree = og_file['CategoryReduction_JET_Pileup_RhoTopology__1down'].arrays()
-        up_tree = og_file['CategoryReduction_JET_Pileup_RhoTopology__1up'].arrays()
-        nom_tree = og_file['nominal'].arrays()
+        if not ignore_up_down:
+            down_tree = og_file['CategoryReduction_JET_Pileup_RhoTopology__1down'].arrays()
+            up_tree = og_file['CategoryReduction_JET_Pileup_RhoTopology__1up'].arrays()
+        
+        if alternate_tree_name:
+            nom_tree = og_file[alternate_tree_name].arrays()
+        else:   
+            nom_tree = og_file['nominal'].arrays()
 
         # Save the keys for later
-        down_keys = og_file['CategoryReduction_JET_Pileup_RhoTopology__1down'].keys()
-        up_keys = og_file['CategoryReduction_JET_Pileup_RhoTopology__1up'].keys()
-        nom_keys = og_file['nominal'].keys()
+        if not ignore_up_down:
+            down_keys = og_file['CategoryReduction_JET_Pileup_RhoTopology__1down'].keys()
+            up_keys = og_file['CategoryReduction_JET_Pileup_RhoTopology__1up'].keys()
+        
+        if alternate_tree_name:
+            nom_keys = og_file[alternate_tree_name].keys()
+        else:   
+            nom_keys = og_file['nominal'].keys()
 
         # Close the original file
         og_file.close()
 
         # Remove events from the trees that we can't use
         print('Pruning trees ...')
-        nom_tree = self.pruneTree(nom_tree)
+        nom_tree = self.pruneTree(nom_tree, already_semi_lep)
 
         # Get the jet matches
         print('Matching jets ...')
@@ -237,9 +248,14 @@ class jetMatcher:
 
         # Write the trees to the file
         print('Writing trees ...')
-        fix_file['CategoryReduction_JET_Pileup_RhoTopology__1down'] = {key:down_tree[key] for key in down_keys}
-        fix_file['CategoryReduction_JET_Pileup_RhoTopology__1up'] = {key:up_tree[key] for key in up_keys}
-        fix_file['nominal'] = {key:nom_tree[key] for key in nom_keys}
+        if not ignore_up_down:
+            fix_file['CategoryReduction_JET_Pileup_RhoTopology__1down'] = {key:down_tree[key] for key in down_keys}
+            fix_file['CategoryReduction_JET_Pileup_RhoTopology__1up'] = {key:up_tree[key] for key in up_keys}
+
+        if alternate_tree_name:
+            fix_file[alternate_tree_name] = {key:nom_tree[key] for key in nom_keys}
+        else:
+            fix_file['nominal'] = {key:nom_tree[key] for key in nom_keys}
 
         print('Saved file: '+save_dir+'/'+in_name.split('.root')[0]+match_tag+'.root')
 
@@ -723,6 +739,9 @@ p_appendJetMatches.add_argument('--input',help='Input file (including path).',re
 p_appendJetMatches.add_argument('--save_dir',help='Path for directory where file will be saved.',required=True)
 p_appendJetMatches.add_argument('--dR_cut',help='Maximum dR for the cut on dR (default: 1.0).',type=float,default=1.0)
 p_appendJetMatches.add_argument('--allow_double_matching',help='Use this flag to allow double matching.',action='store_false')
+p_appendJetMatches.add_argument('--ignore_up_down', help='Use this flag to ignore CategoryReduction_JET_Pileup_RhoTopology__1up(down) in Jet Matching.', action='store_true')
+p_appendJetMatches.add_argument('--already_semi_lep', help='Use this flag if tree is already semi-leptonic.', action='store_true')
+p_appendJetMatches.add_argument('--alternate_tree_name', help='Alternative name for nominal tree; default ("nominal")', type=str, default='nominal')
 
 # Define arguments for makeH5File
 p_makeH5File.add_argument('--input',help='Input file (including path).',required=True)
@@ -749,7 +768,7 @@ p_saveMaxMean.add_argument('--save_dir',help='Path for directory where file will
 args = parser.parse_args()
 if args.function == 'appendJetMatches':
     matcher = jetMatcher()
-    matcher.appendJetMatches(args.input,args.save_dir,args.dR_cut,args.allow_double_matching)
+    matcher.appendJetMatches(args.input,args.save_dir,args.dR_cut,args.allow_double_matching, args.ignore_up_down, args.already_semi_lep, args.alternate_tree_name)
 elif args.function == 'makeH5File':
     prepper = filePrep()
     prepper.makeH5File(args.input,args.output,args.tree_name,args.jn,args.met_cut)
