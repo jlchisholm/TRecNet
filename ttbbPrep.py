@@ -262,7 +262,7 @@ class keyConverter:
         return tree, keys
 
 
-    def convertKeys(self, root_file, save_dir, tree_name):
+    def convertKeys(self, root_file, save_dir, tree_name, new_tree_name):
         """
         Takes an input root file, updates the keys in tree according to self.key_changes, and saves a new root file with the 
         updated tree
@@ -289,6 +289,8 @@ class keyConverter:
         nom_tree, nom_keys = self.updateKeys(nom_tree, nom_keys)
 
         # add tree back to fixed root file
+        if new_tree_name:
+            tree_name = new_tree_name
         fix_file[tree_name] = {key:nom_tree[key] for key in nom_keys}
 
         # save and close fixed root file
@@ -327,7 +329,6 @@ class truthPrep:
                 tree (root tree): nominal tree with updated truth values
                 keys: fixed keys for nominal tree
         """
-        # TODO Speed this section up (way too slow!!!)
         # Specify range of events
         range_events = range(len(tree["eventNumber"]))
 
@@ -344,43 +345,43 @@ class truthPrep:
                 for s in ['afterFSR', 'beforeFSR']:
                     # Hadronic tops
                     keys.append('MC_'+p+'had_'+s+'_'+v)
-                    tree['MC_'+p+'had_'+s+'_'+v] = [tree['MC_'+p+'_'+s+'_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'bar_'+s+'_'+v][evt] for evt in range_events]
+                    tree['MC_'+p+'had_'+s+'_'+v] = np.where(tree['MC_t_isHadronic'], tree['MC_'+p+'_'+s+'_'+v], tree['MC_'+p+'bar_'+s+'_'+v])
 
                     # Leptonic tops
                     keys.append('MC_'+p+'lep_'+s+'_'+v)
-                    tree['MC_'+p+'lep_'+s+'_'+v] = [tree['MC_'+p+'bar_'+s+'_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'_'+s+'_'+v][evt] for evt in range_events]
+                    tree['MC_'+p+'lep_'+s+'_'+v] = np.where(tree['MC_t_isHadronic'], tree['MC_'+p+'bar_'+s+'_'+v], tree['MC_'+p+'_'+s+'_'+v])
 
         # Get truth information for Ws and bottoms
         for v in ['pt','eta','phi','m']:
             for p in ['W', 'b']:
                 # Hadronic tops
                 keys.append('MC_'+p+'_from_thad_'+v)
-                tree['MC_'+p+'_from_thad_'+v] = [tree['MC_'+p+'_from_t_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'_from_tbar_'+v][evt] for evt in range_events]
+                tree['MC_'+p+'_from_thad_'+v] = np.where(tree['MC_t_isHadronic'], tree['MC_'+p+'_from_t_'+v], tree['MC_'+p+'_from_tbar_'+v])
 
                 # Leptonic tops
                 keys.append('MC_'+p+'_from_tlep_'+v)
-                tree['MC_'+p+'_from_tlep_'+v] = [tree['MC_'+p+'_from_tbar_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'_from_t_'+v][evt] for evt in range_events]
+                tree['MC_'+p+'_from_tlep_'+v] = np.where(tree['MC_t_isHadronic'], tree['MC_'+p+'_from_tbar_'+v], tree['MC_'+p+'_from_t_'+v])
 
         # Get truth information for W decays
         for v in ['pt','eta','phi','m', 'pdgId']:
             for p in ['Wdecay1', 'Wdecay2']:
                 # Hadronic tops
                 keys.append('MC_'+p+'_from_thad_'+v)
-                tree['MC_'+p+'_from_thad_'+v] = [tree['MC_'+p+'_from_t_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'_from_tbar_'+v][evt] for evt in range_events]
+                tree['MC_'+p+'_from_thad_'+v] = np.where(tree['MC_t_isHadronic'], tree['MC_'+p+'_from_t_'+v], tree['MC_'+p+'_from_tbar_'+v])
 
                 # Leptonic tops
                 keys.append('MC_'+p+'_from_tlep_'+v)
-                tree['MC_'+p+'_from_tlep_'+v] = [tree['MC_'+p+'_from_tbar_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'_from_t_'+v][evt] for evt in range_events]
+                tree['MC_'+p+'_from_tlep_'+v] = np.where(tree['MC_t_isHadronic'], tree['MC_'+p+'_from_tbar_'+v], tree['MC_'+p+'_from_t_'+v])
 
         # Get truth information for b/bbar to bhad/blep parent pdgId
         for v in ['parent1', 'parent2']:
             # Hadronic tops
             keys.append('MC_bhad_'+v+'_pdgId')
-            tree['MC_bhad_'+v+'_pdgId'] = [tree['MC_b_'+v+'_pdgId'][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_bbar_'+v+'_pdgId'][evt] for evt in range_events]
+            tree['MC_bhad_'+v+'_pdgId'] = np.where(tree['MC_t_isHadronic'], tree['MC_b_'+v+'_pdgId'], tree['MC_bbar_'+v+'_pdgId'])
 
             # Leptonic tops
             keys.append('MC_blep_'+v+'_pdgId')
-            tree['MC_blep_'+v+'_pdgId'] = [tree['MC_bbar_'+v+'_pdgId'][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_b_'+v+'_pdgId'][evt] for evt in range_events]
+            tree['MC_blep_'+v+'_pdgId'] = np.where(tree['MC_t_isHadronic'], tree['MC_bbar_'+v+'_pdgId'], tree['MC_b_'+v+'_pdgId'])
 
         return tree, keys
     
@@ -405,12 +406,13 @@ class truthPrep:
         # add keys, and rapidity and E to tree for thad and tlep (after FSR)
         keys.append('MC_thad_afterFSR_y')
         keys.append('MC_thad_afterFSR_E')
-        tree['MC_thad_afterFSR_y'] = np.absolute(t_had_vec_afterFSR.rapidity) # I am pretty sure this needs to be absolute value (https://arxiv.org/pdf/1908.07305.pdf#page=20)
+        tree['MC_thad_afterFSR_y'] = t_had_vec_afterFSR.rapidity # does this need to be absolute value? (https://arxiv.org/pdf/1908.07305.pdf#page=20)
+                                                                 # output from TRecNet is not absolute value (contradicts paper?)
         tree['MC_thad_afterFSR_E'] = t_had_vec_afterFSR.E
 
         keys.append('MC_tlep_afterFSR_y')
         keys.append('MC_tlep_afterFSR_E')
-        tree['MC_tlep_afterFSR_y'] = np.absolute(t_lep_vec_afterFSR.rapidity)
+        tree['MC_tlep_afterFSR_y'] = t_lep_vec_afterFSR.rapidity
         tree['MC_tlep_afterFSR_E'] = t_lep_vec_afterFSR.E
 
         # add deltaPhi to keys and tree
@@ -423,7 +425,7 @@ class truthPrep:
 
         # add y_boost to keys and tree
         keys.append('MC_y_boost')
-        tree['MC_y_boost'] = np.absolute(0.5 * np.add(t_had_vec_afterFSR.rapidity, t_lep_vec_afterFSR.rapidity))
+        tree['MC_y_boost'] = 0.5*np.add(t_had_vec_afterFSR.rapidity, t_lep_vec_afterFSR.rapidity)
 
         # add chi_tt to keys and tree
         keys.append('MC_chi_tt')
@@ -432,8 +434,8 @@ class truthPrep:
         # add pout for t and tbar
         keys.append('MC_thad_Pout')
         keys.append('MC_tlep_Pout')
-        tree['MC_thad_Pout'] = np.absolute(t_had_vec_afterFSR.dot(t_lep_vec_afterFSR.cross(vector.obj(x=0,y=0, z=1)).unit()))
-        tree['MC_tlep_Pout'] = np.absolute(t_lep_vec_afterFSR.dot(t_had_vec_afterFSR.cross(vector.obj(x=0,y=0, z=1)).unit()))
+        tree['MC_thad_Pout'] = -1*t_had_vec_afterFSR.dot(t_lep_vec_afterFSR.cross(vector.obj(x=0,y=0, z=1)).unit()) #-1 to match output from TRecNet (might need to change back for ttbb training)
+        tree['MC_tlep_Pout'] = -1*t_lep_vec_afterFSR.dot(t_had_vec_afterFSR.cross(vector.obj(x=0,y=0, z=1)).unit()) #-1 to match output from TRecNet (might need to change back for ttbb training)
 
         # store 4-vector for ttbar_afterFSR
         ttbar_vec_afterFSR = vector.array({"pt":tree['MC_ttbar_afterFSR_pt'],"eta":tree['MC_ttbar_afterFSR_eta'],"phi":tree['MC_ttbar_afterFSR_phi'],"m":tree['MC_ttbar_afterFSR_m']})
@@ -441,7 +443,7 @@ class truthPrep:
         # add keys, and rapidity and E to tree for ttbar (after FSR)
         keys.append('MC_ttbar_afterFSR_y')
         keys.append('MC_ttbar_afterFSR_E')
-        tree['MC_ttbar_afterFSR_y'] = np.absolute(ttbar_vec_afterFSR.rapidity)
+        tree['MC_ttbar_afterFSR_y'] = ttbar_vec_afterFSR.rapidity
         tree['MC_ttbar_afterFSR_E'] = ttbar_vec_afterFSR.E
 
         return tree, keys
@@ -510,6 +512,7 @@ p_ttbbCut.add_argument('--DL1r_op_point', help='operating point for DL1r b-taggi
 p_convertKeys.add_argument('--root_file', help='input root file including path', required=True)
 p_convertKeys.add_argument('--save_dir', help='path to save directory', required=True)
 p_convertKeys.add_argument('--tree_name', help='name of tree', required=True)
+p_convertKeys.add_argument('--new_tree_name', help='(optional) name to rename tree')
 
 # Define arguments for prepTruth
 p_prepTruth.add_argument('--root_file', help='input root file including path', required=True)
@@ -523,7 +526,7 @@ if args.function == 'ttbbCut':
     cutter.ttbbCut(args.root_file, args.save_dir, args.tree_name, args.num_b_tags, args.n_jets_min, args.DL1r_op_point)
 elif args.function == 'convertKeys':
     converter = keyConverter()
-    converter.convertKeys(args.root_file, args.save_dir, args.tree_name)
+    converter.convertKeys(args.root_file, args.save_dir, args.tree_name, args.new_tree_name)
 elif args.function == 'prepTruth':
     prepper = truthPrep()
     prepper.prepTruth(args.root_file, args.save_dir, args.tree_name)
