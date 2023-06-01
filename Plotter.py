@@ -30,7 +30,7 @@ from matplotlib import colors
 from scipy.stats import norm
 from scipy.stats import cauchy
 from sigfig import round
-from analysis import Analysis
+#from analysis import Analysis
 
 
 class Observable:
@@ -259,7 +259,7 @@ class Plot:
         
         # Save the figure as a png in save location
         fig_name = dataset.reco_method+'('+dataset.cuts+')_TruthReco_Hist_'+dataset.data_type+'_'+name
-        plt.savefig(save_loc+fig_name,bbox_inches='tight')
+        plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
         print('Saved Figure: '+fig_name)
 
         plt.close()
@@ -377,7 +377,7 @@ class Plot:
 
         # Save the figure in save location as a png
         fig_name = dataset.reco_method+'('+dataset.cuts+')_Confusion_Matrix'+stats_tag+dataset.data_type+'_'+name+pt_tag
-        plt.savefig(save_loc+fig_name,bbox_inches='tight')
+        plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
         print('Saved Figure: '+fig_name)
 
         plt.close()
@@ -455,7 +455,7 @@ class Plot:
 
         # Save the figure as a png in save location
         fig_name = 'Systematics_'+dataset.data_type+'_'+name
-        plt.savefig(save_loc+fig_name,bbox_inches='tight')
+        plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
         print('Saved Figure: '+fig_name)
 
         plt.close()
@@ -561,7 +561,7 @@ class Plot:
 
         # Save figure in save location
         fig_name = res+'_'+dataset.data_type+'_'+name+pt_tag
-        plt.savefig(save_loc+fig_name,bbox_inches='tight')
+        plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
         print('Saved Figure: '+fig_name)
 
         plt.close()
@@ -650,7 +650,7 @@ class Plot:
 
         # Save figure in save location
         fig_name = y_var.name+'_'+y_res+'_vs_'+x_var.name+'_'+dataset.data_type+'_'+particle.name
-        plt.savefig(save_loc+fig_name,bbox_inches='tight')
+        plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
         print('Saved Figure: '+fig_name)
         
         plt.close()
