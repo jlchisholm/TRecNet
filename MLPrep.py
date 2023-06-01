@@ -185,7 +185,7 @@ class jetMatcher:
         return isttbarJet, match_info
 
 
-    def appendJetMatches(self,input_file,save_dir,dR_cut,allowDoubleMatching, ignore_up_down, already_semi_lep, alternate_tree_name):
+    def appendJetMatches(self,input_file,save_dir,dR_cut,allowDoubleMatching, ignore_up_down, already_semi_lep, alternate_tree_name, no_name_change):
         """
         Gets the jet match tags and creates a new root file from the old one, including these new tags.
 
@@ -194,6 +194,10 @@ class jetMatcher:
                 save_dir (str): Desired directory to save the output root file in.
                 dR_cut (float): A threshold which the dR for all matches must be below.
                 allowDoubleMatch (bool): Whether or not two or more decay products are allowed to be matched to the same jet.
+                ignore_up_down (bool): Ignore systematics (up/down).
+                already_semi_lep (bool): If input data is already cut on semi-leptonic events.
+                alternate_tree_name (str): Alternate tree name (e.g. if not 'nominal')
+                no_name_change (bool): To keep output root file with same name as input file (useful for bash scripts)
 
             Returns:
                 Creates a new root file that includes the systematic uncertainty trees, as well as the nominal tree with the new jet match tags included as 'jet_isTruth'.
@@ -261,6 +265,13 @@ class jetMatcher:
 
         # Close new file
         fix_file.close()
+
+        # Deletes old file and renames new file same as old file
+        if no_name_change:
+            # Replacing old file and keeping name
+            print('Replacing old file and keeping name')
+            os.remove(input_file)
+            os.rename(save_dir+'/'+in_name.split('.root')[0]+match_tag+'.root', input_file)
 
         # Save the matching info separately, since it's a weird shape, and save in its own folder
         if not os.path.exists(save_dir+'/matching_info'):
@@ -355,13 +366,14 @@ class filePrep:
         return df_other
 
 
-    def getTruthData(self,truth_tree,jn):
+    def getTruthData(self,truth_tree,jn, ttbb):
         """
         Creates a dataframe for the truth variables, including: pt, eta, phi, m, y, E, and pout for thad and tlep; and pt, eta, phi, m, y, E, dphi, Ht, chi, and yboost for ttbar; pt, eta, phi, m for whad and wlep; and isTruth for each of the jets.
         
             Parameters: 
                 truth_tree (root tree): Parton level tree from ROOT file.
                 jn (int): Number of jets you want per event, with padding where need be.
+                ttbb (bool): To include b and bbar parton level truth information
             
             Returns:
                 df_truth (dataframe): Dataframe for the truth variables.
@@ -384,6 +396,11 @@ class filePrep:
         df_truth['ttbar_chi'] = truth_tree['MC_chi_tt']
         df_truth['ttbar_yboost'] = truth_tree['MC_y_boost']
 
+        # If ttbb, include b and bbar
+        if ttbb:
+            for v in ['pt', 'm', 'eta', 'phi']:
+                df_truth['b_'+v] = truth_tree['MC_b_afterFSR_'+v]
+                df_truth['bbar_'+v] = truth_tree['MC_bbar_afterFSR_'+v]
 
         # Get the wh and wl information
         for v in ['pt','eta','phi','m']:
@@ -411,7 +428,7 @@ class filePrep:
         return df_truth
 
 
-    def getDataframes(self,root_file,tree_name,jn,met_cut):
+    def getDataframes(self,root_file,tree_name,jn,met_cut, ttbb):
         """
         Creates the jet, other, and truth dataframes from a specified file.
 
@@ -420,6 +437,7 @@ class filePrep:
                 n (int): Number of jets you want per event, with padding where need be.
                 tree_name (str): Name of the tree from which to extract the data.
                 met_cut (int or float): Minimum cut on met_met values.
+                ttbb (bool): To include b and bbar parton level truth info
         
             Returns: 
                 df_jets (array of dataframes): An array of <jn> dataframes (one for each of the jets), containing jet data.
@@ -449,7 +467,7 @@ class filePrep:
         # Get the truth dataframe (only for nominal)
         if tree_name=='nominal':
             print('Getting truth dataframe ...')
-            df_truth = self.getTruthData(tree,jn)
+            df_truth = self.getTruthData(tree,jn, ttbb)
         else:
             df_truth = ak.to_dataframe({'eventNumber':tree['eventNumber']})
         
@@ -457,7 +475,7 @@ class filePrep:
         return df_jets, df_other, df_truth
 
 
-    def makeH5File(self,input,output,tree_name,jn,met_cut):
+    def makeH5File(self,input,output,tree_name,jn,met_cut,ttbb):
         """
         Creates and saves h5 file with the reco and truth variables.
 
@@ -473,7 +491,7 @@ class filePrep:
         """
 
         # Get the data to be saved
-        df_jets, df_other, df_truth = self.getDataframes(input,tree_name,jn,met_cut)
+        df_jets, df_other, df_truth = self.getDataframes(input,tree_name,jn,met_cut, ttbb)
 
         # Add a tag for the file name
         tag = '_sysUP' if '__1up' in tree_name else '_sysDOWN' if '__1down' in tree_name else ''
@@ -629,13 +647,14 @@ class filePrep:
         print('Saved: '+output+'_test.h5')
 
 
-    def saveMaxMean(self,input_file,save_dir):
+    def saveMaxMean(self,input_file,save_dir, ttbb):
         """
         Saves dictionary of [max,mean] values for X (reco) and Y (truth) variables.
         
             Parameters: 
                 name (str): Name (and path) of the h5 file you want to calculate the max mean values for.
                 save_dir (str): Directory where you would like to save the max mean values.
+                ttbb (bool): Adds b and bbar parton level information.
 
             Returns: 
                 Saves two numpy files of [max, mean] values; one for X (reco) variables and one for Y (truth) variables.
@@ -706,7 +725,10 @@ class filePrep:
         print('Saved: '+save_dir+'/X_maxmean_'+in_name+'.npy')
 
         # Calculate px and py for truth
-        particles = ['th_','wh_','tl_','wl_','ttbar_']
+        if not ttbb:
+            particles = ['th_','wh_','tl_','wl_','ttbar_']
+        else:
+            particles = ['th_','wh_','tl_','wl_','ttbar_','b_','bbar_']
         for p in particles:
             df[p+'px'] = df[p+'pt']*np.cos(df[p+'phi'])
             df[p+'py'] = df[p+'pt']*np.sin(df[p+'phi'])
@@ -742,6 +764,7 @@ p_appendJetMatches.add_argument('--allow_double_matching',help='Use this flag to
 p_appendJetMatches.add_argument('--ignore_up_down', help='Use this flag to ignore CategoryReduction_JET_Pileup_RhoTopology__1up(down) in Jet Matching.', action='store_true')
 p_appendJetMatches.add_argument('--already_semi_lep', help='Use this flag if tree is already semi-leptonic.', action='store_true')
 p_appendJetMatches.add_argument('--alternate_tree_name', help='Alternative name for nominal tree; default ("nominal")', type=str, default='nominal')
+p_appendJetMatches.add_argument('--no_name_change', help='option to keep file name the same after changes', action='store_true')
 
 # Define arguments for makeH5File
 p_makeH5File.add_argument('--input',help='Input file (including path).',required=True)
@@ -749,6 +772,7 @@ p_makeH5File.add_argument('--output',help='Output file (including path). Note: T
 p_makeH5File.add_argument('--tree_name',help='Name of the tree from which to extract the data.',required=True)
 p_makeH5File.add_argument('--jn',help='Number of jets to include per event (using padding if necessary) (default: 6).',type=int,default=6)
 p_makeH5File.add_argument('--met_cut',help='Minimum cut value for met_met (default: 20).',type=float,default=20.)
+p_makeH5File.add_argument('--ttbb', help='Flag to include b and bbar parton level truth information', action='store_true')
 
 # Define arguments for combineH5Files
 p_combineH5Files.add_argument('--file_list',help='Text file containing list of input files (including path).',required=True, type=argparse.FileType('r'))
@@ -762,26 +786,27 @@ p_makeTrainTest.add_argument('--split',help='Percentage of events (expressed as 
 # Define arguments for saveMaxMean
 p_saveMaxMean.add_argument('--input',help='Input file (including path).',required=True)
 p_saveMaxMean.add_argument('--save_dir',help='Path for directory where file will be saved.',required=True)
+p_saveMaxMean.add_argument('--ttbb', help='Flag to include b and bbar parton level truth information', action='store_true')
 
 
 # Parse the arguments and proceed with stuff
 args = parser.parse_args()
 if args.function == 'appendJetMatches':
     matcher = jetMatcher()
-    matcher.appendJetMatches(args.input,args.save_dir,args.dR_cut,args.allow_double_matching, args.ignore_up_down, args.already_semi_lep, args.alternate_tree_name)
+    matcher.appendJetMatches(args.input,args.save_dir,args.dR_cut,args.allow_double_matching, args.ignore_up_down, args.already_semi_lep, args.alternate_tree_name, args.no_name_change)
 elif args.function == 'makeH5File':
     prepper = filePrep()
-    prepper.makeH5File(args.input,args.output,args.tree_name,args.jn,args.met_cut)
+    prepper.makeH5File(args.input,args.output,args.tree_name,args.jn,args.met_cut,args.ttbb)
 elif args.function == 'combineH5Files':
     file_list = [file.strip() for file in args.file_list]
     prepper = filePrep()
     prepper.combineH5Files(file_list, args.output)
 elif args.function == 'makeTrainTestH5Files':
-    file_list = [file.strip() for file in args.file_list]
     prepper = filePrep()
-    prepper.makeTrainTestH5Files(file_list,args.output,args.split)
+    file_list = [file.strip() for file in args.file_list]
+    prepper.makeTrainTestH5Files(file_list, args.output, args.split)
 elif args.function == 'saveMaxMean':
     prepper = filePrep()
-    prepper.saveMaxMean(args.input,args.save_dir)
+    prepper.saveMaxMean(args.input,args.save_dir,args.ttbb)
 else:
     print('Invalid function type.')
