@@ -148,7 +148,7 @@ class ttbbCutter:
         return tree, keys
 
     
-    def ttbbCut(self, root_file, save_dir, tree_name, num_b_tags, n_jets_min, DL1r_op_point):
+    def ttbbCut(self, root_file, save_dir, tree_name, num_b_tags, n_jets_min, DL1r_op_point, no_name_change):
         """
         Copies nominal tree from input root file, makes cuts on minimum number of jets and minimum number of b tags,
         and makes new root file with the cut tree.
@@ -206,6 +206,12 @@ class ttbbCutter:
         print('Saved file: '+fix_file_path)
         fix_file.close()
 
+        if no_name_change:
+            # Replacing old file and keeping name
+            print('Replacing old file and keeping name')
+            os.remove(root_file)
+            os.rename(fix_file_path, root_file)
+
 
 
 """
@@ -262,7 +268,7 @@ class keyConverter:
         return tree, keys
 
 
-    def convertKeys(self, root_file, save_dir, tree_name, new_tree_name):
+    def convertKeys(self, root_file, save_dir, tree_name, new_tree_name, no_name_change):
         """
         Takes an input root file, updates the keys in tree according to self.key_changes, and saves a new root file with the 
         updated tree
@@ -295,7 +301,14 @@ class keyConverter:
 
         # save and close fixed root file
         print('Saved file: '+save_dir+'/'+in_name.split('.root')[0]+'_fixed_keys'+'.root')
+        
         fix_file.close()
+
+        if no_name_change:
+            # Replacing old file and keeping name
+            print('Replacing old file and keeping name')
+            os.remove(root_file)
+            os.rename(save_dir+'/'+in_name.split('.root')[0]+'_fixed_keys'+'.root', root_file)
 
 
 
@@ -483,7 +496,7 @@ class truthPrep:
         fix_file[tree_name] = {key:nom_tree[key] for key in nom_keys}
 
         # save and close fixed root file
-        print('Saved file: '+save_dir+'/'+in_name.split('.root')[0]+'_fixed_keys'+'.root')
+        print('Saved file: '+save_dir+'/'+in_name.split('.root')[0]+'_fixed_truth_'+'.root')
         fix_file.close()
 
 
@@ -505,14 +518,17 @@ p_ttbbCut.add_argument('--root_file', help='input root file including path', req
 p_ttbbCut.add_argument('--save_dir', help='path to save directory', required=True)
 p_ttbbCut.add_argument('--tree_name', help='name of tree', required=True)
 p_ttbbCut.add_argument('--num_b_tags', help='minimum number of b tags per event', type=int,default=3)
-p_ttbbCut.add_argument('--n_jets_min', help='kinimum number of jets per event', type=int,default=6)
+p_ttbbCut.add_argument('--n_jets_min', help='minimum number of jets per event', type=int,default=6)
 p_ttbbCut.add_argument('--DL1r_op_point', help='operating point for DL1r b-tagging network', type=int, default=3) # default: 3 -> 70 percent operating point
+p_ttbbCut.add_argument('--no_name_change', help='option to keep file name the same after changes', action='store_true')
 
 # Define arguments for convertKeys
 p_convertKeys.add_argument('--root_file', help='input root file including path', required=True)
 p_convertKeys.add_argument('--save_dir', help='path to save directory', required=True)
 p_convertKeys.add_argument('--tree_name', help='name of tree', required=True)
 p_convertKeys.add_argument('--new_tree_name', help='(optional) name to rename tree')
+p_convertKeys.add_argument('--no_name_change', help='option to keep file name the same after changes', action='store_true')
+
 
 # Define arguments for prepTruth
 p_prepTruth.add_argument('--root_file', help='input root file including path', required=True)
@@ -523,10 +539,10 @@ p_prepTruth.add_argument('--tree_name', help='name of tree', required=True)
 args = parser.parse_args()
 if args.function == 'ttbbCut':
     cutter = ttbbCutter()
-    cutter.ttbbCut(args.root_file, args.save_dir, args.tree_name, args.num_b_tags, args.n_jets_min, args.DL1r_op_point)
+    cutter.ttbbCut(args.root_file, args.save_dir, args.tree_name, args.num_b_tags, args.n_jets_min, args.DL1r_op_point, args.no_name_change)
 elif args.function == 'convertKeys':
     converter = keyConverter()
-    converter.convertKeys(args.root_file, args.save_dir, args.tree_name, args.new_tree_name)
+    converter.convertKeys(args.root_file, args.save_dir, args.tree_name, args.new_tree_name, args.no_name_change)
 elif args.function == 'prepTruth':
     prepper = truthPrep()
     prepper.prepTruth(args.root_file, args.save_dir, args.tree_name)
