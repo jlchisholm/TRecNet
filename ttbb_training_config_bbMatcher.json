@@ -1,0 +1,61 @@
+{   
+    "data": "/mnt/xrootdc/TRecNet_ttbb_training_data/ttbb_training_data/V01_2/ttbb+b1b2_8jets_h5_fixed/TrainTestH5Files_train.h5",
+    "xmaxmean": "/mnt/xrootdc/TRecNet_ttbb_training_data/ttbb_training_data/V01_2/ttbb+b1b2_8jets_h5_fixed/X_maxmean_combinedH5File.npy",
+    "ymaxmean": "/mnt/xrootdc/TRecNet_ttbb_training_data/ttbb_training_data/V01_2/ttbb+b1b2_8jets_h5_fixed/Y_maxmean_combinedH5File.npy",
+    "split": [70,15,15],
+    "jet_pretrain": "/atlasserv/home/dciarniello/summer2023/TRecNet/JetPretrainer/JetPretrainer_8jets_20230615_114620/JetPretrainer_8jets_20230615_114620.keras",
+    "bb_pretrain": "/atlasserv/home/dciarniello/summer2023/TRecNet/bbPretrainer/bbPretrainer_8jets_20230621_105659/bbPretrainer_8jets_20230621_105659.keras",
+    "frozen_model": null,
+    "bb_frozen_model": null,
+    "njets": 8,
+    "max_epochs": 256,
+    "patience": 8,
+    "training":
+    {
+        "initial_lr": 1e-3,
+        "final_lr_div": 100,
+        "lr_power": 0.5,
+        "lr_decay_step": 200,
+        "batch_size": 1000
+    },
+    "hypertuning":
+    {
+        "initial_lr":
+        {
+            "type": "choice",
+            "choices": [1e-1,5e-2,1e-2,5e-3,1e-3,5e-4,1e-4,5e-5,1e-5]
+        },
+        "final_lr_div":
+        {
+            "type": "int",
+            "min_value": 10,
+            "max_value": 1000,
+            "step": 10,
+            "sampling": "log"
+        },
+        "lr_decay_step":
+        {
+            "type": "int",
+            "min_value": 100,
+            "max_value": 10000,
+            "step": 10,
+            "sampling": "log"
+        },
+        "lr_power":
+        {
+            "type": "float",
+            "min_value": 0.25,
+            "max_value": 2.0,
+            "step": 0.25,
+            "sampling": "linear"
+        },
+        "batch_size":
+        {
+            "type": "int",
+            "min_value": 1000,
+            "max_value": 10000,
+            "step": 10,
+            "sampling": "log"
+        }
+    }
+}

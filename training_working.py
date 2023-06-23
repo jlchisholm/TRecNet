@@ -43,7 +43,7 @@ from keras.optimizers import *
 import keras_tuner as kt
 #from clr_callback import * 
 
-from MLUtil import *
+from MLUtil_working import *
 import normalize_new
 import shape_timesteps_new
 
@@ -192,7 +192,7 @@ class Training:
         lep_shape = sum('tl_' in key or 'wl_' in key for key in self.Y_scaled_keys)
         ttbar_shape = sum('ttbar_' in key for key in self.Y_scaled_keys)
 
-        if ttbb: bbbar_shape = sum('b_' in key or 'bbar_' in key for key in self.Y_scaled_keys)
+        if ttbb: bbbar_shape = sum('b_' in key or 'bbar_' in key or 'bbbar_' in key for key in self.Y_scaled_keys)
 
         # Input layers
         jet_input = Input(shape=(self.jets_shape[1], self.jets_shape[2]),name='jet_input')
@@ -205,7 +205,7 @@ class Training:
         TDDense12 = TimeDistributed(Dense(64, activation='relu'), name='TDDense64')(TDDense11)
 
         # Concatenate flattened jets and other and use some dense layers (but not for TRecNet+ttbar+JetPretrain, since this is done in JetPretrainer)
-        if model_name!='TRecNet+ttbar+JetPretrain':
+        if '+JetPretrain' not in model_name:                                #model_name!='TRecNet+ttbar+JetPretrain':
             flat_jets =  Flatten(name ='flattened_jets')(jet_input) 
             concat0 = concatenate([other_input, flat_jets], name = 'concat_jets_other')
             PreDense1 = Dense(256, activation='relu', name = 'dense256_1')(concat0)
@@ -221,7 +221,7 @@ class Training:
         else:
 
             # Use sigmoid to give jets a weight
-            if model_name=='TRecNet+ttbar+JetPretrain':
+            if '+JetPretrain' in model_name:                                          #model_name=='TRecNet+ttbar+JetPretrain':
                 pretrain_model.trainable = False                                      # Freezing the jet pretrain model (i.e. want to use the previously trained weights)
                 pretrain = pretrain_model([jet_input,other_input], training=False)    # Putting the inputs into the pretrain model
                 Shape_Dot = Reshape((-1,1), name='reshape')(pretrain)
@@ -256,14 +256,14 @@ class Training:
 
             # If ttbb, output b and bbar
             if ttbb:
-                jbdense1 = TimeDistributed(Dense(256, activation='relu'), name='jb_TDDense256_1')(Dot_jets)
+                jbdense1 = TimeDistributed(Dense(256, activation='relu'), name='jb_TDDense256_1')(TDDense14)
                 jbdense2 = TimeDistributed(Dense(256, activation='relu'), name='jb_TDDense256_2')(jbdense1)
                 jbflatten = Flatten(name='jb_flattened')(jbdense2)
                 bconcat = concatenate([loutput, houtput, jbflatten])
                 bdense1 = Dense(256, activation='relu', name='bdense256_1')(bconcat)
                 bdense2 = Dense(256, activation='relu', name='bdense256_2')(bdense1)
                 bdense3 = Dense(128, activation='relu', name='bdense128_3')(bdense2)
-                boutput = Dense(bbbar_shape, name='b_bbar_output')(bdense2)
+                boutput = Dense(bbbar_shape, name='b_bbar_output')(bdense3)
             
             # Final output
             if not ttbb: output = concatenate([houtput, loutput], name='output')

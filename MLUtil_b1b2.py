@@ -56,7 +56,7 @@ class TRecNet_Model:
         
         self.model_name = model_name
         self.model_id = time.strftime(model_name+"_"+str(n_jets)+"jets_%Y%m%d_%H%M%S") if model_id==None else model_id   # Model unique save name (based on the date)
-        self.n_jets = n_jets if model_id==None else int(model_id.split('_')[1].split('jets')[0]) # If not given, get from model_id
+        self.n_jets = n_jets if model_id==None else int(model_id.split('_')[2].split('jets')[0]) # If not given, get from model_id
         self.mask_value = -2   # Define here so it's consist between model building and jet timestep building
         self.model = None
         self.frozen_model_id = None
@@ -99,7 +99,7 @@ class Utilities:
             Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
         if 'ttbb' in model_name:
             #X_keys.extend(['j'+str(i+1)+'_btag_continuous' for i in range(n_jets)])
-            Y_keys.extend(['b_pt','b_m','b_eta','b_phi','bbar_pt','bbar_m','bbar_eta','bbar_phi'])
+            Y_keys.extend(['b1_pt','b1_m','b1_eta','b1_phi','b2_pt','b2_m','b2_eta','b2_phi'])#, 'bbbar_dR'
             Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
         if model_name=='JetPretrainer': 
             Y_keys = ['j'+str(i+1)+'_isTruth' for i in range(n_jets)]

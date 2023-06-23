@@ -1,12 +1,12 @@
-{   "test_filename": "/mnt/xrootdc/TRecNet_ttbb_training_data/ttbb_training_data/V01_2/ttbb+bbmatch_8jets_4btags_h5/TrainTestH5Files_test.h5",
+{   "test_filename": "/mnt/xrootdc/TRecNet_ttbb_training_data/ttbb_training_data/V01_2/ttbb+b1b2_8jets_h5/TrainTestH5Files_test.h5",
     "datatype": "test",
-    "save_loc": "/home/dciarniello/summer2023/TRecNet/",
+    "save_loc": "/atlasserv/home/dciarniello/summer2023/TRecNet/",
     "model_specs":
     {
-        "TRecNet+ttbb.v1.0":
+        "TRecNet+ttbb_b1b2":
         {
-            "shortname": "TRN+ttbb.v1.0",
-            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v1.0/TRecNet+ttbb.v1.0_8jets_20230609_114705/TRecNet+ttbb.v1.0_8jets_20230609_114705_nominal_Results.root",
+            "shortname": "TRN+ttbb_b1b2",
+            "nom_input": "/atlasserv/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb_b1b2/TRecNet+ttbb_b1b2_8jets_20230616_094407/TRecNet+ttbb_b1b2_8jets_20230616_094407_nominal_Results.root",
             "sysUP_input": null,
             "sysDOWN_input": null,
             "truth_units": "GeV",
@@ -22,10 +22,10 @@
                 }
             ]
         },
-        "TRecNet+ttbb.v1.1":
+        "TRecNet+ttbb+bbPretrain_b1b2":
         {
-            "shortname": "TRN+ttbb.v1.1",
-            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v1.1/TRecNet+ttbb.v1.1_8jets_20230609_222520/TRecNet+ttbb.v1.1_8jets_20230609_222520_nominal_Results.root",
+            "shortname": "TRN+ttbb+bbPre_b1b2",
+            "nom_input": "/atlasserv/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb+bbPretrain_b1b2/TRecNet+ttbb+bbPretrain_b1b2_8jets_20230621_005928/TRecNet+ttbb+bbPretrain_b1b2_8jets_20230621_005928_nominal_Results.root",
             "sysUP_input": null,
             "sysDOWN_input": null,
             "truth_units": "GeV",
@@ -41,48 +41,10 @@
                 }
             ]
         },
-        "TRecNet+ttbb.v1.2":
+        "TRecNet+ttbb+JetPretrain_b1b2":
         {
-            "shortname": "TRN+ttbb.v1.2",
-            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v1.2/TRecNet+ttbb.v1.2_8jets_20230612_122017/TRecNet+ttbb.v1.2_8jets_20230612_122017TRecNet+ttbb.v1.2_8jets_20230612_122017_nominal_Results.root",
-            "sysUP_input": null,
-            "sysDOWN_input": null,
-            "truth_units": "GeV",
-            "reco_units": "GeV",
-            "cuts": 
-            [
-                {
-                    "cut_on": null,
-                    "max": null,
-                    "min": null,
-                    "tag": "No Cuts",
-                    "color_scheme": "tab:purple"
-                }
-            ]
-        },
-        "TRecNet+ttbb+bbPretrain":
-        {
-            "shortname": "TRN+ttbb+bbPre",
-            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb+bbPretrain/TRecNet+ttbb+bbPretrain_8jets_20230613_180555/TRecNet+ttbb+bbPretrain_8jets_20230613_180555_nominal_Results.root",
-            "sysUP_input": null,
-            "sysDOWN_input": null,
-            "truth_units": "GeV",
-            "reco_units": "GeV",
-            "cuts": 
-            [
-                {
-                    "cut_on": null,
-                    "max": null,
-                    "min": null,
-                    "tag": "No Cuts",
-                    "color_scheme": "tab:blue"
-                }
-            ]
-        },
-        "TRecNet+ttbb+bbPretrain+JetPretrain":
-        {
-            "shortname": "TRN+ttbb+bbPre+JetPre",
-            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb+bbPretrain+JetPretrain/TRecNet+ttbb+bbPretrain+JetPretrain_8jets_20230613_180847/TRecNet+ttbb+bbPretrain+JetPretrain_8jets_20230613_180847_nominal_Results.root",
+            "shortname": "TRN+ttbb+JetPre_b1b2",
+            "nom_input": "/atlasserv/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb+JetPretrain_b1b2/TRecNet+ttbb+JetPretrain_b1b2_8jets_20230616_004155/TRecNet+ttbb+JetPretrain_b1b2_8jets_20230616_004155_nominal_Results.root",
             "sysUP_input": null,
             "sysDOWN_input": null,
             "truth_units": "GeV",
@@ -97,6 +59,25 @@
                     "color_scheme": "tab:green"
                 }
             ]
+        },
+        "TRecNet+ttbb+bbPretrain+JetPretrain_b1b2":
+        {
+            "shortname": "TRN+ttbb+bbPre+JetPre_b1b2",
+            "nom_input": "/atlasserv/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb+bbPretrain+JetPretrain_b1b2/TRecNet+ttbb+bbPretrain+JetPretrain_b1b2_8jets_20230615_225127/TRecNet+ttbb+bbPretrain+JetPretrain_b1b2_8jets_20230615_225127_nominal_Results.root",
+            "sysUP_input": null,
+            "sysDOWN_input": null,
+            "truth_units": "GeV",
+            "reco_units": "GeV",
+            "cuts": 
+            [
+                {
+                    "cut_on": null,
+                    "max": null,
+                    "min": null,
+                    "tag": "No Cuts",
+                    "color_scheme": "tab:purple"
+                }
+            ]
         }
     },
     "plot_specs":
@@ -106,31 +87,26 @@
             "make_plots": true,
             "models":
             {
-                "TRecNet+ttbb.v1.0":
+                "TRecNet+ttbb_b1b2":
                 {
                     "plot": true,
                     "nbins": 30
                 },
-                "TRecNet+ttbb.v1.1":
+                "TRecNet+ttbb+bbPretrain_b1b2":
                 {
                     "plot": true,
                     "nbins": 30
                 },
-                "TRecNet+ttbb.v1.2":
+                "TRecNet+ttbb+JetPretrain_b1b2":
                 {
                     "plot": true,
                     "nbins": 30
                 },
-                "TRecNet+ttbb+bbPretrain":
+                "TRecNet+ttbb+bbPretrain+JetPretrain_b1b2":
                 {
                     "plot": true,
                     "nbins": 30
-                },
-                "TRecNet+ttbb+bbPretrain+JetPretrain":
-                {
-                    "plot": true,
-                    "nbins": 30
-                }                
+                }
             }
         },
         "CM":
@@ -139,7 +115,7 @@
             "stats_binning": false,
             "models":
             {
-                "TRecNet+ttbb.v1.0":
+                "TRecNet+ttbb_b1b2":
                 {
                     "plot": true,
                     "pt_cuts": 
@@ -147,7 +123,7 @@
                         {}
                     ]
                 },
-                "TRecNet+ttbb.v1.1":
+                "TRecNet+ttbb+bbPretrain_b1b2":
                 {
                     "plot": true,
                     "pt_cuts": 
@@ -155,7 +131,7 @@
                         {}
                     ]
                 },
-                "TRecNet+ttbb.v1.2":
+                "TRecNet+ttbb+JetPretrain_b1b2":
                 {
                     "plot": true,
                     "pt_cuts": 
@@ -163,15 +139,7 @@
                         {}
                     ]
                 },
-                "TRecNet+ttbb+bbPretrain":
-                {
-                    "plot": true,
-                    "pt_cuts": 
-                    [
-                        {}
-                    ]
-                },
-                "TRecNet+ttbb+bbPretrain+JetPretrain":
+                "TRecNet+ttbb+bbPretrain+JetPretrain_b1b2":
                 {
                     "plot": true,
                     "pt_cuts": 
@@ -186,18 +154,20 @@
             "make_plots": true,
             "include_model":
             {
-                "TRecNet+ttbb.v1.0": true,
-                "TRecNet+ttbb.v1.1": true,
-                "TRecNet+ttbb.v1.2": true,
-                "TRecNet+ttbb+bbPretrain": true,
-                "TRecNet+ttbb+bbPretrain+JetPretrain": true
+                "TRecNet+ttbb_b1b2": true,
+                "TRecNet+ttbb+bbPretrain_b1b2": true,
+                "TRecNet+ttbb+JetPretrain_b1b2": true,
+                "TRecNet+ttbb+bbPretrain+JetPretrain_b1b2": true
             },
             "nbins": 30,
             "core_fit": "nofit",
             "include_moments": true,
             "pt_cuts": 
             [
-                {}
+                {},
+                {"pt_low":25, "pt_high":100},
+                {"pt_low":50, "pt_high":200},
+                {"pt_low":250, "pt_high":500}
             ]
         },
         "Res_vs_Var":
@@ -205,19 +175,18 @@
             "make_plots": true,
             "include_model":
             {
-                "TRecNet+ttbb.v1.0": true,
-                "TRecNet+ttbb.v1.1": true,
-                "TRecNet+ttbb.v1.2": true,
-                "TRecNet+ttbb+bbPretrain": true,
-                "TRecNet+ttbb+bbPretrain+JetPretrain": true
+                "TRecNet+ttbb_b1b2": true,
+                "TRecNet+ttbb+bbPretrain_b1b2": true,
+                "TRecNet+ttbb+JetPretrain_b1b2": true,
+                "TRecNet+ttbb+bbPretrain+JetPretrain_b1b2": true
             },
             "plots":
             {
                 "th": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30]},{"y_var":"m","x_var":"pt","xbins":[60,600,30]},{"y_var":"eta","x_var":"pt","xbins":[0,600,30]}],
                 "tl": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30]},{"y_var":"m","x_var":"pt","xbins":[60,600,30]},{"y_var":"eta","x_var":"pt","xbins":[0,600,30]}],
                 "ttbar": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30]},{"y_var":"m","x_var":"pt","xbins":[60,600,30]},{"y_var":"eta","x_var":"pt","xbins":[0,600,30]}],
-                "b": [{"y_var":"pt","x_var":"pt","xbins":[0,240,12]},{"y_var":"m","x_var":"pt","xbins":[24,240,12]},{"y_var":"eta","x_var":"pt","xbins":[0,240,12]}],
-                "bbar": [{"y_var":"pt","x_var":"pt","xbins":[0,240,12]},{"y_var":"m","x_var":"pt","xbins":[24,240,12]},{"y_var":"eta","x_var":"pt","xbins":[0,240,12]}]
+                "b1": [{"y_var":"pt","x_var":"pt","xbins":[0,240,12]},{"y_var":"m","x_var":"pt","xbins":[24,240,12]},{"y_var":"eta","x_var":"pt","xbins":[0,240,12]}],
+                "b2": [{"y_var":"pt","x_var":"pt","xbins":[0,240,12]},{"y_var":"m","x_var":"pt","xbins":[24,240,12]},{"y_var":"eta","x_var":"pt","xbins":[0,240,12]}]
             },
             "core_fit": "nofit"
         }
@@ -568,9 +537,9 @@
                 }
             ]
         },
-        "b":
+        "b1":
         {
-            "label": "b",
+            "label": "b1",
             "alt_names": [],
             "observables":
             [
@@ -636,9 +605,9 @@
                 }
             ]
         },
-        "bbar":
+        "b2":
         {
-            "label": "b",
+            "label": "b2",
             "alt_names": [],
             "observables":
             [

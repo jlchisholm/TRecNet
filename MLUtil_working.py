@@ -98,13 +98,11 @@ class Utilities:
         if 'ttbar' in model_name:
             Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
         if 'ttbb' in model_name:
-            #X_keys.extend(['j'+str(i+1)+'_btag_continuous' for i in range(n_jets)])
-            Y_keys.extend(['b_pt','b_m','b_eta','b_phi','bbar_pt','bbar_m','bbar_eta','bbar_phi'])
+            X_keys.extend(['j'+str(i+1)+'_btag_continuous' for i in range(n_jets)])
+            Y_keys.extend(['b_pt','b_m','b_eta','b_phi','bbar_pt','bbar_m','bbar_eta','bbar_phi', 'bbbar_dR']) 
             Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
         if model_name=='JetPretrainer': 
             Y_keys = ['j'+str(i+1)+'_isTruth' for i in range(n_jets)]
-        if model_name == 'bbPretrainer':
-            Y_keys = ['j'+str(i+1)+'_isTruth_bb' for i in range(n_jets)]
 
         return X_keys, Y_keys
 

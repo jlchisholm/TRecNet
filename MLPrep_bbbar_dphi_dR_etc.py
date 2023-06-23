@@ -400,9 +400,11 @@ class filePrep:
 
         # If ttbb, include b and bbar
         if ttbb:
-            for v in ['pt', 'm', 'eta', 'phi']:
+            for v in ['pt', 'm', 'eta', 'phi', 'E', 'y']:
                 df_truth['b_'+v] = truth_tree['MC_b_afterFSR_'+v]
                 df_truth['bbar_'+v] = truth_tree['MC_bbar_afterFSR_'+v]
+            df_truth['bbbar_dphi'] = truth_tree['MC_deltaPhi_bb']
+            df_truth['bbbar_dR'] = truth_tree['MC_deltaR_bb']
 
         # Get the wh and wl information
         for v in ['pt','eta','phi','m']:
@@ -731,6 +733,8 @@ class filePrep:
         if not ttbb:
             particles = ['th_','wh_','tl_','wl_','ttbar_']
         else:
+            Y_maxmean['bbbar_dphi'] = df['bbbar_dphi']
+            Y_maxmean['bbbar_dR'] = df['bbbar_dR']
             particles = ['th_','wh_','tl_','wl_','ttbar_','b_','bbar_']
         for p in particles:
             df[p+'px'] = df[p+'pt']*np.cos(df[p+'phi'])
@@ -739,7 +743,9 @@ class filePrep:
             # Append maxmean for all truth variables
             for v in ['pt','px','py','eta','m']:
                 Y_maxmean[p+v] = [df[p+v].abs().max(),df[p+v].mean()]
-
+            for v in ['E', 'y']:
+                if 'w' not in p:
+                    Y_maxmean[p+v] = [df[p+v].abs().max(),df[p+v].mean()]
                 print('Appended '+p+v)
 
         # Save Y maxmean arrays

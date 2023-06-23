@@ -16,6 +16,7 @@ import os, sys, time
 sys.path.append("/home/dciarniello/summer2023/TRecNet")
 sys.path.append("home/dciarniello/")
 os.environ["CUDA_VISIBLE_DEVICES"]="1"    # These are the GPUs visible for training
+#os.environ["TF_GPU_ALLOCATOR"] = "cuda_malloc_async"
 from argparse import ArgumentParser
 from contextlib import redirect_stdout
 
@@ -43,7 +44,7 @@ from keras.optimizers import *
 import keras_tuner as kt
 #from clr_callback import * 
 
-from MLUtil import *
+from MLUtil_b1b2 import *
 import normalize_new
 import shape_timesteps_new
 
@@ -83,7 +84,9 @@ class Training:
         self.ymm_file = config_file["ymaxmean"]
         self.split = config_file["split"][0]/(config_file["split"][0]+config_file["split"][1])   # Gave 85% to train file, now want 70% for the actual training ([0]=% in train, [1]=% in val, [2]=% in test)
         self.pretrain_file = config_file["jet_pretrain"]
+        self.bb_pretrain_file = config_file["bb_pretrain"]
         self.frozen_file = config_file["frozen_model"]
+        self.bb_frozen_file = config_file["bb_frozen_model"]
         self.max_epochs = config_file["max_epochs"]
         self.patience = config_file["patience"]
         self.njets = config_file["njets"]
@@ -165,7 +168,7 @@ class Training:
         return trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY
     
     
-    def build_model(self, model_name, mask_value, initial_lr, final_lr_div, lr_power, lr_decay_step, ttbb, pretrain_model=None):
+    def build_model(self, model_name, mask_value, initial_lr, final_lr_div, lr_power, lr_decay_step, ttbb, pretrain_model=None, bb_pretrain_model=None):
         """
         Build the model architecture.
 
@@ -176,10 +179,11 @@ class Training:
                 final_lr_div (float): Final learning rate divisor (i.e. final_lr = initial_lr/final_lr_div).
                 lr_power (float): Power for the decaying polynomial learning rate.
                 lr_decay_step (int): Learning rate decay step.
-                ttbb (bool):
+                ttbb (bool): required (true) for ttbb reco
             
             Optional:
                 pretrain_model (Model object): Jet pre-trained model (default: None).
+                bb_pretrain_model (Model object): bb pre-trained model (default: None).
 
             Returns:
                 model (Model object): Built model.
@@ -187,12 +191,14 @@ class Training:
          
         print('Building model...')
 
+        #bb_pretrain_model.summary()
+
         # This will help for dimension of output layers
         had_shape = sum('th_' in key or 'wh_' in key for key in self.Y_scaled_keys)
         lep_shape = sum('tl_' in key or 'wl_' in key for key in self.Y_scaled_keys)
         ttbar_shape = sum('ttbar_' in key for key in self.Y_scaled_keys)
 
-        if ttbb: bbbar_shape = sum('b_' in key or 'bbar_' in key for key in self.Y_scaled_keys)
+        if ttbb: b1b2_shape = sum('b1_' in key or 'b2_' in key for key in self.Y_scaled_keys)
 
         # Input layers
         jet_input = Input(shape=(self.jets_shape[1], self.jets_shape[2]),name='jet_input')
@@ -205,30 +211,60 @@ class Training:
         TDDense12 = TimeDistributed(Dense(64, activation='relu'), name='TDDense64')(TDDense11)
 
         # Concatenate flattened jets and other and use some dense layers (but not for TRecNet+ttbar+JetPretrain, since this is done in JetPretrainer)
-        if model_name!='TRecNet+ttbar+JetPretrain':
+        if '+JetPretrain' not in model_name:
+            print('no jet pretrain')
             flat_jets =  Flatten(name ='flattened_jets')(jet_input) 
             concat0 = concatenate([other_input, flat_jets], name = 'concat_jets_other')
             PreDense1 = Dense(256, activation='relu', name = 'dense256_1')(concat0)
             PreDense2 = Dense(256, activation='relu', name = 'dense256_2')(PreDense1) 
 
+        # Concatenate flattened jets and other and use some dense layers (but not for TRecNet+ttbar+JetPretrain, since this is done in JetPretrainer)
+        if '+bbPretrain' not in model_name:
+            print('no bb pretrain')
+            flat_jets_bb =  Flatten(name ='flattened_jets_2')(jet_input) 
+            concat0_bb = concatenate([other_input, flat_jets_bb], name = 'concat_jets_other_bb')
+            PreDense1_bb = Dense(256, activation='relu', name = 'dense256_1_bb')(concat0_bb)
+            PreDense2_bb = Dense(256, activation='relu', name = 'dense256_2_bb')(PreDense1_bb) 
+            PreDense3_bb = Dense(256, activation='relu', name = 'dense256_3_bb')(PreDense2_bb) 
+
         # This is mostly all we need for the rest of JetPretrainer
         if model_name=='JetPretrainer':
-
+            print('jet pretrain')
             # Final output
             output = Dense(self.jets_shape[1], activation='sigmoid', name='jet_match_output')(PreDense2)
+
+        # All we need for bbPretrainer
+        elif model_name=="bbPretrainer":
+            print('bb pretrain')
+            # Final output
+            output = Dense(self.jets_shape[1], activation='sigmoid', name='bb_match_output')(PreDense3_bb)
             
         # Lots more layers for the actual training
         else:
 
             # Use sigmoid to give jets a weight
-            if model_name=='TRecNet+ttbar+JetPretrain':
+            if '+JetPretrain' in model_name:
+                print('using jet pretrained model')
                 pretrain_model.trainable = False                                      # Freezing the jet pretrain model (i.e. want to use the previously trained weights)
                 pretrain = pretrain_model([jet_input,other_input], training=False)    # Putting the inputs into the pretrain model
-                Shape_Dot = Reshape((-1,1), name='reshape')(pretrain)
+                Shape_Dot = Reshape((-1,1), name='reshape_jet')(pretrain)
             else:
-                PreDense3 = Dense(self.jets_shape[1], activation='sigmoid', name='dense6_sigmoid')(PreDense2)
-                Shape_Dot = Reshape((-1,1), name='reshape')(PreDense3)
+                print('not using jet pretrained model')
+                PreDense3 = Dense(self.jets_shape[1], activation='sigmoid', name='dense6_sigmoid_jet')(PreDense2)
+                Shape_Dot = Reshape((-1,1), name='reshape1')(PreDense3)
             Dot_jets = Multiply(name='weight_jets')([Shape_Dot, TDDense12])
+
+            
+            if '+bbPretrain' in model_name and ttbb:
+                print('using bb pretrained model')
+                bb_pretrain_model.trainable = False                                      # Freezing the bb pretrain model (i.e. want to use the previously trained weights)
+                bb_pretrain = bb_pretrain_model([jet_input,other_input], training=False)    # Putting the inputs into the pretrain model
+                Shape_Dot_bb = Reshape((-1,1), name='reshape_bb')(bb_pretrain)
+            else:
+                print('not using bb pretrained model')
+                PreDense4_bb = Dense(self.jets_shape[1], activation='sigmoid', name='dense6_sigmoid_bb')(PreDense3_bb)
+                Shape_Dot_bb = Reshape((-1,1), name='reshape2')(PreDense4_bb)
+            Dot_jets_bb = Multiply(name='weight_jets_bb')([Shape_Dot_bb, TDDense12])
 
             # Use some more TDDense layers with the weighted jets
             TDDense13 = TimeDistributed(Dense(256, activation='relu'), name='TDDense256_1')(Dot_jets)
@@ -254,28 +290,40 @@ class Training:
             hdense2 = Dense(128, activation='relu', name='hdense128')(hdense1)
             houtput = Dense(had_shape+ttbar_shape, name='had_output')(hdense2)
 
-            # If ttbb, output b and bbar
+            # If ttbb, output b1 and b2
             if ttbb:
-                jbdense1 = TimeDistributed(Dense(256, activation='relu'), name='jb_TDDense256_1')(Dot_jets)
+                jbdense1 = TimeDistributed(Dense(256, activation='relu'), name='jb_TDDense256_1')(Dot_jets_bb)
                 jbdense2 = TimeDistributed(Dense(256, activation='relu'), name='jb_TDDense256_2')(jbdense1)
                 jbflatten = Flatten(name='jb_flattened')(jbdense2)
-                bconcat = concatenate([loutput, houtput, jbflatten])
-                bdense1 = Dense(256, activation='relu', name='bdense256_1')(bconcat)
+                concat2 = concatenate([flat_other, jbflatten])
+                bdense1 = Dense(256, activation='relu', name='bdense256_1')(concat2)                
                 bdense2 = Dense(256, activation='relu', name='bdense256_2')(bdense1)
-                bdense3 = Dense(128, activation='relu', name='bdense128_3')(bdense2)
-                boutput = Dense(bbbar_shape, name='b_bbar_output')(bdense2)
+                bconcat = concatenate([loutput, houtput, bdense2])
+                bdense3 = Dense(256, activation='relu', name='bdense256_3')(bconcat)
+                bdense4 = Dense(256, activation='relu', name='bdense256_4')(bdense3)
+                boutput = Dense(b1b2_shape, name='b1_b2_output')(bdense4)
             
             # Final output
-            if not ttbb: output = concatenate([houtput, loutput], name='output')
-            else: 
+            if ttbb:
                 output = concatenate([houtput, loutput, boutput], name='output')
-                print("Saving with b and bbar")
+                print("Saving with b1 and b1")
+            else: 
+                output = concatenate([houtput, loutput], name='output')
+                print('saving with no b1 and b2 output')
 
         # Putting the model together
-        model = keras.models.Model(inputs=[jet_input, other_input], outputs=output)
+        if model_name == "bbPretrainer": m_name = 'bb_model'
+        elif model_name == "JetPretrainer": m_name = 'jet_model'
+        else: m_name = 'model'
+        print(m_name)
+        model = keras.models.Model(inputs=[jet_input, other_input], outputs=output, name=m_name) #added name=model_name so that pretrained models have different names (no duplicat name errors)
         lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=initial_lr, decay_steps=lr_decay_step,end_learning_rate=initial_lr/final_lr_div,power=lr_power)
         optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
         if model_name == 'JetPretrainer':
+            print('compiling jet pretrainer')
+            model.compile(loss='binary_crossentropy', optimizer= optimizer, metrics=['mae','mse'])
+        elif model_name == 'bbPretrainer':
+            print('compiling bb pretrainer')
             model.compile(loss='binary_crossentropy', optimizer= optimizer, metrics=['mae','mse'])
         else:
             model.compile(loss='mae', optimizer= optimizer, metrics=['mse'])
@@ -338,7 +386,7 @@ class Training:
         file.close()
 
         # Save training history plots
-        if Model.model_name=='JetPretrainer':
+        if Model.model_name=='JetPretrainer' or Model.model_name=='bbPretrainer':
             plt.figure(figsize=(9,6))
             plt.plot(Model.training_history['loss'], label='training')
             plt.plot(Model.training_history['val_loss'], label='validation')
@@ -347,7 +395,6 @@ class Training:
             plt.legend()
             plt.title(Model.model_name+' Binary Cross Entropy Loss')
             plt.savefig(dir+'/'+Model.model_id+'_BinaryCrossEntropy.png',bbox_inches='tight')
-
             plt.figure(figsize=(9,6))
             plt.plot(Model.training_history['mae'], label='training')
             plt.plot(Model.training_history['val_mae'], label='validation')
@@ -414,10 +461,23 @@ class Training:
         
             # Build the model
             # Need to load jet pretraining if TRecNet+ttbar+JetPretrain
-            if Model.model_name=='TRecNet+ttbar+JetPretrain':
+            if ('+JetPretrain' in Model.model_name) and ('+bbPretrain' in Model.model_name):
+                print('adding both jet and bb pretrained models')
+                pretrain_model = keras.models.load_model(self.pretrain_file)
+                bb_pretrain_model = keras.models.load_model(self.bb_pretrain_file, compile=False)
+                bb_pretrain_model.compile()
+                Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, ttbb, pretrain_model=pretrain_model, bb_pretrain_model=bb_pretrain_model)
+            elif '+JetPretrain' in Model.model_name:
+                print('only adding jet pretrained model')
                 pretrain_model = keras.models.load_model(self.pretrain_file)
                 Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, ttbb, pretrain_model=pretrain_model)
+            elif '+bbPretrain' in Model.model_name:
+                print('only adding bb pretrained model')
+                bb_pretrain_model = keras.models.load_model(self.bb_pretrain_file, compile=False)
+                bb_pretrain_model.compile()
+                Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, ttbb, bb_pretrain_model=bb_pretrain_model)
             else:
+                print('no pretrained models being added')
                 Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, ttbb)
             print(Model.model_name+' model has been built and compiled.')
         
@@ -650,7 +710,7 @@ parser = ArgumentParser()
 parser.add_argument('--model_name', help='Name of the model to be trained.', type=str, required=True) #, choices=['TRecNet','TRecNet+ttbar']
 parser.add_argument('--config_file', help="File (including path) with training (or hypertuning) specifications.", type=str, required=True)
 parser.add_argument('--hypertune', help="Use this flag to hypertune your model.", action="store_true")
-parser.add_argument('--ttbb', help="Adds b and bbar output for ttbb", action="store_true")
+parser.add_argument('--ttbb', help="Adds b1 and b2 output for ttbb", action="store_true")
 
 # Parse arguments
 args = parser.parse_args()
@@ -667,6 +727,18 @@ if '+JetPretrain' in args.model_name:
             print("Please provide a jet pretrain model with the same number of jets as you desire.")
             sys.exit()
 
+# Check that there is a pre-train model, with the same number of jets, if needed
+if '+bbPretrain' in args.model_name:
+    if config["bb_pretrain"]==None:
+        print('Please provide a bb pretrained model.')
+        sys.exit()
+    else:
+        pretrain_n_jets = int(config["bb_pretrain"].split('/')[-1].split('jets')[0].split('_')[-1])
+        if pretrain_n_jets != config["njets"]:
+            print("Please provide a bb pretrain model with the same number of jets as you desire.")
+            sys.exit()
+
+'''
 # Check that there is a frozen version of the model, with the same number of jets, if needed
 if 'Unfrozen' in args.model_name:
     if config["frozen_model"]==None:
@@ -677,6 +749,7 @@ if 'Unfrozen' in args.model_name:
         if frozen_n_jets != config["njets"]:
             print("Please provide a frozen model with the same number of jets as you desire.")
             sys.exit()
+'''
 
 # Instantiate model
 Model = TRecNet_Model(args.model_name, n_jets=config["njets"])
@@ -703,7 +776,7 @@ print('done :)')
 
 
 
-
+ 
 
 
         
