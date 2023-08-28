@@ -658,9 +658,9 @@ class filePrep:
             for v in ['pt','px','py','eta','m','isbtag']:
                 X_maxmean['j'+str(j+1)+'_'+v] = [df['j'+str(j+1)+'_'+v].abs().max(),df['j'+str(j+1)+'_'+v].mean()]
             
-            # Also append isTrue if using the jet matching
-            if 'jetMatch' in name:
-                Y_maxmean['j'+str(j+1)+'_isTruth'] = [df['j'+str(j+1)+'_isTruth'].abs().max(),df['j'+str(j+1)+'_isTruth'].mean()]
+            # Also append isTruth
+            #if 'jetMatch' in name:
+            Y_maxmean['j'+str(j+1)+'_isTruth'] = [df['j'+str(j+1)+'_isTruth'].abs().max(),df['j'+str(j+1)+'_isTruth'].mean()]
 
         print('Jets done.')
 
