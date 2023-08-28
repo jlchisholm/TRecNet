@@ -11,7 +11,7 @@
     "training":
     {
         "initial_lr": 1e-3,
-        "final_lr_div": 20,
+        "final_lr_div": 2e1,
         "lr_power": 0.25,
         "lr_decay_step": 10000,
         "batch_size": 1000

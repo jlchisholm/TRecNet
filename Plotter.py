@@ -31,6 +31,7 @@ from scipy.stats import norm
 from scipy.stats import cauchy
 from sigfig import round
 from analysis import Analysis
+from pprint import pprint
 
 
 class Observable:
@@ -178,8 +179,8 @@ class Utilities:
             _, ticks = pd.qcut(df_col,q=nbins,retbins=True)
 
         # Round the ticks to nearest two decimal places (if necessary), else round to nearest tenth
-        two_dec_round = ['m','eta','phi','y','yboost','chi','deta','dphi']
-        tens_round = ['E','pout','pt','px','py','Ht']
+        two_dec_round = ['eta','phi','y','yboost','chi','deta','dphi']
+        tens_round = ['E','pout','pt','px','py','Ht','m']
         ticks = np.round(ticks, 2) if observable.name in two_dec_round else np.round(ticks,-1) 
 
         # Create labels for the ticks
@@ -188,6 +189,26 @@ class Utilities:
         tick_labels[-1] = r'$\pi$' if observable.name=='phi' else r'$\infty$'
 
         return ticks, tick_labels
+    
+    def save_plot_info(dir, fig_name, num_events, num_in, in_percent):
+        
+        file = open(dir+'/Plot_Info.txt', "a+")
+        
+        file.write("\n---------------------------------------------------")
+        file.write("%s: " % fig_name)
+        file.write("---------------------------------------------------\n")
+        file.write("Number of events in the dataset (for the cut): \n")
+        pprint(num_events,stream=file)
+        file.write("Number of events in the dataset in the plotted range: \n")
+        pprint(num_in,stream=file)
+        file.write("Percentage of the dataset's events inside the plotted range: \n")
+        pprint(in_percent,stream=file)
+        file.close()
+        
+        #df.to_string()
+        
+ 
+        
 
 
 
@@ -263,6 +284,12 @@ class Plot:
         print('Saved Figure: '+fig_name)
 
         plt.close()
+     
+            
+            
+            
+            
+            
 
     
     def Confusion_Matrix(dataset,particle,observable,test_truth_df,norm=True,even_stats_binning=False,save_loc='./',text_color='k',pt_low=None,pt_high=None):
@@ -341,11 +368,6 @@ class Plot:
 
 
 
-        
-
-
-
-
         # Create 2D array of truth vs reco observable (which can be plotted also)
         H, _, _, _ = plt.hist2d(np.clip(df['reco_'+name],tk[0],tk[-1]),np.clip(df['truth_'+name],tk[0],tk[-1]),bins=tk,range=[ran,ran])
 
@@ -362,18 +384,19 @@ class Plot:
         plt.figure(dataset.data_type+' '+particle.name+' '+observable.name+' Normalized 2D Plot')
         masked_cm = np.ma.masked_where(cm==0,cm)  # Needed to make the zero bins white
         plt.imshow(masked_cm,extent=[0,n-1,0,n-1],cmap=color_map,origin='lower')
-        plt.xticks(np.arange(n),tkls,fontsize=9,rotation=-25)
-        plt.yticks(np.arange(n),tkls,fontsize=9)
-        plt.xlabel('Reco-level '+particle.labels[observable.name])
-        plt.ylabel('Parton-level '+particle.labels[observable.name])
+        plt.xticks(np.arange(n),tkls,fontsize=12,rotation=-25)
+        plt.yticks(np.arange(n),tkls,fontsize=12)
+        plt.xlabel('Reco-level '+particle.labels[observable.name], fontsize=15)
+        plt.ylabel('Parton-level '+particle.labels[observable.name], fontsize=15)
         if norm: plt.clim(0,100)
-        plt.colorbar()
+        cb = plt.colorbar()
+        cb.ax.tick_params(labelsize=12)
 
         # Label the content of each bin
         for j in range (n-1):
             for k in range(n-1):
                 if masked_cm.T[j,k] != 0:   # Don't label empty bins
-                    plt.text(j+0.5,k+0.5,masked_cm.T[j,k],color=text_color,fontsize=6,weight="bold",ha="center",va="center")
+                    plt.text(j+0.5,k+0.5,masked_cm.T[j,k],color=text_color,fontsize=10,weight="bold",ha="center",va="center")
 
         # Save the figure in save location as a png
         fig_name = dataset.reco_method+'('+dataset.cuts+')_Confusion_Matrix'+stats_tag+dataset.data_type+'_'+name+pt_tag
@@ -384,8 +407,7 @@ class Plot:
 
 
 
-
-    def Sys_Hist(datasets,particle,observable,save_loc='./',nbins=5):
+    def Sys_Hist(datasets,particle,observable,test_truth_df,save_loc='./',nbins=5,even_stats_binning=False):
         """
         Creates and saves a histogram of the systematics for all datasets provided, for a given particle and observable.
 
@@ -393,10 +415,12 @@ class Plot:
                 datasets (list of Dataset objects): List of dataset objects of the datasets you want to plot.
                 particle (Particle object): Particle object of the particle you want to plot.
                 observable (observable object): Observable object of the observable you want to plot.
+                test_truth_df (pd.DataFrame): Dataframe of all truth data from the test datafile.
 
             Options:
                 save_loc (str): Directory where you want the histogram saved to (default: current directory).
                 nbins (int): Number of desired bins for the histogram (default: 5).
+                even_stats_binning (bool): Whether or not to have an approximately equal number of events in each bin (default: False). Note if this option is not selected, the observable's normal binning will be used.
 
             Returns:
                 Saves histogram in <save_loc> as '<res>_<data_type>_<particle>_<observable>.png'.                
@@ -404,9 +428,22 @@ class Plot:
 
         # Define a useful string
         name = particle.name+'_'+observable.name
+        
+                # Get the ticks and their labels
+        # We'll also create an extra label for which type of binning is used
+        if even_stats_binning:
+            tk, tkls = Utilities.get_even_stats_bins(test_truth_df['truth_'+name],particle,observable,nbins=8)
+            stats_tag = '(stats_binning)_'
+        else:
+            tk, tkls = observable.ticks, observable.tick_labels
+            #tk, tkls = observable.ticks[::len(observable.ticks)-1], observable.tick_labels[::len(observable.ticks)-1]
+            stats_tag = '_'
+
+        n = len(tk)
+        ran = tk[::n-1]
 
         # Set the range (based on observable and particle we're plotting)
-        ran = observable.ticks[::len(observable.ticks)-1]
+        #ran = observable.ticks[::len(observable.ticks)-1]
 
         # Create the figure for the systematics histogram
         plt.figure('Sys')
@@ -416,9 +453,9 @@ class Plot:
 
             # Create a temporary plot to bin the data (set density=True to normalize the counts)
             plt.figure('Temporary')
-            reco_n, bins, _ = plt.hist(dataset.df['reco_'+name],bins=nbins,range=ran,density=True)
-            sysUP_n, _, _ = plt.hist(dataset.sysUP_df['sysUP_'+name],bins=nbins,range=ran,density=True)
-            sysDOWN_n, _, _ = plt.hist(dataset.sysDOWN_df['sysDOWN_'+name],bins=nbins,range=ran,density=True)
+            reco_n, bins, _ = plt.hist(dataset.df['reco_'+name],bins=tk,range=ran,density=True)
+            sysUP_n, _, _ = plt.hist(dataset.sysUP_df['sysUP_'+name],bins=tk,range=ran,density=True)
+            sysDOWN_n, _, _ = plt.hist(dataset.sysDOWN_df['sysDOWN_'+name],bins=tk,range=ran,density=True)
             plt.close('Temporary')
 
             # Calculate the up and down fractional uncertainties
@@ -445,7 +482,7 @@ class Plot:
 
 
         # Draw a dashed line at zero
-        x_dash, y_dash = np.linspace(min(ran),max(ran),nbins),[0]*nbins
+        x_dash, y_dash = np.linspace(min(ran),max(ran),n),[0]*n
         plt.plot(x_dash,y_dash,'k--')
 
         # Set some axis labels
@@ -454,17 +491,11 @@ class Plot:
         plt.legend(prop={'size': 6})
 
         # Save the figure as a png in save location
-        fig_name = 'Systematics_'+dataset.data_type+'_'+name
+        fig_name = 'Systematics_'+stats_tag+dataset.data_type+'_'+name
         plt.savefig(save_loc+fig_name,bbox_inches='tight')
         print('Saved Figure: '+fig_name)
 
         plt.close()
-
-
-
-
-
-
 
 
 
@@ -494,8 +525,17 @@ class Plot:
         # Create figure to be filled
         plt.figure(name+' '+'Res')
         
+        # Get percentage of the dataset's events in the range of the plot
+        num_events = {}
+        num_in_events = {}
+        in_dic = {}
+        
         # Fill figure with data
         for dataset in datasets:
+            
+            # TEMPORARY: cut out certain datasets
+            #if (dataset.reco_method=='KLFitter6' or dataset.reco_method=='Chi2') and dataset.cuts=='No Cuts':
+            #    continue
             
             # Get dataframe
             df = dataset.df
@@ -534,40 +574,56 @@ class Plot:
             if include_moments==True:
                 res_mean = round(df['res_'+name].mean(),sigfigs=2)
                 res_std = round(df['res_'+name].std(),sigfigs=2)
-                mom_tag = '\n$\mu=$'+str(res_mean)+', $\sigma=$'+str(res_std)
+                fit_mean = round(df['res_'+name][df['res_'+name]>-1][df['res_'+name]<1].mean(),sigfigs=2)
+                fit_std = round(df['res_'+name][df['res_'+name]>-1][df['res_'+name]<1].std(),sigfigs=2)
+                mom_tag = '\n'+r'$\mu_{\mathrm{total}}=$'+str(res_mean)+', '+r'$\sigma_{\mathrm{total}}=$'+str(res_std)+',\n'+r'$\mu_{\mathrm{core}}=$'+str(fit_mean)+', '+r'$\sigma_{\mathrm{core}}=$'+str(fit_std)
             else:
                 mom_tag = ''
 
 
             # Plot the resolution
             plt.hist(df['res_'+name],bins=nbins,range=(-1,1),histtype='step',label=dataset.shortname+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)'+mom_tag,density=True,color=dataset.color)
+            
+            # Get percentage of dataset's events in the plot
+            in_events = df['res_'+name][df['res_'+name]>-1]
+            in_events = df['res_'+name][df['res_'+name]<1]
+            num_events[dataset.shortname+'('+dataset.cuts+')'] = len(df['res_'+name])
+            num_in_events[dataset.shortname+'('+dataset.cuts+')'] = len(in_events)
+            in_dic[dataset.shortname+'('+dataset.cuts+')'] = (len(in_events)/len(df['res_'+name]))*100
+            
 
             # If we want to fit the core distribution and get that mean and standard deviation
             if core_fit.casefold()=='gaussian':
                 fit_mean, fit_std = norm.fit(df['res_'+name][df['res_'+name]>-1][df['res_'+name]<1])
                 x = np.linspace(-1,1,200)
                 mom_tag = '\n$\mu=$'+str(round(fit_mean,sigfigs=2))+', $\sigma=$'+str(round(fit_std,sigfigs=2)) if include_moments==True else ''
-                plt.plot(x,norm.pdf(x,fit_mean,fit_std),label='Gaussian Fit'+mom_tag,color=df.color)
+                plt.plot(x,norm.pdf(x,fit_mean,fit_std),label='Gaussian Fit'+mom_tag,color=dataset.color)
             elif core_fit.casefold()=='cauchy':
                 fit_mean, fit_std = cauchy.fit(df['res_'+name][df['res_'+name]>-1][df['res_'+name]<1])
                 x = np.linspace(-1,1,200)
                 mom_tag = '\n$\mu=$'+str(round(fit_mean,sigfigs=2))+', $\sigma=$'+str(round(fit_std,sigfigs=2)) if include_moments==True else ''
-                plt.plot(x,cauchy.pdf(x,fit_mean,fit_std),label='Cauchy Fit'+mom_tag,color=df.color)
+                plt.plot(x,cauchy.pdf(x,fit_mean,fit_std),label='Cauchy Fit'+mom_tag,color=dataset.color)
 
         # Add some labels
-        plt.legend(prop={'size': 6})
-        plt.xlabel(particle.labels_nounits[observable.name]+' '+res)
-        plt.ylabel('Normalized Counts')
+        #plt.legend(prop={'size': 8})
+        plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left", prop={'size': 10},borderaxespad=0)
+        plt.xlabel(particle.labels_nounits[observable.name]+' '+res, fontsize=14)
+        plt.ylabel('Events (Normalized)', fontsize=14)
+        plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
 
         # Save figure in save location
         fig_name = res+'_'+dataset.data_type+'_'+name+pt_tag
         plt.savefig(save_loc+fig_name,bbox_inches='tight')
         print('Saved Figure: '+fig_name)
 
-        plt.close()
+        plt.close() 
+        
+        # Save crucial plot info
+        Utilities.save_plot_info(save_loc, fig_name, num_events, num_in_events, in_dic)
 
 
-    def Res_vs_Var(datasets,particle,y_var,x_var,x_bins,save_loc='./',core_fit='nofit'):
+    def Res_vs_Var(datasets,particle,y_var,x_var,x_bins,test_truth_df,save_loc='./',core_fit='nofit', even_stats_binning=False,ignore_first_bin=True):
         """
         Creates and saves a plot of resolution (or residual) for a given observable against another (or the same) given observable, for all datasets provided, for a given particle.
 
@@ -576,11 +632,14 @@ class Plot:
                 particle (Particle object): Particle object of the particle you want to plot.
                 y_var (Observable object): Observable whose resolution (or residuals) will be plotted on the y-axis.
                 x_var (Observable object): Observable whose parton level values will be plotted on the x-axis.
-                x_bins (list of three floats/ints): x_bins[0] is the bottom edge of the first bin, x_bins[1] is the (max) upper edge of the last bin, and xbins[2] is the width of the bins.
+                x_bins (list of three floats/ints): x_bins[0] is the bottom edge of the first bin, x_bins[1] is the (max) upper edge of the last bin, and x_bins[2] is the width of the bins.
+                test_truth_df (pd.DataFrame): Dataframe of all truth data from the test datafile.
 
             Options:
                 save_loc (str): Directory where you want the histogram saved to (default: current directory).
                 core_fit (str): Type of fit you want to use for the width calculations (default: 'nofit', other options: 'gaussian' or 'cauchy').
+                even_stats_binning (bool): Whether or not to have an approximately equal number of events in each bin (default: False). Note if this option is not selected, the observable's normal binning will be used.
+                ***ignore_first_bin (bool)
 
             Returns:
                 Saves histogram in <save_loc> as '<y_var>_<y_res>_vs_<x_var>_<data_type>_<particle>.png'.
@@ -588,8 +647,26 @@ class Plot:
 
         # Get the resolution vs residual specification for the variable on the y-axis
         y_res = y_var.res
+        
+        # Get the ticks and their labels
+        # We'll also create an extra label for which type of binning is used
+        if even_stats_binning:
+            tk, tkls = Utilities.get_even_stats_bins(test_truth_df['truth_'+particle.name+'_'+x_var.name],particle,x_var,nbins=8)
+            tk = np.array(tk)
+            stats_tag = '(stats_binning)_'
+        else:
+            tk = np.arange(x_bins[0],x_bins[1],x_bins[2])
+            stats_tag = ''
+        
+        
 
         for dataset in datasets:
+            
+            # TEMPORARY: cut out KLF (without cuts) for these datasets
+            #if (dataset.reco_method=='KLFitter6' or dataset.reco_method=='Chi2') and dataset.cuts=='No Cuts':
+            #    continue
+            
+            
 
             # Get dataframe
             df = dataset.df
@@ -613,11 +690,11 @@ class Plot:
             plt.figure(y_var.name+' '+y_res+' vs '+x_var.name)
 
             points = []   # Array to hold var vs fwhm values
-            for bottom_edge in np.arange(x_bins[0],x_bins[1],x_bins[2]):
+            for i, bottom_edge in enumerate(tk[:-1]):
 
                 # Set some helpful observables
-                top_edge = bottom_edge+x_bins[2]
-                middle = bottom_edge+(x_bins[2]/2)
+                top_edge = tk[i+1]
+                middle = bottom_edge + (top_edge - bottom_edge)/2
 
                 # Look at resolution at a particular value of var
                 cut_temp = df[df['truth_'+particle.name+'_'+x_var.name]>=bottom_edge]      # Should I fold in edges of first and last?
@@ -625,32 +702,65 @@ class Plot:
 
                 # Get standard deviations
                 if core_fit=='gaussian':
-                    _, sigma = norm.fit(cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1])
+                    #_, sigma = norm.fit(cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1])
+                    sigma = cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1].std()
                 elif core_fit=='cauchy':
                     _, sigma = cauchy.fit(cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1])
                 else:
                     sigma = cut_temp['res_'+yfocus].std()
+                    
                 
                 # Add point to list
                 points.append([middle,sigma])
 
 
             # Set y-axis to a log scale if looking at pt (much higher at low pt)
-            if y_var.name=='pt' or y_var.name=='m':
-                plt.yscale('log')
-
-            # Put data in the scatterplot
-            plt.scatter(np.array(points)[:,0],np.array(points)[:,1],label=dataset.shortname+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)',color=dataset.color)
+            #if y_var.name=='pt' or y_var.name=='m' or y_var:
+            #    plt.yscale('log')
+            
+            # Set the things to plot
+            if even_stats_binning:
+                xpoints = np.array(range(len(points)))+0.5
+                ypoints = np.array(points)[:,1]
+                xerror = np.full(len(points),0.5)
+            else:
+                xpoints = np.array(points)[:,0]
+                ypoints = np.array(points)[:,1]
+                xerror = np.full(len(points),x_bins[2]/2)    
+                
+            # Put data in the scatterplot 
+            # TEMPORARY: ignore first bin if asked to
+            if ignore_first_bin:
+                xpoints = xpoints[1:]
+                ypoints = ypoints[1:]
+                xerror = xerror[1:]
+                zoom_tag = '_zoom'
+            else:
+                zoom_tag=''
+            plt.errorbar(xpoints, ypoints,xerr=xerror,label=dataset.shortname+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)',color=dataset.color, fmt='o')
 
 
         # Add some labels
-        plt.xlabel('Parton-level '+particle.labels[x_var.name])
-        plt.ylabel('$\sigma$ of '+particle.labels_nounits[y_var.name]+' '+y_res)
-        plt.legend(prop={'size': 6})
+        plt.xlabel('Parton-level '+particle.labels[x_var.name], fontsize=14)
+        ytag = r'$\sigma_{\mathrm{core}}$' if core_fit=='gaussian' else r'$\sigma_{\mathrm{total}}$'
+        plt.ylabel(ytag+' of '+particle.labels_nounits[y_var.name]+' '+y_res, fontsize=14)
+        plt.legend(prop={'size': 9})
+        if even_stats_binning: 
+            plt.xticks(np.arange(len(tk)),tkls,fontsize=12)
+        else:
+            plt.xticks(fontsize=12)
+        plt.yticks(fontsize=12)
+        #if even_stats_binning: plt.xlim(middle+10)
+        
+        # TEMPORARY:
+        #plt.ylim(0,2)
 
         # Save figure in save location
-        fig_name = y_var.name+'_'+y_res+'_vs_'+x_var.name+'_'+dataset.data_type+'_'+particle.name
+        fig_name = y_var.name+'_'+y_res+'_vs_'+x_var.name+'_'+stats_tag+dataset.data_type+'_'+particle.name+zoom_tag
         plt.savefig(save_loc+fig_name,bbox_inches='tight')
         print('Saved Figure: '+fig_name)
         
         plt.close()
+        
+        # Save crucial plot info
+        #Utilities.save_plot_info(save_loc, fig_name, num_events, num_in_events, in_dic)
