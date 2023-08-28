@@ -19,8 +19,8 @@ class Scaler:
         do = {key:1-i for key, i in dont.items()}
 
         # Get the maxs and means of the variables we're using
-        maxs = {key:maxmean[key][0] for key in df.keys()}
-        means = {key:maxmean[key][1] for key in df.keys()}
+        maxs = {key:maxmean[key][0] if key in maxmean.keys() else 1 for key in df.keys()}
+        means = {key:maxmean[key][1] if key in maxmean.keys() else 0 for key in df.keys()}
 
         # Scale the desired variables
         df = ((df-means)/maxs)*do + df*dont
@@ -36,8 +36,8 @@ class Scaler:
         df_scaled = pd.DataFrame(data_arr, columns=names)
 
         # Get the maxs and means of the variables and do a max mean scaling of the data
-        maxs = {key:maxmean[key][0] for key in df_scaled.keys()}
-        means = {key:maxmean[key][1] for key in df_scaled.keys()}
+        maxs = {key:maxmean[key][0] if key in maxmean.keys() else 1 for key in df_scaled.keys()}
+        means = {key:maxmean[key][1] if key in maxmean.keys() else 0 for key in df_scaled.keys()}
         df_unscaled = df_scaled*maxs + means
 
         # Figure out which variables you do and don't want to scale
@@ -67,11 +67,18 @@ class Scaler:
                 pts, etas, phis = np.array(dataset.get(key)), np.array(dataset.get(par+'_eta')), np.array(dataset.get(par+'_phi'))
                 pts, pxs, pys, etas = self.cart_pt_transform(pts, etas, phis)
                 data_dic[key], data_dic[par+'_px'], data_dic[par+'_py'], data_dic[par+'_eta'] = pts, pxs, pys, etas
+                
+                # And if it's truth, we also want to predict cos phi and sin phi
+                #if par in ['th','tl','wh','wl']:
+                #    sins, coss = self.phi_transform(phis)
+                #    data_dic[par+'_sin-phi'], data_dic[par+'_cos-phi'] = sins, coss
+                
             # Encode met_phi with triangle wave encoding of sin and cos
             elif key=='met_phi':
                 phis = np.array(dataset.get(key))
                 sins, coss = self.phi_triangle_transform(phis)
                 data_dic[key+'-sin'], data_dic[key+'-cos'] = sins, coss
+                
             # All other variables not yet added have no changes and can just be included as is
             elif 'm' in key or 'btag' in key or 'isTruth' in key or key=='met_met':
                 data_dic[key] = np.array(dataset.get(key))
@@ -96,8 +103,14 @@ class Scaler:
                 pts, pxs, pys, etas = data_dic[name], data_dic[par+'_px'], data_dic[par+'_py'], data_dic[par+'_eta']
                 pts, etas, phis = self.inv_cart_pt_transform(pts, pxs, pys, etas)
                 unscaled_dic[name], unscaled_dic[par+'_eta'], unscaled_dic[par+'_phi'] = pts, etas, phis
+                
+                # And if it's truth, we also want to predict cos phi and sin phi
+                #if par in ['th','tl','wh','wl']:
+                #    sins, coss = data_dic[par+'_sin-phi'], data_dic[par+'_cos-phi']
+                #    phis = self.inv_phi_transform(sins, coss)
+                #    unscaled_dic[par+'_phi_new'] = phis
 
-            elif 'sin' in name:
+            elif 'met-sin' in name or 'met-cos' in name:
                 # He does a weird thing to check it exists? Not sure of the purpose
                 sin, cos = data_dic[name], data_dic['met_phi-cos']
                 phis = self.inv_phi_triangle_transform(sin,cos)
@@ -147,6 +160,18 @@ class Scaler:
     def inv_cart_pt_transform(self, pt, px, py, eta):  # Same as Tao's
         phi = np.arctan2(py, px)
         return pt, eta, phi
+    
+    def phi_transform(self, phi):
+        w = phi % (2*np.pi)
+        s = np.sin(w)
+        c = np.cos(w)
+        return s,c
+    
+    def inv_phi_transform(self, s, c):
+        phi = np.arctan2(s,c)
+        phi = w % (2*np.pi)
+        phi = phi-2*np.pi*(phi>np.pi)
+        return phi
     
     def phi_triangle_transform(self, phi):   # Different
         w = phi % (2*np.pi)   # This might not be needed, unsure

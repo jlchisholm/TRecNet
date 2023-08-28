@@ -13,6 +13,7 @@
 
 
 import os, sys, time
+from datetime import datetime
 sys.path.append("/home/jchishol/TRecNet")
 sys.path.append("home/jchishol/")
 os.environ["CUDA_VISIBLE_DEVICES"]="1"    # These are the GPUs visible for training
@@ -47,7 +48,8 @@ from MLUtil import *
 import normalize_new
 import shape_timesteps_new
 
-
+import tracemalloc
+tracemalloc.start()
 
 
 class Training:
@@ -70,6 +72,7 @@ class Training:
                 pretrain_file (str): Name (including path) of the jet pretrain model file.
                 frozen_file (str): Name (including path) of the frozen model file.
                 max_epochs (int): Maximum number of epochs to train on (taken from config file).
+                max_trials (int): Maximum number of trials for Bayesian Optimization hypertuning (taken from config file).
                 patience (int): Patience (max number of epochs with no improvements) to train with (taken from config file).
                 X_keys (list of str): Keys for the (original scale) X variables.
                 Y_keys (list of str): Keys for the (original scale) Y variables.
@@ -106,7 +109,6 @@ class Training:
                 train_config (dict): Training configuration dictionary.
         """
         
-        self.njets = train_config["njets"]
         self.initial_lr = train_config["initial_lr"]
         self.final_lr_div = train_config["final_lr_div"]
         self.lr_decay_step = train_config["lr_decay_step"]
@@ -114,14 +116,16 @@ class Training:
         self.batch_size = train_config["batch_size"]
         
         
-    def set_hyper_config(self, hyper_config):
+    def set_hyper_config(self, tuner_type, hyper_config):
         """
         Sets the hypertuning configuration for later use.
 
             Parameters:
+                tuner_type (str): Tuning algorithm to be used (e.g. 'Hyperband' or 'Bayesian Optimization').
                 hyper_config (dict): Hypertuning configuration dictionary.
         """
         
+        self.tuner_type = tuner_type
         self.hyper_config = hyper_config
  
  
@@ -150,9 +154,17 @@ class Training:
 
         # Load maxmean
         X_maxmean_dic, Y_maxmean_dic = processor.loadMaxMean(self.xmm_file, self.ymm_file)
+        
+        #current, peak = tracemalloc.get_traced_memory()
+        #print(f"Current memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
+
 
         # Pre-process the data
         totalX_jets, totalX_other, totalY, self.X_scaled_keys, self.Y_scaled_keys = processor.prepData(self.train_file, X_maxmean_dic, Y_maxmean_dic, self.X_keys, self.Y_keys, Model.n_jets, Model.mask_value)
+
+        #current, peak = tracemalloc.get_traced_memory()
+        #print(f"Current memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
+
 
         # Split the data
         trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = train_test_split(totalX_jets, totalX_other, totalY, train_size=self.split)
@@ -182,6 +194,17 @@ class Training:
             Returns:
                 model (Model object): Built model.
         """
+        
+        # Print before
+        #current, peak = tracemalloc.get_traced_memory()
+        #print(f"Current (before) memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
+        
+        # Might need to clear session so keras doesn't run out of memory
+        K.clear_session()
+        
+        # Print after
+        #current, peak = tracemalloc.get_traced_memory()
+        #print(f"Current (after) memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
          
         print('Building model...')
 
@@ -312,8 +335,9 @@ class Training:
         file.write("Max Number of Epochs: %s \n" % self.max_epochs)
         file.write("Number of Epochs Used: %s \n" % len(Model.training_history['loss']))
         file.write("Patience: %s \n" % self.patience)
-        file.write("Training Time: %s \n" % time.strftime("%H:%M:%S", time.gmtime(Model.training_time)))
-        file.write("Training History: \n %s \n" % pd.DataFrame(Model.history).to_string(index=False))
+        #file.write("Training Time: %s \n" % time.strftime("%H:%M:%S", time.gmtime(Model.training_time)))
+        file.write("Training Time: %02d:%02d:%02d:%02d \n" % (Model.training_time.days, Model.training_time.seconds // 3600, Model.training_time.seconds // 60 % 60, Model.training_time.seconds % 60))
+        file.write("Training History: \n %s \n" % pd.DataFrame(Model.training_history).to_string(index=False))
         file.write("\n ---------------------------------------------------  \n")
         file.write("Model Architecture:\n")
         Model.model.summary(expand_nested=True, show_trainable=True, print_fn=lambda x: file.write(x + '\n'))
@@ -376,14 +400,10 @@ class Training:
             # Load the frozen model to start with
             Model.model = keras.models.load_model(self.frozen_file)
             
-            # Double check that we're unfreezing the correct layer
-            if Model.model.layers[4].trainable:
-                print('Trying to fine-tune the wrong layer. Look at model summary below and find the correct index for the jet pretrained layer.')
-                print(Model.model.summary(expand_nested=True, show_trainable=True))
-                sys.exit()
-
-            # Unfreeze ALL jet pretrained layers
-            Model.model.layers[4].trainable = True    
+            # Find the jet pre-training layer and unfreeze all those sublayers
+            for layer in Model.model.layers:
+                if isinstance(layer, tf.keras.Model):
+                    layer.trainable = True 
             
             # Use a smaller learning rate since we're fine-tuning now
             lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=self.initial_lr, decay_steps=self.lr_decay_step,end_learning_rate=self.initial_lr/self.final_lr_div,power=self.lr_power)
@@ -398,9 +418,9 @@ class Training:
             # Need to load jet pretraining if TRecNet+ttbar+JetPretrain
             if Model.model_name=='TRecNet+ttbar+JetPretrain':
                 pretrain_model = keras.models.load_model(self.pretrain_file)
-                Model.model = self.build(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, pretrain_model=pretrain_model)
+                Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, pretrain_model=pretrain_model)
             else:
-                Model.model = self.build(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step)
+                Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step)
             print(Model.model_name+' model has been built and compiled.')
         
         
@@ -409,10 +429,10 @@ class Training:
         tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir= "tensorboard_logs/fit/"+Model.model_id, histogram_freq=1)
         
         # Fit/train the model      
-        start = time.time()
+        start = datetime.now()
         history = Model.model.fit([trainX_jets, trainX_other], trainY, verbose=1, epochs=self.max_epochs, validation_data=([valX_jets, valX_other], valY), shuffle=True, callbacks=[early_stop, tensorboard_callback], batch_size=self.batch_size)
-        end = time.time()
-        Model.training_time = round(end - start)
+        end = datetime.now()
+        Model.training_time = end - start
         Model.training_history = history.history
         
         # Save the model, its history, and loss plots
@@ -438,6 +458,7 @@ class Training:
         file.write("Model ID: %s \n" % Model.model_id)
         if 'Unfrozen' in Model.model_name: file.write("Frozen Model ID: %s \n" % Model.frozen_model_id)
         if 'TRecNet+ttbar+JetPretrain' in Model.model_name: file.write("JetPretrain Model: %s \n" % self.pretrain_file)
+        file.write("Tuner: %s \n" % self.tuner_type)
         file.write("--------------------------------------------------- \n")
         file.write("Training Data File: %s \n" % self.train_file)
         file.write("X Maxmean File: %s \n" % self.xmm_file)
@@ -450,10 +471,12 @@ class Training:
         file.write("--------------------------------------------------- \n")
         with redirect_stdout(file): tuner.search_space_summary(extended=True)
         file.write("--------------------------------------------------- \n")
-        file.write("Total Hypertuning Time: %s \n" % time.strftime("%H:%M:%S", time.gmtime(Model.training_time)))
+        #file.write("Total Hypertuning Time: %s \n" % time.strftime("%H:%M:%S", time.gmtime(Model.training_time)))
+        file.write("Total Hypertuning Time: %02d:%02d:%02d:%02d \n" % (Model.training_time.days, Model.training_time.seconds // 3600, Model.training_time.seconds // 60 % 60, Model.training_time.seconds % 60))
         with redirect_stdout(file): tuner.results_summary(10)
         file.write("--------------------------------------------------- \n")
         best_hps = tuner.get_best_hyperparameters()[0]
+        #tuner.get_best_hyperparameters(num_trials=1).values
         file.write("Best initial_lr=%s: \n" % best_hps.get('initial_lr'))
         file.write("Best final_lr_div=%s: \n" % best_hps.get('final_lr_div'))
         file.write("Best lr_power=%s: \n" % best_hps.get('lr_power'))
@@ -462,20 +485,20 @@ class Training:
         file.close()
         
         # Save ten best hyperparameter trials to a pandas dataframe?
-        ten_best_hps = tuner.get_best_hyperparameters(num_trials=10)
+        ten_best_hps = tuner.get_best_hyperparameters(num_trials=20)
         HP_list = []
         for hp in ten_best_hps:
             HP_list.append(hp.get_config()["values"])
         HP_df = pd.DataFrame(HP_list)
-        HP_df.to_csv(dir+"/top_ten_hp1.csv", index=False, na_rep='NaN')
+        #HP_df.to_csv(dir+"/top_ten_hp1.csv", index=False, na_rep='NaN')
         
         # Still need to see how this one does
-        trials = tuner.oracle.get_best_trials(num_trials=10)
+        trials = tuner.oracle.get_best_trials(num_trials=20)
         HP_list = []
         for trial in trials:
             HP_list.append(trial.score)
         HP_df["Score"] = HP_list
-        HP_df.to_csv(dir+"/top_ten_hp2.csv", index=False, na_rep='NaN')
+        HP_df.to_csv(dir+"/top_hp.csv", index=False, na_rep='NaN')
         
         
     def hypertune(self, Model):
@@ -487,7 +510,7 @@ class Training:
         """
     
         # Create directory for results
-        ht_dir = Model.model_name+'/hypertuning'
+        ht_dir = Model.model_name+'/hypertuning/'+Model.model_id+'_Hypertuning'
         if not os.path.exists(ht_dir):
             os.mkdir(ht_dir)
             
@@ -496,19 +519,24 @@ class Training:
 
         # Create hypertuner model
         hyper_model = self.TRecNetHyperModel(self, Model)
-        tuner = kt.Hyperband(hyper_model, objective="val_loss", max_epochs = self.max_epochs, factor = 3, hyperband_iterations = 3, directory=ht_dir, project_name=Model.model_id+'_Hypertuning')
+        if self.tuner_type=="Hyperband":
+            print("Using Hyperband ...")
+            tuner = kt.Hyperband(hyper_model, objective="val_loss", max_epochs = self.max_epochs, factor = 3, hyperband_iterations = 3, directory=ht_dir, project_name='hyperband_trials')
+        else:
+            print("Using BayesianOptimization ...")
+            tuner = kt.BayesianOptimization(hyper_model, objective="val_loss", num_initial_points=5, max_trials = 20, directory=ht_dir, project_name='hyperband_trials')
 
         # Use callbacks
         early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=self.patience)
         tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="tensorboard_logs/hypertuning/"+Model.model_id, histogram_freq=1)
-        csv_logger = CSVLogger(ht_dir+'/'+Model.model_id+'_Hypertuning/hypertuning_log.log',separator='\n')
+        #csv_logger = CSVLogger(ht_dir+'/'+Model.model_id+'_Hypertuning/hypertuning_log.log',separator='\n')     # This didn't work great :/
         
         # Perform the search
         print('Hypertuning commencing...')
-        start = time.time()
-        tuner.search(x=[trainX_jets, trainX_other], y=trainY, validation_data=([valX_jets, valX_other], valY), epochs=self.max_epochs, callbacks=[early_stop, tensorboard_callback, csv_logger], shuffle=True)
-        end = time.time()
-        Model.training_time = round(end - start)
+        start = datetime.now()
+        tuner.search(x=[trainX_jets, trainX_other], y=trainY, validation_data=([valX_jets, valX_other], valY), epochs=self.max_epochs, callbacks=[early_stop, tensorboard_callback], shuffle=True,verbose=0)
+        end = datetime.now()
+        Model.training_time = end - start
 
         # Save results
         self.save_hypertune_results(Model,tuner)
@@ -616,9 +644,9 @@ class Training:
                 # Need to load jet pretraining if TRecNet+ttbar+JetPretrain
                 if self.Model.model_name=='TRecNet+ttbar+JetPretrain':
                     pretrain_model = keras.models.load_model(self.trainer.pretrain_file)
-                    self.Model.model = self.build(self.Model.model_name, self.Model.mask_value, hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], pretrain_model = pretrain_model)
+                    self.Model.model = self.trainer.build_model(self.Model.model_name, self.Model.mask_value, hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], pretrain_model = pretrain_model)
                 else:
-                    self.Model.model = self.build(self.Model.model_name, self.Model.mask_value, hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'])
+                    self.Model.model = self.trainer.build_model(self.Model.model_name, self.Model.mask_value, hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'])
         
             return self.Model.model
             
@@ -629,13 +657,19 @@ class Training:
 
 # Set up argument parser
 parser = ArgumentParser()
-parser.add_argument('--model_name', help='Name of the model to be trained.', type=str, required=True, choices=['TRecNet','TRecNet+ttbar'])
+parser.add_argument('--model_name', help='Name of the model to be trained.', type=str, required=True, choices=['TRecNet','TRecNet+ttbar','JetPretrainer','TRecNet+ttbar+JetPretrain','TRecNet+ttbar+JetPretrainUnfrozen'])
 parser.add_argument('--config_file', help="File (including path) with training (or hypertuning) specifications.", type=str, required=True)
 parser.add_argument('--hypertune', help="Use this flag to hypertune your model.", action="store_true")
 
-# Parse arguments
-args = parser.parse_args()
+# Only need tuner if we're hypertuning
+args, tuner_arg = parser.parse_known_args()
+if args.hypertune:
+    parser.add_argument('--tuner', required=True, choices=["Hyperband","BayesianOptimization"])
+    #parser.parse_args(tuner_arg, namespace = args)
+
+# Get config file
 config = json.load(open(args.config_file))
+
 
 # Check that there is a pre-train model, with the same number of jets, if needed
 if '+JetPretrain' in args.model_name:
@@ -667,7 +701,7 @@ if args.hypertune:
     print('Beginning hypertuning for '+args.model_name+'...')
     hyper_config = config["hypertuning"]
     Trainer = Training(config)
-    Trainer.set_hyper_config(config["hypertuning"])
+    Trainer.set_hyper_config(tuner_arg[1],config["hypertuning"])
     Trainer.hypertune(Model)
 
 # Train

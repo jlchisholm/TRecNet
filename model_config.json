@@ -1,0 +1,153 @@
+{
+    "TRecNet":
+    {
+        "shortname": "TRN",
+        "model_id": "TRecNet_6jets_20230525_111504",
+        "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet_6jets_20230525_111504_nominal_Results.root",
+        "sysUP_input": null,
+        "sysDOWN_input": null,
+        "truth_units": "GeV",
+        "reco_units": "GeV",
+        "cuts": 
+        [
+            {
+                "cut_on": null,
+                "max": null,
+                "min": null,
+                "tag": "No Cuts",
+                "color_scheme": "tab:purple"
+            }
+        ]
+    },
+    "TRecNet+ttbar":
+    {
+        "shortname": "TRN+ttbar",
+        "model_id": "TRecNet+ttbar_6jets_20230525_214703",
+        "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar_6jets_20230525_214703_nominal_Results.root",
+        "sysUP_input": null,
+        "sysDOWN_input": null,
+        "truth_units": "GeV",
+        "reco_units": "GeV",
+        "cuts": 
+        [
+            {
+                "cut_on": null,
+                "max": null,
+                "min": null,
+                "tag": "No Cuts",
+                "color_scheme": "tab:pink"
+            }
+        ]
+    },
+    "TRecNet+ttbar+JetPretrain":
+    {
+        "shortname": "TRN+ttbar+JP",
+        "model_id": "TRecNet+ttbar+JetPretrain_6jets_20230531_133250",
+        "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrain_6jets_20230531_133250_nominal_Results.root",
+        "sysUP_input": null,
+        "sysDOWN_input": null,
+        "truth_units": "GeV",
+        "reco_units": "GeV",
+        "cuts": 
+        [
+            {
+                "cut_on": null,
+                "max": null,
+                "min": null,
+                "tag": "No Cuts",
+                "color_scheme": "tab:brown"
+            }
+        ]
+    },
+    "TRecNet+ttbar+JetPretrainUnfrozen":
+    {
+        "shortname": "TRN+ttbar+JPU",
+        "model_id": "TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445",
+        "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445_nominal_Results.root",
+        "sysUP_input": null,
+        "sysDOWN_input": null,
+        "truth_units": "GeV",
+        "reco_units": "GeV",
+        "cuts": 
+        [
+            {
+                "cut_on": null,
+                "max": null,
+                "min": null,
+                "tag": "No Cuts",
+                "color_scheme": "tab:orange"
+            }
+        ]
+    },
+    "KLFitter6":
+    {
+        "shortname": "KLF6",
+        "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/KLF6_Results.root",
+        "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/KLF6_Results.root",
+        "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/KLF6_Results.root",
+        "truth_units": "MeV",
+        "reco_units": "GeV",
+        "cuts": 
+        [
+            {
+                "cut_on": null,
+                "max": null,
+                "min": null,
+                "tag": "No Cuts",
+                "color_scheme": "tab:blue"
+            },
+            {
+                "cut_on": "logLikelihood",
+                "max": null,
+                "min": -52,
+                "tag": "LL>-52",
+                "color_scheme": "tab:cyan"
+            }
+        ]
+    },
+    "PseudoTop":
+    {
+        "shortname": "PT",
+        "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/PT_Results.root",
+        "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/PT_Results.root",
+        "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/PT_Results.root",
+        "truth_units": "MeV",
+        "reco_units": "GeV",
+        "cuts":
+        [
+            {
+                "cut_on": null,
+                "max": null,
+                "min": null,
+                "tag": "No Cuts",
+                "color_scheme": "tab:red"
+            }
+        ]
+    },
+    "Chi2":
+    {
+        "shortname": "Chi2",
+        "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/Chi2_Results.root",
+        "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/Chi2_Results.root",
+        "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/Chi2_Results.root",
+        "truth_units": "MeV",
+        "reco_units": "GeV",
+        "cuts": 
+        [
+            {
+                "cut_on": null,
+                "max": null,
+                "min": null,
+                "tag": "No Cuts",
+                "color_scheme": "tab:green"
+            },
+            {
+                "cut_on": "chi2",
+                "max": 50,
+                "min": null,
+                "tag": "chi2<50",
+                "color_scheme": "tab:olive"
+            }
+        ]
+    }
+}

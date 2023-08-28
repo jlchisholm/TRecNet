@@ -1,14 +1,14 @@
 {   "test_filename": "/mnt/xrootdg/jchishol/mntuples_08_01_22/variables_ttbar_ljets_10j_test.h5",
     "datatype": "parton_e+mjets",
-    "save_loc": "./CM_even_stats_binning_plots/",
+    "save_loc": "./only_KLFs-vs-TRNttJP/",
     "model_specs":
     {
         "TRecNet":
         {
-            "shortname": "TRN",
+            "shortname": "TRecNet",
             "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet_6jets_20230525_111504_nominal_Results.root",
-            "sysUP_input": null,
-            "sysDOWN_input": null,
+            "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet_6jets_20230525_111504_sysUP_Results.root",
+            "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet_6jets_20230525_111504_sysDOWN_Results.root",
             "truth_units": "GeV",
             "reco_units": "GeV",
             "cuts": 
@@ -24,10 +24,10 @@
         },
         "TRecNet+ttbar":
         {
-            "shortname": "TRN+ttbar",
+            "shortname": "TRecNet+ttbar",
             "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar_6jets_20230525_214703_nominal_Results.root",
-            "sysUP_input": null,
-            "sysDOWN_input": null,
+            "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar_6jets_20230525_214703_sysUP_Results.root",
+            "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar_6jets_20230525_214703_sysDOWN_Results.root",
             "truth_units": "GeV",
             "reco_units": "GeV",
             "cuts": 
@@ -43,7 +43,7 @@
         },
         "TRecNet+ttbar+JetPretrain":
         {
-            "shortname": "TRN+ttbar+JP",
+            "shortname": "TRecNet+ttbar+JetPretrain",
             "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrain_6jets_20230531_133250_nominal_Results.root",
             "sysUP_input": null,
             "sysDOWN_input": null,
@@ -64,8 +64,8 @@
         {
             "shortname": "TRecNet+ttbar+JetPretrain",
             "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445_nominal_Results.root",
-            "sysUP_input": null,
-            "sysDOWN_input": null,
+            "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445_sysUP_Results.root",
+            "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445_sysDOWN_Results.root",
             "truth_units": "GeV",
             "reco_units": "GeV",
             "cuts": 
@@ -107,7 +107,7 @@
         },
         "PseudoTop":
         {
-            "shortname": "PT",
+            "shortname": "PseudoTop",
             "nom_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/PT_Results.root",
             "sysUP_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/PT_Results.root",
             "sysDOWN_input": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/PT_Results.root",
@@ -261,16 +261,17 @@
         },
         "Sys":
         {
-            "make_plots": false,
+            "make_plots": true,
+            "stats_binning": true,
             "include_model":
             {
-                "TRecNet": true,
-                "TRecNet+ttbar": true,
-                "TRecNet+ttbar+JetPretrain": true,
+                "TRecNet": false,
+                "TRecNet+ttbar": false,
+                "TRecNet+ttbar+JetPretrain": false,
                 "TRecNet+ttbar+JetPretrainUnfrozen": true,
                 "KLFitter6": true,
-                "PseudoTop": true,
-                "Chi2": true
+                "PseudoTop": false,
+                "Chi2": false
             },
             "nbins": 30
         },
@@ -279,8 +280,8 @@
             "make_plots": false,
             "include_model":
             {
-                "TRecNet": true,
-                "TRecNet+ttbar": true,
+                "TRecNet": false,
+                "TRecNet+ttbar": false,
                 "TRecNet+ttbar+JetPretrain": false,
                 "TRecNet+ttbar+JetPretrainUnfrozen": true,
                 "KLFitter6": true,
@@ -289,7 +290,7 @@
             },
             "nbins": 50,
             "core_fit": "nofit",
-            "include_moments": false,
+            "include_moments": true,
             "pt_cuts": 
             [
                 {},
@@ -306,11 +307,11 @@
         "Res_vs_Var":
         {
             "make_plots": false,
-            "stats_binning": false,
+            "stats_binning": true,
             "include_model":
             {
-                "TRecNet": true,
-                "TRecNet+ttbar": true,
+                "TRecNet": false,
+                "TRecNet+ttbar": false,
                 "TRecNet+ttbar+JetPretrain": false,
                 "TRecNet+ttbar+JetPretrainUnfrozen": true,
                 "KLFitter6": true,
@@ -319,21 +320,21 @@
             },
             "plots":
             {
-                "th": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30]},
-                        {"y_var":"m","x_var":"pt","xbins":[0,600,30]},
-                        {"y_var":"eta","x_var":"pt","xbins":[0,600,30]},
-                        {"y_var":"phi","x_var":"pt","xbins":[0,600,30]},
-                        {"y_var":"E","x_var":"pt","xbins":[0,600,30]}],
-                "tl": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30]},
-                        {"y_var":"m","x_var":"pt","xbins":[60,600,30]},
-                        {"y_var":"eta","x_var":"pt","xbins":[0,600,30]},
-                        {"y_var":"phi","x_var":"pt","xbins":[0,600,30]},
-                        {"y_var":"E","x_var":"pt","xbins":[0,600,30]}],
-                "ttbar": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30]},
-                            {"y_var":"m","x_var":"pt","xbins":[60,600,30]},
-                            {"y_var":"eta","x_var":"pt","xbins":[0,600,30]},
-                            {"y_var":"phi","x_var":"pt","xbins":[0,600,30]},
-                            {"y_var":"E","x_var":"pt","xbins":[0,600,30]}]
+                "th": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": true},
+                        {"y_var":"pt","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": false},
+                        {"y_var":"m","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": false},
+                        {"y_var":"eta","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": false},
+                        {"y_var":"phi","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": false}],
+                "tl": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": true},
+                        {"y_var":"pt","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": false},
+                        {"y_var":"m","x_var":"pt","xbins":[60,600,30], "ignore_first_bin": false},
+                        {"y_var":"eta","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": false},
+                        {"y_var":"phi","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": false}],
+                "ttbar": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": true},
+                            {"y_var":"pt","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": false},
+                            {"y_var":"m","x_var":"pt","xbins":[60,600,30], "ignore_first_bin": false},
+                            {"y_var":"eta","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": false},
+                            {"y_var":"phi","x_var":"pt","xbins":[0,600,30], "ignore_first_bin": false}]
             },
             "core_fit": "nofit"
         }
@@ -357,41 +358,11 @@
                     "alt_names": null
                 },
                 {
-                    "name": "px",
-                    "label": "p_x",
-                    "start": -250,
-                    "stop": 300,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "py",
-                    "label": "p_y",
-                    "start": -250,
-                    "stop": 300,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
                     "name": "eta",
                     "label": "\\eta",
                     "start": -6,
                     "stop": 7.5,
                     "step": 1.5,
-                    "unit": "",
-                    "res": "Residuals",
-                    "alt_names": null
-                },
-                {
-                    "name": "y",
-                    "label": "y",
-                    "start": -2.5,
-                    "stop": 3,
-                    "step": 0.5,
                     "unit": "",
                     "res": "Residuals",
                     "alt_names": null
@@ -415,26 +386,6 @@
                     "unit": "GeV",
                     "res": "Resolution",
                     "alt_names": null
-                },
-                {
-                    "name": "E",
-                    "label": "E",
-                    "start": 100,
-                    "stop": 1600,
-                    "step": 150,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "pout",
-                    "label": "p_{out}",
-                    "start": -275,
-                    "stop": 325,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Residuals",
-                    "alt_names": ["Pout"]
                 }
             ]
         },
@@ -455,41 +406,11 @@
                     "alt_names": null
                 },
                 {
-                    "name": "px",
-                    "label": "p_x",
-                    "start": -250,
-                    "stop": 300,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "py",
-                    "label": "p_y",
-                    "start": -250,
-                    "stop": 300,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
                     "name": "eta",
                     "label": "\\eta",
                     "start": -6,
                     "stop": 7.5,
                     "step": 1.5,
-                    "unit": "",
-                    "res": "Residuals",
-                    "alt_names": null
-                },
-                {
-                    "name": "y",
-                    "label": "y",
-                    "start": -2.5,
-                    "stop": 3,
-                    "step": 0.5,
                     "unit": "",
                     "res": "Residuals",
                     "alt_names": null
@@ -513,26 +434,6 @@
                     "unit": "GeV",
                     "res": "Resolution",
                     "alt_names": null
-                },
-                {
-                    "name": "E",
-                    "label": "E",
-                    "start": 100,
-                    "stop": 1600,
-                    "step": 150,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "pout",
-                    "label": "p_{out}",
-                    "start": -275,
-                    "stop": 325,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Residuals",
-                    "alt_names": ["Pout"]
                 }
             ]
         },
@@ -553,41 +454,11 @@
                     "alt_names": null
                 },
                 {
-                    "name": "px",
-                    "label": "p_x",
-                    "start": -250,
-                    "stop": 300,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "py",
-                    "label": "p_y",
-                    "start": -250,
-                    "stop": 300,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
                     "name": "eta",
                     "label": "\\eta",
                     "start": -6,
                     "stop": 7.5,
                     "step": 1.5,
-                    "unit": "",
-                    "res": "Residuals",
-                    "alt_names": null
-                },
-                {
-                    "name": "y",
-                    "label": "y",
-                    "start": -2.5,
-                    "stop": 3,
-                    "step": 0.5,
                     "unit": "",
                     "res": "Residuals",
                     "alt_names": null
@@ -611,76 +482,6 @@
                     "unit": "GeV",
                     "res": "Resolution",
                     "alt_names": null
-                },
-                {
-                    "name": "E",
-                    "label": "E",
-                    "start": 200,
-                    "stop": 2700,
-                    "step": 250,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "dphi",
-                    "label": "|\\Delta\\phi|",
-                    "start": 0,
-                    "stop": 3.6,
-                    "step": 0.45,
-                    "unit": "",
-                    "res": "Residuals",
-                    "alt_names": ["deltaPhi"]
-                },
-                {
-                    "name": "deta",
-                    "label": "|\\Delta\\eta|",
-                    "start": 0,
-                    "stop": 10,
-                    "step": 1,
-                    "unit": "",
-                    "res": "Residuals",
-                    "alt_names": ["deltaEta"]
-                },
-                {
-                    "name": "Ht",
-                    "label": "H_T",
-                    "start": 0,
-                    "stop": 1200,
-                    "step": 120,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": ["HT"]
-                },
-                {
-                    "name": "yboost",
-                    "label": "y_{boost}",
-                    "start": -3,
-                    "stop": 3.75,
-                    "step": 0.75,
-                    "unit": "",
-                    "res": "Residuals",
-                    "alt_names": ["y_boost"]
-                },
-                {
-                    "name": "ystar",
-                    "label": "y_{star}",
-                    "start": -2.5,
-                    "stop": 3,
-                    "step": 0.5,
-                    "unit": "",
-                    "res": "Residuals",
-                    "alt_names": ["y_star"]
-                },
-                {
-                    "name": "chi",
-                    "label": "\\chi",
-                    "start": 0,
-                    "stop": 25,
-                    "step": 2.5,
-                    "unit": "",
-                    "res": "Resolution",
-                    "alt_names": ["chi_tt"]
                 }
             ]
         }
