@@ -19,7 +19,6 @@ from argparse import ArgumentParser
 
 
 
-
 # ---------- FUNCTION DEFINITIONS ---------- #
 
 
@@ -52,7 +51,8 @@ def readInData(reco_method,filename,eventnumbers):
         if 'TRecNet' in reco_method:
 
             # Load systematics data
-            sys_arr = f['reco'].arrays()
+            #sys_arr = f['reco'].arrays()
+            sys_arr = f[sys_type+';1'].arrays()
 
             # Create dataframe with systematics data, as well as event numbers, jet number, and log likelihood
             # And rename such that the naming is the same that it is in the other systematics datasets
@@ -394,7 +394,7 @@ def makeAllDatasets(par_specs,model_specs,models_to_load,sys_to_load,datatype,ev
     return datasets
 
 
-def createDirectories(main_dir):
+def createDirectories(main_dir, plotting_info):
     """
     Creates directories to store the plots in, if they do not already exist.
 
@@ -413,6 +413,12 @@ def createDirectories(main_dir):
         for par_dir in ['th/','tl/','ttbar/']:
             if not os.path.exists(main_dir+par_dir+plot_dir):
                 os.mkdir(main_dir+par_dir+plot_dir)
+    
+    # Also just save the configurations used to make these plots
+    with open(main_dir+"plot_info.json","w") as outfile:
+        json.dump(plotting_info, outfile, indent=4)
+                
+    
 
 
 def getLoadLists(plotting_instr):
@@ -507,12 +513,12 @@ def makeCMPlots(loaded_models, CM_Instructions, par, var, main_dir, test_truth_d
         print('Please select models if you want confusion matrix plots to be produced.')
 
 
-def makeSysPlots(loaded_models, Sys_Instructions, par, var, main_dir):
+def makeSysPlots(loaded_models, Sys_Instructions, par, var, main_dir, test_truth_df):
 
     sys_models = [model for model in loaded_models if Sys_Instructions['include_model'][model.reco_method] and 'reco_'+par.name+'_'+var.name in model.df.keys()]
 
     if sys_models != []:
-        Plot.Sys_Hist(sys_models,par,var,save_loc=main_dir+par.name+'/Sys/')
+        Plot.Sys_Hist(sys_models,par,var,test_truth_df,save_loc=main_dir+par.name+'/Sys/',even_stats_binning=Sys_Instructions['stats_binning'])
 
     else:
         print('Please select models if you want systematics plots to be produced.')
@@ -554,7 +560,7 @@ def makeResPlots(loaded_models, Res_Instructions, par, var, main_dir):
         print('Please select models if you want resolution (or residual) plots to be produced.')
 
 
-def makeResVsVarPlots(loaded_models, Res_vs_Var_Instructions, par, main_dir):
+def makeResVsVarPlots(loaded_models, Res_vs_Var_Instructions, par, main_dir, test_truth_df):
     """
     Makes all the desired resolution (or residual) vs variable plots.
 
@@ -564,6 +570,7 @@ def makeResVsVarPlots(loaded_models, Res_vs_Var_Instructions, par, main_dir):
             par (particle object): Particle to be plotted.
             var (observable object): Observable to be plotted.
             main_dir (str): Main directory where all plots will be saved.
+            test_truth_df (pd.DataFrame): Dataframe of all truth data from the test datafile.
 
         Returns:
             Saves several resolution (or residual) vs variable plots as images in <main_dir>.
@@ -586,7 +593,7 @@ def makeResVsVarPlots(loaded_models, Res_vs_Var_Instructions, par, main_dir):
 
         # Make the plot
         if res_vs_var_models != []:
-            Plot.Res_vs_Var(res_vs_var_models,par,y_var,x_var,plot['xbins'],save_loc=main_dir+par.name+'/Res/',core_fit=Res_vs_Var_Instructions['core_fit'])
+            Plot.Res_vs_Var(res_vs_var_models,par,y_var,x_var,plot['xbins'],test_truth_df,save_loc=main_dir+par.name+'/Res/',core_fit=Res_vs_Var_Instructions['core_fit'],even_stats_binning=Res_vs_Var_Instructions['stats_binning'], ignore_first_bin=plot['ignore_first_bin'])
         else:
             print('Please select models if you want resolution (or residual) vs variable plots to be produced.')
 
@@ -616,14 +623,14 @@ def makePlots(loaded_models, plotting_instr, particles, main_dir, test_truth_df)
                 if 'CM' in plotting_instr:
                     makeCMPlots(loaded_models, plotting_instr['CM'], par, var, main_dir, test_truth_df)  
                 if 'Sys' in plotting_instr:
-                    makeSysPlots(loaded_models, plotting_instr['Sys'], par, var, main_dir)     
+                    makeSysPlots(loaded_models, plotting_instr['Sys'], par, var, main_dir, test_truth_df)     
                 if 'Res' in plotting_instr:
                     makeResPlots(loaded_models, plotting_instr['Res'], par, var, main_dir)
 
                     
         # Res vs Var plots don't go through each observable -- only some variables are plotted against eachother (specified in json file)
         if 'Res_vs_Var' in plotting_instr:
-            makeResVsVarPlots(loaded_models, plotting_instr['Res_vs_Var'],par, main_dir)
+            makeResVsVarPlots(loaded_models, plotting_instr['Res_vs_Var'],par, main_dir, test_truth_df)
 
 
 
@@ -641,8 +648,8 @@ f_plotting_info = args.plotting_info
 plotting_info = json.load(open(f_plotting_info))
 
 # Create directories for plots if they don't already exist
-main_dir = plotting_info['save_loc']+'plots/'
-createDirectories(main_dir)
+main_dir = plotting_info['save_loc']
+createDirectories(main_dir, plotting_info)
 
 # Get the model specifications, plotting specifications, and observable specifications from the JSON file
 model_specs = plotting_info['model_specs']
@@ -653,11 +660,12 @@ par_specs = plotting_info['par_specs']
 f_test = h5py.File(plotting_info['test_filename'],'r')
 eventnumbers = np.array(f_test.get('eventNumber'))
 # Also load the truth data (though this is also contained in the other datasets, we'll want it seperate too)
-test_truth_df = pd.DataFrame({key:np.array(f_test.get(key)) for key in f_test.keys()})
+# ASSUMES 6 JETS!!!
+test_keys = [key for key in f_test.keys() if 'j7' not in key and 'j8' not in key and 'j9' not in key and 'j10' not in key]
+test_truth_df = pd.DataFrame({key:np.array(f_test.get(key)) for key in test_keys})
 f_test.close()
 test_truth_df = test_truth_df.add_prefix('truth_')
 test_truth_df['eventNumber'] = test_truth_df['truth_eventNumber']
-
 test_truth_df = appendCalculations(test_truth_df,'truth_test')
 
 # Make particle definitions from the info in the JSON file
