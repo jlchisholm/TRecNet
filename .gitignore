@@ -1,6 +1,10 @@
 __pycache__/
 .ipynb_checkpoints/
+.tensorboard_logs/
 .vscode/
 full_plots/
-plots/
 other_plots/
+plots/
+tensorboard_logs/
+hypertuning_log*
+*/val_plots/*

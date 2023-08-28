@@ -1,0 +1,36 @@
+Model Name: JetPretrainer 
+Model ID: JetPretrainer_6jets_20230412_144558 
+Training Data File: /mnt/xrootdg/jchishol/mntuples_08_01_22/variables_ttbar_ljets_10j_train.h5 
+X Maxmean File: /mnt/xrootdg/jchishol/mntuples_08_01_22/X_maxmean_variables_ttbar_ljets_10j_train.npy 
+Y Maxmean File: /mnt/xrootdg/jchishol/mntuples_08_01_22/Y_maxmean_variables_ttbar_ljets_10j_train.npy 
+X Keys: j1_pt, j1_eta, j1_phi, j1_m, j1_isbtag, j2_pt, j2_eta, j2_phi, j2_m, j2_isbtag, j3_pt, j3_eta, j3_phi, j3_m, j3_isbtag, j4_pt, j4_eta, j4_phi, j4_m, j4_isbtag, j5_pt, j5_eta, j5_phi, j5_m, j5_isbtag, j6_pt, j6_eta, j6_phi, j6_m, j6_isbtag, lep_pt, lep_eta, lep_phi, met_met, met_phi
+X Scaled Keys: j1_pt, j1_px, j1_py, j1_eta, j1_m, j1_isbtag, j2_pt, j2_px, j2_py, j2_eta, j2_m, j2_isbtag, j3_pt, j3_px, j3_py, j3_eta, j3_m, j3_isbtag, j4_pt, j4_px, j4_py, j4_eta, j4_m, j4_isbtag, j5_pt, j5_px, j5_py, j5_eta, j5_m, j5_isbtag, j6_pt, j6_px, j6_py, j6_eta, j6_m, j6_isbtag, lep_pt, lep_px, lep_py, lep_eta, met_met, met_phi-sin, met_phi-cos
+Y Keys: j1_isTruth, j2_isTruth, j3_isTruth, j4_isTruth, j5_isTruth, j6_isTruth
+Y Scaled Keys: j1_isTruth, j2_isTruth, j3_isTruth, j4_isTruth, j5_isTruth, j6_isTruth
+Number of Epochs: 256 
+Patience: 4 
+Model Architecture:
+Model: "model"
+__________________________________________________________________________________________________
+ Layer (type)                   Output Shape         Param #     Connected to                     
+==================================================================================================
+ jet_input (InputLayer)         [(None, 6, 6)]       0           []                               
+                                                                                                  
+ other_input (InputLayer)       [(None, 7)]          0           []                               
+                                                                                                  
+ flattened_jets (Flatten)       (None, 36)           0           ['jet_input[0][0]']              
+                                                                                                  
+ concat_jets_other (Concatenate  (None, 43)          0           ['other_input[0][0]',            
+ )                                                                'flattened_jets[0][0]']         
+                                                                                                  
+ dense256_1 (Dense)             (None, 256)          11264       ['concat_jets_other[0][0]']      
+                                                                                                  
+ dense256_2 (Dense)             (None, 256)          65792       ['dense256_1[0][0]']             
+                                                                                                  
+ jet_match_output (Dense)       (None, 6)            1542        ['dense256_2[0][0]']             
+                                                                                                  
+==================================================================================================
+Total params: 78,598
+Trainable params: 78,598
+Non-trainable params: 0
+__________________________________________________________________________________________________
