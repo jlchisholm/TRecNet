@@ -1,0 +1,107 @@
+Model Name: TRecNet 
+Model ID: TRecNet_6jets_20230526_132026 
+
+ ---------------------------------------------------  
+Training Data File: /mnt/xrootdg/jchishol/mntuples_08_01_22/variables_ttbar_ljets_10j_train.h5 
+X Maxmean File: /mnt/xrootdg/jchishol/mntuples_08_01_22/X_maxmean_variables_ttbar_ljets_10j_train.npy 
+Y Maxmean File: /mnt/xrootdg/jchishol/mntuples_08_01_22/Y_maxmean_variables_ttbar_ljets_10j_train.npy 
+
+ ---------------------------------------------------  
+X Keys: j1_pt, j1_eta, j1_phi, j1_m, j1_isbtag, j2_pt, j2_eta, j2_phi, j2_m, j2_isbtag, j3_pt, j3_eta, j3_phi, j3_m, j3_isbtag, j4_pt, j4_eta, j4_phi, j4_m, j4_isbtag, j5_pt, j5_eta, j5_phi, j5_m, j5_isbtag, j6_pt, j6_eta, j6_phi, j6_m, j6_isbtag, lep_pt, lep_eta, lep_phi, met_met, met_phi
+X Scaled Keys: j1_pt, j1_px, j1_py, j1_eta, j1_m, j1_isbtag, j2_pt, j2_px, j2_py, j2_eta, j2_m, j2_isbtag, j3_pt, j3_px, j3_py, j3_eta, j3_m, j3_isbtag, j4_pt, j4_px, j4_py, j4_eta, j4_m, j4_isbtag, j5_pt, j5_px, j5_py, j5_eta, j5_m, j5_isbtag, j6_pt, j6_px, j6_py, j6_eta, j6_m, j6_isbtag, lep_pt, lep_px, lep_py, lep_eta, met_met, met_phi-sin, met_phi-cos
+Y Keys: th_pt, th_eta, th_phi, th_m, wh_pt, wh_eta, wh_phi, wh_m, tl_pt, tl_eta, tl_phi, tl_m, wl_pt, wl_eta, wl_phi, wl_m
+Y Scaled Keys: th_pt, th_px, th_py, th_eta, th_sin-phi, th_cos-phi, th_m, wh_pt, wh_px, wh_py, wh_eta, wh_sin-phi, wh_cos-phi, wh_m, tl_pt, tl_px, tl_py, tl_eta, tl_sin-phi, tl_cos-phi, tl_m, wl_pt, wl_px, wl_py, wl_eta, wl_sin-phi, wl_cos-phi, wl_m
+
+ ---------------------------------------------------  
+Learning Rate: Polynomial Decay with initial_lr=0.001, final_lr=1.0, decay_step=10000, and power=0.25 
+Batch Size: 10000 
+Max Number of Epochs: 256 
+Number of Epochs Used: 9 
+Patience: 8 
+Training Time: 00:00:07:49 
+Training History: 
+     loss      mse  val_loss  val_mse
+0.093831 0.051085  0.091563 0.049988
+0.094862 0.049846  0.105522 0.057031
+0.206361 0.136240  0.221209 0.147921
+0.222077 0.148014  0.221820 0.147982
+0.223344 0.148305  0.223890 0.148750
+0.229140 0.149669  0.239259 0.154314
+0.238741 0.152109  0.231430 0.151105
+0.235240 0.150951  0.232902 0.150737
+0.234119 0.150715  0.230490 0.149399 
+
+ ---------------------------------------------------  
+Model Architecture:
+Model: "model"
+_____________________________________________________________________________________________________________
+ Layer (type)                   Output Shape         Param #     Connected to                     Trainable  
+=============================================================================================================
+ jet_input (InputLayer)         [(None, 6, 6)]       0           []                               Y          
+                                                                                                             
+ other_input (InputLayer)       [(None, 7)]          0           []                               Y          
+                                                                                                             
+ flattened_jets (Flatten)       (None, 36)           0           ['jet_input[0][0]']              Y          
+                                                                                                             
+ concat_jets_other (Concatenate  (None, 43)          0           ['other_input[0][0]',            Y          
+ )                                                                'flattened_jets[0][0]']                    
+                                                                                                             
+ dense256_1 (Dense)             (None, 256)          11264       ['concat_jets_other[0][0]']      Y          
+                                                                                                             
+ masking_jets (Masking)         (None, 6, 6)         0           ['jet_input[0][0]']              Y          
+                                                                                                             
+ dense256_2 (Dense)             (None, 256)          65792       ['dense256_1[0][0]']             Y          
+                                                                                                             
+ reshape_masked_jets (Reshape)  (None, 6, 6)         0           ['masking_jets[0][0]']           Y          
+                                                                                                             
+ dense6_sigmoid (Dense)         (None, 6)            1542        ['dense256_2[0][0]']             Y          
+                                                                                                             
+ TDDense128 (TimeDistributed)   (None, 6, 128)       896         ['reshape_masked_jets[0][0]']    Y          
+                                                                                                             
+ reshape (Reshape)              (None, 6, 1)         0           ['dense6_sigmoid[0][0]']         Y          
+                                                                                                             
+ TDDense64 (TimeDistributed)    (None, 6, 64)        8256        ['TDDense128[0][0]']             Y          
+                                                                                                             
+ weight_jets (Multiply)         (None, 6, 64)        0           ['reshape[0][0]',                Y          
+                                                                  'TDDense64[0][0]']                         
+                                                                                                             
+ dense128 (Dense)               (None, 128)          1024        ['other_input[0][0]']            Y          
+                                                                                                             
+ TDDense256_1 (TimeDistributed)  (None, 6, 256)      16640       ['weight_jets[0][0]']            Y          
+                                                                                                             
+ dense64 (Dense)                (None, 64)           8256        ['dense128[0][0]']               Y          
+                                                                                                             
+ TDDense256_2 (TimeDistributed)  (None, 6, 256)      65792       ['TDDense256_1[0][0]']           Y          
+                                                                                                             
+ flattened_other (Flatten)      (None, 64)           0           ['dense64[0][0]']                Y          
+                                                                                                             
+ flattened_weighted_jets (Flatt  (None, 1536)        0           ['TDDense256_2[0][0]']           Y          
+ en)                                                                                                         
+                                                                                                             
+ concat_everything (Concatenate  (None, 1600)        0           ['flattened_other[0][0]',        Y          
+ )                                                                'flattened_weighted_jets[0][0]             
+                                                                 ']                                          
+                                                                                                             
+ ldense256 (Dense)              (None, 256)          409856      ['concat_everything[0][0]']      Y          
+                                                                                                             
+ ldense128 (Dense)              (None, 128)          32896       ['ldense256[0][0]']              Y          
+                                                                                                             
+ lep_output (Dense)             (None, 14)           1806        ['ldense128[0][0]']              Y          
+                                                                                                             
+ concatenate (Concatenate)      (None, 1614)         0           ['lep_output[0][0]',             Y          
+                                                                  'concat_everything[0][0]']                 
+                                                                                                             
+ hdense256 (Dense)              (None, 256)          413440      ['concatenate[0][0]']            Y          
+                                                                                                             
+ hdense128 (Dense)              (None, 128)          32896       ['hdense256[0][0]']              Y          
+                                                                                                             
+ had_output (Dense)             (None, 14)           1806        ['hdense128[0][0]']              Y          
+                                                                                                             
+ output (Concatenate)           (None, 28)           0           ['had_output[0][0]',             Y          
+                                                                  'lep_output[0][0]']                        
+                                                                                                             
+=============================================================================================================
+Total params: 1,072,162
+Trainable params: 1,072,162
+Non-trainable params: 0
+_____________________________________________________________________________________________________________

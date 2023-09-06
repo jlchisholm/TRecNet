@@ -9,3 +9,5 @@ tensorboard_logs/
 hypertuning_log*
 */val_plots/*
 THESIS_PLOTS/
+TRecNet/hypertuning/
+presentation_plots/
