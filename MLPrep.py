@@ -634,9 +634,7 @@ class filePrep:
 
         print('File opened.')
 
-        # Separate input file name and its path
-        in_path = os.path.split(name)[0]
-        in_name = os.path.split(name)[1]
+        name = input_file.split('/')[-1].split('.h5')[0]
 
         # Create data frame
         df = pd.DataFrame({key: np.array(f.get(key)) for key in list(f.keys())})
@@ -686,8 +684,8 @@ class filePrep:
         print('Other done')
 
         # Save array of X maxmean values
-        np.save(save_dir+'/X_maxmean_'+in_name,X_maxmean)
-        print('Saved: '+save_dir+'/X_maxmean_'+in_name+'.npy')
+        np.save(save_dir+'/X_maxmean_'+name,X_maxmean)
+        print('Saved: '+save_dir+'/X_maxmean_'+name+'.npy')
 
         # Calculate px and py for truth
         particles = ['th_','wh_','tl_','wl_','ttbar_']
@@ -702,8 +700,8 @@ class filePrep:
                 print('Appended '+p+v)
 
         # Save Y maxmean arrays
-        np.save(save_dir+'/Y_maxmean_'+in_name,Y_maxmean)
-        print('Saved: '+save_dir+'/Y_maxmean_'+in_name+'.npy')
+        np.save(save_dir+'/Y_maxmean_'+name,Y_maxmean)
+        print('Saved: '+save_dir+'/Y_maxmean_'+name+'.npy')
 
 
 # ---------- GET ARGUMENTS FROM COMMAND LINE ---------- #
