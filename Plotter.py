@@ -146,12 +146,18 @@ class Dataset:
         self.reco_method = reco_method
         self.data_type = data_type
         self.color = color
-        self.cuts = cuts
         self.perc_events = perc_events
         self.sysUP_df = sysUP_df
         self.sysDOWN_df = sysDOWN_df
         self.shortname = reco_method if shortname=='' else shortname
-
+    
+        if cuts == 'LL>-52':
+            self.cuts = r'$\ln\mathcal{L}$>-52'
+        elif cuts == 'chi2<50':
+            self.cuts = r'$\chi^2$<50'
+        else:
+            self.cuts = cuts
+            
         if self.perc_events==100 and self.cuts!='No Cuts': 
             print('WARNING: Do you really have 100\% of events if you are making cuts?')
 
@@ -582,7 +588,9 @@ class Plot:
 
 
             # Plot the resolution
-            plt.hist(df['res_'+name],bins=nbins,range=(-1,1),histtype='step',label=dataset.shortname+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)'+mom_tag,density=True,color=dataset.color)
+            #model_label = dataset.shortname+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)'+mom_tag
+            model_label = dataset.shortname+'('+dataset.cuts+')'+mom_tag if dataset.cuts!='No Cuts' else dataset.shortname+mom_tag
+            plt.hist(df['res_'+name],bins=nbins,range=(-1,1),histtype='step',label=model_label,density=True,color=dataset.color)
             
             # Get percentage of dataset's events in the plot
             in_events = df['res_'+name][df['res_'+name]>-1]
@@ -605,8 +613,8 @@ class Plot:
                 plt.plot(x,cauchy.pdf(x,fit_mean,fit_std),label='Cauchy Fit'+mom_tag,color=dataset.color)
 
         # Add some labels
-        #plt.legend(prop={'size': 8})
-        plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left", prop={'size': 10},borderaxespad=0)
+        plt.legend(prop={'size': 9})
+        #plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left", prop={'size': 10},borderaxespad=0)
         plt.xlabel(particle.labels_nounits[observable.name]+' '+res, fontsize=14)
         plt.ylabel('Events (Normalized)', fontsize=14)
         plt.xticks(fontsize=12)
@@ -663,8 +671,8 @@ class Plot:
         for dataset in datasets:
             
             # TEMPORARY: cut out KLF (without cuts) for these datasets
-            #if (dataset.reco_method=='KLFitter6' or dataset.reco_method=='Chi2') and dataset.cuts=='No Cuts':
-            #    continue
+            if (dataset.reco_method=='KLFitter6' or dataset.reco_method=='Chi2') and dataset.cuts=='No Cuts':
+                continue
             
             
 
@@ -737,14 +745,17 @@ class Plot:
                 zoom_tag = '_zoom'
             else:
                 zoom_tag=''
-            plt.errorbar(xpoints, ypoints,xerr=xerror,label=dataset.shortname+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)',color=dataset.color, fmt='o')
+                
+            #model_label = dataset.shortname+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)'
+            model_label = dataset.shortname+'('+dataset.cuts+')' if dataset.cuts!='No Cuts' else dataset.shortname
+            plt.errorbar(xpoints, ypoints,xerr=xerror,label=model_label,color=dataset.color, fmt='o')
 
 
         # Add some labels
         plt.xlabel('Parton-level '+particle.labels[x_var.name], fontsize=14)
         ytag = r'$\sigma_{\mathrm{core}}$' if core_fit=='gaussian' else r'$\sigma_{\mathrm{total}}$'
         plt.ylabel(ytag+' of '+particle.labels_nounits[y_var.name]+' '+y_res, fontsize=14)
-        plt.legend(prop={'size': 9})
+        plt.legend(prop={'size': 12})
         if even_stats_binning: 
             plt.xticks(np.arange(len(tk)),tkls,fontsize=12)
         else:
