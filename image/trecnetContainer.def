@@ -1,5 +1,5 @@
 bootstrap: docker
-from: tensorflow/tensorflow:2.16.1-gpu-jupyter
+from: tensorflow/tensorflow:2.16.1-gpu
 
 %post
   pip install pandas~=2.2.2
