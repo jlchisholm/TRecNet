@@ -1,0 +1,12 @@
+bootstrap: docker
+from: tensorflow/tensorflow:2.16.1-gpu-jupyter
+
+%post
+  pip install pandas~=2.2.2
+  pip install uproot~=5.3.7
+  pip install hist~=2.7.3
+  pip install scikit-learn~=1.5.0
+  pip install mplhep~=0.3.48
+  pip install matplotlib~=3.8.3
+  pip install seaborn~=0.13.2
+  pip install vector~=1.4.0
