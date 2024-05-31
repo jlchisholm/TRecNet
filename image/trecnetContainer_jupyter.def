@@ -10,3 +10,4 @@ from: tensorflow/tensorflow:2.16.1-gpu-jupyter
   pip install matplotlib~=3.8.3
   pip install seaborn~=0.13.2
   pip install vector~=1.4.0
+  pip install tk~=0.1.0
