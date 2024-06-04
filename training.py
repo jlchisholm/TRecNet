@@ -2,7 +2,7 @@
 #                                                                        #
 #  training.py                                                           #
 #  Author: Jenna Chisholm                                                #
-#  Updated: May.8/23                                                     #
+#  Updated: June.4/24                                                    #
 #                                                                        #
 #  Defines classes and functions relevant for training and hypertuning   #
 #  neural networks.                                                      # 
@@ -32,7 +32,7 @@ import uproot
 import json
 
 import tensorflow as tf
-from tensorflow import keras
+import keras
 from keras.layers import Conv1D, Flatten, Dense, Input, concatenate, Masking, LSTM, TimeDistributed, Lambda, Reshape, Multiply, BatchNormalization, Bidirectional
 from keras import regularizers 
 from keras import initializers
@@ -215,7 +215,7 @@ class Training:
 
         # Input layers
         jet_input = Input(shape=(self.jets_shape[1], self.jets_shape[2]),name='jet_input')
-        other_input = Input(shape=(self.other_shape[1]),name='other_input')
+        other_input = Input(shape=(self.other_shape[1],),name='other_input')
 
         # Mask the jets that are just there for padding (do I want this to be what's put into the flattened jets? or no, since it's being reshaped?) and use some TDDense layers
         Mask = Masking(mask_value, name='masking_jets')(jet_input)
@@ -278,12 +278,12 @@ class Training:
 
         # Putting the model together
         model = keras.models.Model(inputs=[jet_input, other_input], outputs=output)
-        lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=initial_lr, decay_steps=lr_decay_step,end_learning_rate=initial_lr/final_lr_div,power=lr_power)
+        lr_schedule = keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=initial_lr, decay_steps=lr_decay_step,end_learning_rate=initial_lr/final_lr_div,power=lr_power)
         optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
         if model_name == 'JetPretrainer':
-            model.compile(loss='binary_crossentropy', optimizer= optimizer, metrics=['mae','mse'])
+            model.compile(loss='binary_crossentropy', optimizer= optimizer, metrics=['mae','mse'],jit_compile=False)
         else:
-            model.compile(loss='mae', optimizer= optimizer, metrics=['mse'])
+            model.compile(loss='mae', optimizer= optimizer, metrics=['mse'],jit_compile=False)
 
         return model 
    
@@ -340,7 +340,7 @@ class Training:
         file.write("Training History: \n %s \n" % pd.DataFrame(Model.training_history).to_string(index=False))
         file.write("\n ---------------------------------------------------  \n")
         file.write("Model Architecture:\n")
-        Model.model.summary(expand_nested=True, show_trainable=True, print_fn=lambda x: file.write(x + '\n'))
+        with redirect_stdout(file): Model.model.summary(expand_nested=True, show_trainable=True)
         file.close()
 
         # Save training history plots
@@ -398,15 +398,15 @@ class Training:
         if Model.model_name=='TRecNet+ttbar+JetPretrainUnfrozen':
             
             # Load the frozen model to start with
-            Model.model = keras.models.load_model(self.frozen_file)
+            Model.model = keras.layers.TFSMLayer(self.frozen_file, call_endpoint="serving_default")
             
             # Find the jet pre-training layer and unfreeze all those sublayers
             for layer in Model.model.layers:
-                if isinstance(layer, tf.keras.Model):
+                if isinstance(layer, keras.Model):
                     layer.trainable = True 
             
             # Use a smaller learning rate since we're fine-tuning now
-            lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=self.initial_lr, decay_steps=self.lr_decay_step,end_learning_rate=self.initial_lr/self.final_lr_div,power=self.lr_power)
+            lr_schedule = keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=self.initial_lr, decay_steps=self.lr_decay_step,end_learning_rate=self.initial_lr/self.final_lr_div,power=self.lr_power)
             optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
             
             # Recompile the model    
@@ -417,7 +417,7 @@ class Training:
             # Build the model
             # Need to load jet pretraining if TRecNet+ttbar+JetPretrain
             if Model.model_name=='TRecNet+ttbar+JetPretrain':
-                pretrain_model = keras.models.load_model(self.pretrain_file)
+                pretrain_model = keras.layers.TFSMLayer(self.pretrain_file, call_endpoints="serving_default")
                 Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, pretrain_model=pretrain_model)
             else:
                 Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step)
@@ -426,7 +426,7 @@ class Training:
         
         # Set early stopping (so no overfitting) and tensorboard callback (for monitoring)
         early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=self.patience)
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir= "tensorboard_logs/fit/"+Model.model_id, histogram_freq=1)
+        tensorboard_callback = keras.callbacks.TensorBoard(log_dir= "tensorboard_logs/fit/"+Model.model_id, histogram_freq=1)
         
         # Fit/train the model      
         start = datetime.now()
@@ -528,7 +528,7 @@ class Training:
 
         # Use callbacks
         early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=self.patience)
-        tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir="tensorboard_logs/hypertuning/"+Model.model_id, histogram_freq=1)
+        tensorboard_callback = keras.callbacks.TensorBoard(log_dir="tensorboard_logs/hypertuning/"+Model.model_id, histogram_freq=1)
         #csv_logger = CSVLogger(ht_dir+'/'+Model.model_id+'_Hypertuning/hypertuning_log.log',separator='\n')     # This didn't work great :/
         
         # Perform the search
@@ -621,7 +621,7 @@ class Training:
             if self.Model.model_name=='TRecNet+ttbar+JetPretrainUnfrozen':
                 
                 # Load the frozen model to start with
-                self.Model.model = keras.models.load_model(self.trainer.frozen_file)
+                self.Model.model = keras.layers.TFSMLayer(self.trainer.frozen_file, call_endpoint="serving_default")
                 
                 # Double check that we're unfreezing the correct layer
                 if self.Model.model.layers[4].trainable:
@@ -633,7 +633,7 @@ class Training:
                 self.Model.model.layers[4].trainable = True    
                 
                 # Use a smaller learning rate since we're fine-tuning now
-                lr_schedule = tf.keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=hp_dic['initial_lr'], decay_steps=hp_dic['lr_decay_step'],end_learning_rate=hp_dic['initial_lr']/hp_dic['final_lr_div'],power=hp_dic['lr_power'])
+                lr_schedule = keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=hp_dic['initial_lr'], decay_steps=hp_dic['lr_decay_step'],end_learning_rate=hp_dic['initial_lr']/hp_dic['final_lr_div'],power=hp_dic['lr_power'])
                 optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
                 
                 # Recompile the model    
