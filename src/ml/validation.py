@@ -140,26 +140,26 @@ class Validating:
         true_scaled = valY 
         
         # Invert scaling
-        scaler = normalize_new.Scaler()
+        scaler = TRecNet.src.ml.normalize_new.Scaler()
         preds_origscale_dic = scaler.invscale_arrays(preds_scaled, self.Y_scaled_keys, Y_maxmean_dic)
         true_origscale_dic = scaler.invscale_arrays(true_scaled, self.Y_scaled_keys, Y_maxmean_dic)
         
         # Create basic plots of results and save them
         # Create directory for saving things in if it doesn't exist
-        save_loc = Model.model_name+'/'+Model.model_id+'/val_plots/'
+        save_loc ='models/'+Model.model_name+'/'+Model.model_id+'/val_plots/'
         if not os.path.exists(save_loc):
-            os.mkdir(save_loc)
+            os.makedirs(save_loc)
         
         # Scaled Plots
         if not os.path.exists(save_loc+'scaled/'):
-            os.mkdir(save_loc+'scaled/')
+            os.makedirs(save_loc+'scaled/')
         for i, key in enumerate(self.Y_scaled_keys):
             print(key)
             self.plot(Model.model_name, key, preds_scaled[:,i], true_scaled[:,i], save_loc+'scaled/')
             
         # Original Scale Plots
         if not os.path.exists(save_loc+'original/'):
-            os.mkdir(save_loc+'original/')
+            os.makedirs(save_loc+'original/')
         for key in preds_origscale_dic.keys():
             print(key)
             self.plot(Model.model_name, key, preds_origscale_dic[key], true_origscale_dic[key], save_loc+'original/')

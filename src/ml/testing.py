@@ -140,7 +140,7 @@ class Testing:
         preds_scaled = Model.model.predict([testX_jets, testX_other])
 
         # Invert scaling
-        scaler = normalize_new.Scaler()
+        scaler = TRecNet.src.ml.normalize_new.Scaler()
         preds_origscale_dic = scaler.invscale_arrays(preds_scaled, self.Y_scaled_keys, Y_maxmean_dic)
 
 

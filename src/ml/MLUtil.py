@@ -25,8 +25,8 @@ from keras.optimizers import *
 import keras_tuner as kt
 #from clr_callback import * 
 
-import normalize_new
-import shape_timesteps_new
+import TRecNet.src.ml.normalize_new as normalize_new
+import TRecNet.src.ml.shape_timesteps_new as shape_timesteps_new
 
 
 

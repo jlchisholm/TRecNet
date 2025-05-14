@@ -30,7 +30,7 @@ from matplotlib import colors
 from scipy.stats import norm
 from scipy.stats import cauchy
 from sigfig import round
-from analysis import Analysis
+from TRecNet.src.plotting.analysis import Analysis
 from pprint import pprint
 
 

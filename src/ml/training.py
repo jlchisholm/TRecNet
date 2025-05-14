@@ -45,8 +45,8 @@ import keras_tuner as kt
 #from clr_callback import * 
 
 from MLUtil import *
-import normalize_new
-import shape_timesteps_new
+import normalize_new as normalize_new
+import shape_timesteps_new as shape_timesteps_new
 
 import tracemalloc
 tracemalloc.start()
@@ -302,13 +302,11 @@ class Training:
 
         print('Saving model...')
         
-        dir = Model.model_name+'/'+Model.model_id
+        dir = 'models/'+Model.model_name+'/'+Model.model_id
         
         # Create directory for saving things in if it doesn't exist
-        if not os.path.exists(Model.model_name):
-            os.mkdir(Model.model_name)
-        if not os.path.exists(dir):
-            os.mkdir(dir)
+        if not os.path.exists(dir): 
+            os.makedirs(dir) 
 
         # Save model and history
         Model.model.save(dir+'/'+Model.model_id+'.keras')
@@ -450,7 +448,12 @@ class Training:
         
         print('Saving hyperparamter tuning results ...')
         
-        dir = Model.model_name+'/hypertuning/'+Model.model_id+'_Hypertuning'
+        dir = 'models/'+Model.model_name+'/hypertuning/'+Model.model_id+'_Hypertuning'
+        
+        # Create directory for saving things in if it doesn't exist
+        if not os.path.exists(dir): 
+            os.makedirs(dir) 
+
         
         # Save important information about this model into a text file
         file = open(dir+'/Hypertuning_Info.txt', "w")
@@ -510,9 +513,11 @@ class Training:
         """
     
         # Create directory for results
-        ht_dir = Model.model_name+'/hypertuning/'+Model.model_id+'_Hypertuning'
-        if not os.path.exists(ht_dir):
-            os.mkdir(ht_dir)
+        ht_dir = 'models/'+Model.model_name+'/hypertuning/'+Model.model_id+'_Hypertuning'
+        
+        # Create directory for saving things in if it doesn't exist
+        if not os.path.exists(ht_dir): 
+            os.makedirs(ht_dir) 
             
         # Get the data
         trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = self.load_and_prep(Model)
@@ -708,7 +713,7 @@ if args.hypertune:
 else:
     print('Beginning training for '+args.model_name+'...')
     if not os.path.exists(Model.model_name+'/'+Model.model_id):
-        os.mkdir(Model.model_name+'/'+Model.model_id)
+        os.makedirs(Model.model_name+'/'+Model.model_id)
     Trainer = Training(config)
     Trainer.set_train_params(config["training"])
     Trainer.train(Model)
