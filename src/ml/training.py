@@ -12,7 +12,7 @@
 ##########################################################################
 
 
-import os, sys, time
+import os, sys, time, shutil
 from datetime import datetime
 sys.path.append("/home/jchishol/TRecNet")
 sys.path.append("home/jchishol/")
@@ -311,6 +311,10 @@ class Training:
         # Save model and history
         Model.model.save(dir+'/'+Model.model_id+'.keras')
         np.save(dir+'/'+Model.model_id+'_TrainHistory.npy',Model.training_history)
+        
+        # Save maxmean scaling files
+        shutil.copy(self.xmm_file, dir)
+        shutil.copy(self.ymm_file, dir)
 
         # Save important information about this model into a text file
         file = open(dir+'/'+Model.model_id+"_Info.txt", "w")
