@@ -13,6 +13,7 @@
 import uproot
 import numpy as np
 import os
+import vector
 from argparse import ArgumentParser
 from __main__ import *
 
@@ -56,17 +57,18 @@ class ttbbCutter:
             4: 77-85%
             5: 85-100%
         '''
-        b_tags = [[(weight >= DL1r_op_point) for weight in DL1r_weights] for DL1r_weights in tree["jet_tagWeightBin_DL1r_Continuous"]] # cut on DL1r weights
+        b_tags = [[(weight >= DL1r_op_point) for weight in DL1r_weights] for DL1r_weights in tree["jet_tagWeightBin_DL1r_Continuous"]] # cut on DL1r weights given DL1r operating point
         b_sel = [(sum(weights)>= num_b_tags) for weights in b_tags] # add up the binary value of b-tags per event and check if >= num_b_tags
         print("cutting on b tags")
         
         j_sel = [(len(jet_pt)>= n_jets_min) for jet_pt in tree["jet_pt"]] # should also be able to cut on n_jets
         print("cutting on jet number")
 
+        # combine selections into one (i.e. if both selections are satisfied)
         sel = np.logical_and(j_sel, b_sel)
         tree = tree[sel]
 
-        # returns edited tree
+        # returns 'cut' tree
         print('cut done')
         return tree
 
@@ -137,7 +139,7 @@ class ttbbCutter:
             # add lep_var to keys
             keys.append("lep_"+var)
 
-            # combine el_ and mu_ branches to make lep_ branch and add to tree
+            # combine el_ and mu_ branches to make lep_ branch and add to tree (assumes events are semi-leptonic)
             lep_var = [mu if (len(el)==0) else el for el, mu in zip(tree["el_"+var], tree["mu_"+var])]
             tree["lep_"+var] = lep_var
 
@@ -195,7 +197,7 @@ class ttbbCutter:
         # TODO: figure out why this is a problem and fix, to preserve all information from original root tree (although this is not necessary to run TRecNet)
         nom_keys_fix= [key for key in nom_keys if 'ttbbVars' not in key.split('/')]
 
-        print(nom_keys_fix)
+        #print(nom_keys_fix)
 
         # add tree back to fixed root file
         fix_file[tree_name] = {key: nom_tree[key] for key in nom_keys_fix}
@@ -292,7 +294,192 @@ class keyConverter:
         fix_file.close()
 
 
+class truthPrep:
+    """
+    A class for prepping the MC truth values for TRecNet
 
+        Methods:
+            switchTTBarToHadLep: takes truth values determined by t and tbar and distinguishes them by thad and tlep
+            addExtras: adds/computes missing truth information from MC including y, E, Pout, chi_tt, y_boost, and deltaPhi
+            prepTruth: takes an input root files, preps the truth information in the tree (input parameter), and returns a new root file with the prepared truth info (and the other necessary branches from the input tree)
+    """
+
+
+    # Constructor
+    def __init__(self):
+        print("Creating truth prepper")
+
+
+    def switchTTBarToHadLep(self, tree, keys):
+        """
+        Takes an input root tree and corresponding keys, and adds thad and tlep distinguisments for truth values depending on t and tbar
+
+            Parameters:
+                tree (root tree): nominal tree
+                keys: keys for nominal tree
+
+            Returns:
+                tree (root tree): nominal tree with updated truth values
+                keys: fixed keys for nominal tree
+        """
+        # Specify range of events
+        range_events = range(len(tree["eventNumber"]))
+
+        # First, clear all events that are not semi-leptonic
+        sel_semi_lep = [(tree['MC_t_isHadronic'][evt] == 1 and tree['MC_tbar_isHadronic'][evt] == 0) or (tree['MC_t_isHadronic'][evt] == 0 and tree['MC_tbar_isHadronic'][evt] == 1) for evt in range_events]
+        tree = tree[sel_semi_lep]
+
+        # update range_events
+        range_events = range(len(tree["eventNumber"]))
+
+        # Get truth information for tops and bottoms (after FSR)
+        for v in ['pt','eta','phi','m']:
+            for p in ['t', 'b']:
+                for s in ['afterFSR', 'beforeFSR']:
+                    # Hadronic tops
+                    keys.append('MC_'+p+'had_'+s+'_'+v)
+                    tree['MC_'+p+'had_'+s+'_'+v] = [tree['MC_'+p+'_'+s+'_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'bar_'+s+'_'+v][evt] for evt in range_events]
+
+                    # Leptonic tops
+                    keys.append('MC_'+p+'lep_'+s+'_'+v)
+                    tree['MC_'+p+'lep_'+s+'_'+v] = [tree['MC_'+p+'bar_'+s+'_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'_'+s+'_'+v][evt] for evt in range_events]
+
+        # Get truth information for Ws and bottoms
+        for v in ['pt','eta','phi','m']:
+            for p in ['W', 'b']:
+                # Hadronic tops
+                keys.append('MC_'+p+'_from_thad_'+v)
+                tree['MC_'+p+'_from_thad_'+v] = [tree['MC_'+p+'_from_t_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'_from_tbar_'+v][evt] for evt in range_events]
+
+                # Leptonic tops
+                keys.append('MC_'+p+'_from_tlep_'+v)
+                tree['MC_'+p+'_from_tlep_'+v] = [tree['MC_'+p+'_from_tbar_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'_from_t_'+v][evt] for evt in range_events]
+
+        # Get truth information for W decays
+        for v in ['pt','eta','phi','m', 'pdgId']:
+            for p in ['Wdecay1', 'Wdecay2']:
+                # Hadronic tops
+                keys.append('MC_'+p+'_from_thad_'+v)
+                tree['MC_'+p+'_from_thad_'+v] = [tree['MC_'+p+'_from_t_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'_from_tbar_'+v][evt] for evt in range_events]
+
+                # Leptonic tops
+                keys.append('MC_'+p+'_from_tlep_'+v)
+                tree['MC_'+p+'_from_tlep_'+v] = [tree['MC_'+p+'_from_tbar_'+v][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_'+p+'_from_t_'+v][evt] for evt in range_events]
+
+        # Get truth information for b/bbar to bhad/blep parent pdgId
+        for v in ['parent1', 'parent2']:
+            # Hadronic tops
+            keys.append('MC_bhad_'+v+'_pdgId')
+            tree['MC_bhad_'+v+'_pdgId'] = [tree['MC_b_'+v+'_pdgId'][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_bbar_'+v+'_pdgId'][evt] for evt in range_events]
+
+            # Leptonic tops
+            keys.append('MC_blep_'+v+'_pdgId')
+            tree['MC_blep_'+v+'_pdgId'] = [tree['MC_bbar_'+v+'_pdgId'][evt] if tree['MC_t_isHadronic'][evt] else tree['MC_b_'+v+'_pdgId'][evt] for evt in range_events]
+
+        return tree, keys
+    
+
+    def addExtras(self, tree, keys):
+        """
+        Takes an input root tree and corresponding keys, and adds/computes missing observable information (y, E, deltaPhi, chi_tt, y_boost, and HT_tt)
+
+            Parameters:
+                tree (root tree): nominal tree
+                keys: keys for nominal tree
+
+            Returns:
+                tree (root tree): nominal tree with updated truth values
+                keys: fixed keys for nominal tree
+        """
+
+        # store 4-vectors for t_had_afterFSR and t_lep_afterFSR
+        t_had_vec_afterFSR = vector.array({"pt":tree['MC_thad_afterFSR_pt'],"eta":tree['MC_thad_afterFSR_eta'],"phi":tree['MC_thad_afterFSR_phi'],"m":tree['MC_thad_afterFSR_m']})
+        t_lep_vec_afterFSR = vector.array({"pt":tree['MC_tlep_afterFSR_pt'],"eta":tree['MC_tlep_afterFSR_eta'],"phi":tree['MC_tlep_afterFSR_phi'],"m":tree['MC_tlep_afterFSR_m']})
+
+        # add keys, and rapidity and E to tree for thad and tlep (after FSR)
+        keys.append('MC_thad_afterFSR_y')
+        keys.append('MC_thad_afterFSR_E')
+        tree['MC_thad_afterFSR_y'] = t_had_vec_afterFSR.rapidity
+        tree['MC_thad_afterFSR_E'] = t_had_vec_afterFSR.E
+
+        keys.append('MC_tlep_afterFSR_y')
+        keys.append('MC_tlep_afterFSR_E')
+        tree['MC_tlep_afterFSR_y'] = t_lep_vec_afterFSR.rapidity
+        tree['MC_tlep_afterFSR_E'] = t_lep_vec_afterFSR.E
+
+        # add deltaPhi to keys and tree
+        keys.append('MC_deltaPhi_tt')
+        tree['MC_deltaPhi_tt'] = np.absolute(t_had_vec_afterFSR.deltaphi(t_lep_vec_afterFSR))
+
+        # add HT_tt to keys and tree
+        keys.append('MC_HT_tt')
+        tree['MC_HT_tt'] = np.add(t_had_vec_afterFSR.pt,t_lep_vec_afterFSR.pt) # scalar sum of t and tbar pTs
+
+        # add y_boost to keys and tree
+        keys.append('MC_y_boost')
+        tree['MC_y_boost'] = 0.5 * np.add(t_had_vec_afterFSR.rapidity, t_lep_vec_afterFSR.rapidity)
+
+        # add chi_tt to keys and tree
+        keys.append('MC_chi_tt')
+        tree['MC_chi_tt'] = np.exp(np.absolute(np.subtract(t_had_vec_afterFSR.rapidity, -1*t_lep_vec_afterFSR.rapidity)))
+
+        # add pout for t and tbar
+        keys.append('MC_thad_Pout')
+        keys.append('MC_tlep_Pout')
+        tree['MC_thad_Pout'] = t_had_vec_afterFSR.dot(t_lep_vec_afterFSR.cross(vector.obj(x=0,y=0, z=1)).unit())
+        tree['MC_tlep_Pout'] = t_lep_vec_afterFSR.dot(t_had_vec_afterFSR.cross(vector.obj(x=0,y=0, z=1)).unit())
+
+        # store 4-vector for ttbar_afterFSR
+        ttbar_vec_afterFSR = vector.array({"pt":tree['MC_ttbar_afterFSR_pt'],"eta":tree['MC_ttbar_afterFSR_eta'],"phi":tree['MC_ttbar_afterFSR_phi'],"m":tree['MC_ttbar_afterFSR_m']})
+
+        # add keys, and rapidity and E to tree for ttbar (after FSR)
+        keys.append('MC_ttbar_afterFSR_y')
+        keys.append('MC_ttbar_afterFSR_E')
+        tree['MC_ttbar_afterFSR_y'] = ttbar_vec_afterFSR.rapidity
+        tree['MC_ttbar_afterFSR_E'] = ttbar_vec_afterFSR.E
+
+        return tree, keys
+
+
+
+    def prepTruth(self, root_file, save_dir, tree_name):
+        """
+        Prepares the truth data for use in TRecNet by adding distinguishments between thad and tlep truth data and adding truth data not found in MC data
+        
+            Parameters:
+                root_file: the full path to the input root file
+                save_dir: the path to the desired save directory
+                tree_name: the name of the nominal tree in the input root file (i.e. nominal_Loose)
+
+        """
+        in_name = os.path.split(root_file)[1]
+        og_file = uproot.open(root_file)
+        fix_file = uproot.recreate(save_dir+'/'+in_name.split('.root')[0]+'_fixed_truths'+'.root')
+
+        # save keys and trees from original file
+        nom_tree = og_file[tree_name].arrays()
+        nom_keys = og_file[tree_name].keys()
+        
+        # close orginal file
+        og_file.close()
+
+        # update keys
+        print('Converting truth values from t/tbar to thad/tlep')
+        nom_tree, nom_keys = self.switchTTBarToHadLep(nom_tree, nom_keys)
+
+        # add deltaPhi, HT, and chi for tt, and y_boost
+        print('Computing remaining truth values')
+        nom_tree, nom_keys = self.addExtras(nom_tree, nom_keys)
+
+        # add tree back to fixed root file
+        fix_file[tree_name] = {key:nom_tree[key] for key in nom_keys}
+
+        # save and close fixed root file
+        print('Saved file: '+save_dir+'/'+in_name.split('.root')[0]+'_fixed_keys'+'.root')
+        fix_file.close()
+        
+        
+        
 
 # ---------- GET ARGUMENTS FROM COMMAND LINE ---------- #
 
@@ -302,6 +489,7 @@ subparser = parser.add_subparsers(dest='function')
 subparser.required = True
 p_ttbbCut = subparser.add_parser('ttbbCut')
 p_convertKeys = subparser.add_parser('convertKeys')
+p_prepTruth = subparser.add_parser('prepTruth')
 
 # Define arguments for ttbbCut
 p_ttbbCut.add_argument('--root_file', help='input root file including path', required=True)
@@ -316,6 +504,11 @@ p_convertKeys.add_argument('--root_file', help='input root file including path',
 p_convertKeys.add_argument('--save_dir', help='path to save directory', required=True)
 p_convertKeys.add_argument('--tree_name', help='name of tree', required=True)
 
+# Define arguments for prepTruth
+p_prepTruth.add_argument('--root_file', help='input root file including path', required=True)
+p_prepTruth.add_argument('--save_dir', help='path to save directory', required=True)
+p_prepTruth.add_argument('--tree_name', help='name of tree', required=True)
+
 
 # Main script
 args = parser.parse_args()
@@ -325,5 +518,8 @@ if args.function == 'ttbbCut':
 elif args.function == 'convertKeys':
     converter = keyConverter()
     converter.convertKeys(args.root_file, args.save_dir, args.tree_name)
+elif args.function == 'prepTruth':
+    prepper = truthPrep()
+    prepper.prepTruth(args.root_file, args.save_dir, args.tree_name)
 else:
     print('Invalid function type.')
