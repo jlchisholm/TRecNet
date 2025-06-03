@@ -57,7 +57,7 @@ def readInData(reco_method,filename,eventnumbers):
             # Create dataframe with systematics data, as well as event numbers, jet number, and log likelihood
             # And rename such that the naming is the same that it is in the other systematics datasets
             # Hold up hold up -- log likelihood???
-            df = ak.to_pandas(sys_arr)
+            df = ak.to_dataframe(sys_arr)
             df = df.add_prefix(sys_type+'_')   # Want to add sysUP or sysDOWN prefix to match the other files
             df = df.rename(columns={sys_type+'_eventNumber':'eventNumber',sys_type+'_jet_n':'jet_n',sys_type+'_logLikelihood':'logLikelihood'})
 
@@ -65,7 +65,7 @@ def readInData(reco_method,filename,eventnumbers):
 
             # Load sys data and create dataframe with systematics data
             sys_arr = f[sys_type].arrays()
-            df = ak.to_pandas(sys_arr)
+            df = ak.to_dataframe(sys_arr)
 
     # For non systematics things ...
     else:
@@ -78,10 +78,10 @@ def readInData(reco_method,filename,eventnumbers):
             reco_arr = f['reco'].arrays()
 
             # Create dataframe with truth and reco data, as well as event numbers
-            truth_df = ak.to_pandas(truth_arr)
+            truth_df = ak.to_dataframe(truth_arr)
             truth_df = truth_df.add_prefix('truth_')
             truth_df = truth_df.rename(columns={'truth_eventNumber':'eventNumber'})
-            reco_df = ak.to_pandas(reco_arr)
+            reco_df = ak.to_dataframe(reco_arr)
             reco_df = reco_df.add_prefix('reco_')
             df = pd.concat([truth_df,reco_df], axis=1)
 
@@ -97,9 +97,9 @@ def readInData(reco_method,filename,eventnumbers):
             reco_arr = reco_arr[sel]
 
             # Create dataframe with truth and reco data, as well as event numbers
-            truth_df = ak.to_pandas(truth_arr)
+            truth_df = ak.to_dataframe(truth_arr)
             truth_df = truth_df.drop('index',axis=1)
-            reco_df = ak.to_pandas(reco_arr)
+            reco_df = ak.to_dataframe(reco_arr)
             reco_df = reco_df.drop('index',axis=1)
             df = pd.concat([truth_df,reco_df], axis=1)
 
