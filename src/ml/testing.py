@@ -54,7 +54,7 @@ class Testing:
         self.X_scaled_keys = None
         self.Y_scaled_keys = None
 
-    def calculateExtraVariables(self, model_name, preds, eventNumbers):
+    def calculateExtraVariables(self, model_name, preds, eventNumbers,ttbb):
 
         print('Calculating extra variables ...')
         
@@ -63,7 +63,7 @@ class Testing:
         tl_vec = vector.arr({"pt": preds['tl_pt'], "phi": preds['tl_phi'], "eta": preds['tl_eta'],"mass": preds['tl_m']}) 
         
         # Create 4-vector for ttbar (and get ttbar variables if necessary)
-        if '+ttbar' in model_name:
+        if '+ttbar' in model_name or ttbb:
             ttbar_vec = vector.arr({"pt": preds['ttbar_pt'], "phi": preds['ttbar_phi'], "eta": preds['ttbar_eta'],"mass": preds['ttbar_m']})
         else:
             ttbar_vec = th_vec + tl_vec
@@ -120,7 +120,7 @@ class Testing:
 
 
 
-    def test(self, Model, save_loc):
+    def test(self, Model, save_loc, ttbb):
 
         # Create an object to use utilities
         processor = Utilities()
@@ -148,14 +148,17 @@ class Testing:
         with h5py.File(self.test_file,'r') as dataset:
             eventNumbers = np.array(dataset.get('eventNumber'))
             if self.data_type=='nominal': 
-                truth_keys = ['eventNumber','jet_n']+list(filter(lambda a: 'th_' in a or 'tl_' in a or 'ttbar_' in a or 'wh_' in a or 'wl_' in a, dataset.keys()))  
+                if not ttbb:
+                    truth_keys = ['eventNumber','jet_n']+list(filter(lambda a: 'th_' in a or 'tl_' in a or 'ttbar_' in a or 'wh_' in a or 'wl_' in a, dataset.keys()))  
+                else:
+                    truth_keys = ['eventNumber','jet_n']+list(filter(lambda a: 'th_' in a or 'tl_' in a or 'ttbar_' in a or 'wh_' in a or 'wl_' in a or 'b_' in a or 'bbar_' in a, dataset.keys()))
                 truths_df = pd.DataFrame({key:dataset.get(key) for key in truth_keys})
             else:
                 truths_df = None  # If working with systematics or ttbb data, we have no truth
                 
         # Calculate all the same variables we had for truth, using the predicted values
         preds_df = pd.DataFrame(preds_origscale_dic)
-        preds_df = self.calculateExtraVariables(Model.model_name, preds_df, eventNumbers)
+        preds_df = self.calculateExtraVariables(Model.model_name, preds_df, eventNumbers,ttbb)
 
         # Save results
         self.save_results(Model, preds_df, truths_df, save_loc)
@@ -175,6 +178,7 @@ parser.add_argument('--ymaxmean', help="Path and file name for the Y_maxmean fil
 parser.add_argument('--model_id', help="Unique save name for the trained model.", type=str, required=True)
 parser.add_argument('--data_type', choices=['nominal','sysUP','sysDOWN','ttbb'],help='Type of data.', required=True)
 parser.add_argument('--save_loc', help="Directory in which to save the results (e.g. '/mnt/xrootdg/jchishol/mntuples_08_01_22/Results/').", type=str, required=True)
+parser.add_argument('--ttbb', help='to add b and bbar testing', action="store_true")
 
 # Parse arguments
 args = parser.parse_args()
@@ -184,7 +188,7 @@ print('Beginning testing for '+args.model_name+'...')
 jn = args.model_name.split('jets')[0].split('_')[-1]
 Model = TRecNet_Model(args.model_name, model_id=args.model_id,n_jets=jn)
 Tester = Testing(args.data, args.xmaxmean, args.ymaxmean, args.data_type)
-Tester.test(Model, args.save_loc)
+Tester.test(Model, args.save_loc, args.ttbb)
 
 
 print('done :)')

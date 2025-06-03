@@ -176,7 +176,7 @@ class Training:
         return trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY
     
     
-    def build_model(self, model_name, mask_value, initial_lr, final_lr_div, lr_power, lr_decay_step, pretrain_model=None):
+    def build_model(self, model_name, mask_value, initial_lr, final_lr_div, lr_power, lr_decay_step, ttbb, pretrain_model=None):
         """
         Build the model architecture.
 
@@ -187,6 +187,7 @@ class Training:
                 final_lr_div (float): Final learning rate divisor (i.e. final_lr = initial_lr/final_lr_div).
                 lr_power (float): Power for the decaying polynomial learning rate.
                 lr_decay_step (int): Learning rate decay step.
+                ttbb (bool): 
             
             Optional:
                 pretrain_model (Model object): Jet pre-trained model (default: None).
@@ -212,6 +213,7 @@ class Training:
         had_shape = sum('th_' in key or 'wh_' in key for key in self.Y_scaled_keys)
         lep_shape = sum('tl_' in key or 'wl_' in key for key in self.Y_scaled_keys)
         ttbar_shape = sum('ttbar_' in key for key in self.Y_scaled_keys)
+        if ttbb: bbbar_shape = sum('b_' in key or 'bbar_' in key for key in self.Y_scaled_keys)
 
         # Input layers
         jet_input = Input(shape=(self.jets_shape[1], self.jets_shape[2]),name='jet_input')
@@ -273,8 +275,21 @@ class Training:
             hdense2 = Dense(128, activation='relu', name='hdense128')(hdense1)
             houtput = Dense(had_shape+ttbar_shape, name='had_output')(hdense2)
             
+            # If ttbb, output b and bbar
+            if ttbb:
+                jbdense1 = TimeDistributed(Dense(256, activation='relu'), name='jb_TDDense256_1')(Dot_jets)
+                jbdense2 = TimeDistributed(Dense(256, activation='relu'), name='jb_TDDense256_2')(jbdense1)
+                jbflatten = Flatten(name='jb_flattened')(jbdense2)
+                bconcat = concatenate([loutput, houtput, jbflatten])
+                bdense1 = Dense(256, activation='relu', name='bdense256_1')(bconcat)
+                bdense2 = Dense(128, activation='relu', name='bdense128')(bdense1)
+                boutput = Dense(bbbar_shape, name='b_bbar_output')(bdense2)
+            
             # Final output
-            output = concatenate([houtput, loutput], name='output')
+            if not ttbb: 
+                output = concatenate([houtput, loutput], name='output')
+            else:
+                output = concatenate([houtput, loutput, boutput], name='output')
 
         # Putting the model together
         model = keras.models.Model(inputs=[jet_input, other_input], outputs=output)
@@ -354,7 +369,7 @@ class Training:
             plt.ylabel('Binary Cross Entropy Loss')
             plt.legend()
             plt.title(Model.model_name+' Binary Cross Entropy Loss')
-            plt.savefig(dir+'/'+Model.model_id+'_BinaryCrossEntropy',bbox_inches='tight')
+            plt.savefig(dir+'/'+Model.model_id+'_BinaryCrossEntropy.png',bbox_inches='tight')
 
             plt.figure(figsize=(9,6))
             plt.plot(Model.training_history['mae'], label='training')
@@ -363,7 +378,7 @@ class Training:
             plt.ylabel('MAE Loss')
             plt.legend()
             plt.title(Model.model_name+' MAE Loss')
-            plt.savefig(dir+'/'+Model.model_id+'_MAE',bbox_inches='tight')
+            plt.savefig(dir+'/'+Model.model_id+'_MAE.png',bbox_inches='tight')
         else:
             plt.figure(figsize=(9,6))
             plt.plot(Model.training_history['loss'], label='training')
@@ -372,7 +387,7 @@ class Training:
             plt.ylabel('MAE Loss')
             plt.legend()
             plt.title(Model.model_name+' MAE Loss')
-            plt.savefig(dir+'/'+Model.model_id+'_MAE',bbox_inches='tight')
+            plt.savefig(dir+'/'+Model.model_id+'_MAE.png',bbox_inches='tight')
             
         plt.figure(figsize=(9,6))
         plt.plot(Model.training_history['mse'], label='training')
@@ -381,10 +396,10 @@ class Training:
         plt.ylabel('MSE Loss')
         plt.legend()
         plt.title(Model.model_name+' MSE Loss')
-        plt.savefig(dir+'/'+Model.model_id+'_MSE',bbox_inches='tight')
+        plt.savefig(dir+'/'+Model.model_id+'_MSE.png',bbox_inches='tight')
         
         
-    def train(self, Model):
+    def train(self, Model, ttbb):
         """
         Builds, trains, and saves the model.
 
@@ -420,9 +435,9 @@ class Training:
             # Need to load jet pretraining if TRecNet+ttbar+JetPretrain
             if Model.model_name=='TRecNet+ttbar+JetPretrain':
                 pretrain_model = keras.layers.TFSMLayer(self.pretrain_file, call_endpoints="serving_default")
-                Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, pretrain_model=pretrain_model)
+                Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, ttbb, pretrain_model=pretrain_model)
             else:
-                Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step)
+                Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, ttbb)
             print(Model.model_name+' model has been built and compiled.')
         
         
@@ -669,6 +684,7 @@ parser = ArgumentParser()
 parser.add_argument('--model_name', help='Name of the model to be trained.', type=str, required=True, choices=['TRecNet','TRecNet+ttbar','JetPretrainer','TRecNet+ttbar+JetPretrain','TRecNet+ttbar+JetPretrainUnfrozen'])
 parser.add_argument('--config_file', help="File (including path) with training (or hypertuning) specifications.", type=str, required=True)
 parser.add_argument('--hypertune', help="Use this flag to hypertune your model.", action="store_true")
+parser.add_argument('--ttbb', help="Adds b and bbar output for ttbb.", action="store_true")
 
 # Only need tuner if we're hypertuning
 args, tuner_arg = parser.parse_known_args()
@@ -720,7 +736,7 @@ else:
         os.makedirs(Model.model_name+'/'+Model.model_id)
     Trainer = Training(config)
     Trainer.set_train_params(config["training"])
-    Trainer.train(Model)
+    Trainer.train(Model, args.ttbb)
 
 
 print('done :)')

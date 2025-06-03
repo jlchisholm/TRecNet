@@ -97,6 +97,8 @@ class Utilities:
         Y_keys = ['th_pt', 'th_eta','th_phi','th_m', 'wh_pt', 'wh_eta', 'wh_phi', 'wh_m', 'tl_pt', 'tl_eta', 'tl_phi', 'tl_m', 'wl_pt', 'wl_eta', 'wl_phi', 'wl_m']
         if 'ttbar' in model_name:
             Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
+        if 'ttbb' in model_name:
+            Y_keys.extend(['b_pt','b_m','b_eta','b_phi','bbar_pt','bbar_m','bbar_eta','bbar_phi'])
         if model_name=='JetPretrainer': 
             Y_keys = ['j'+str(i+1)+'_isTruth' for i in range(n_jets)]
 
