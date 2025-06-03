@@ -273,7 +273,7 @@ class keyConverter:
 
         in_name = os.path.split(root_file)[1]
         og_file = uproot.open(root_file)
-        fix_file = uproot.recreate(save_dir+'/'+in_name.split('.root')[0]+'_fixed_keys'+'.root')
+        fix_file = uproot.recreate(save_dir+'/'+in_name.split('.root')[0]+'_fixed_truth'+'.root')
 
         # save keys and trees from original file
         nom_tree = og_file[tree_name].arrays()
