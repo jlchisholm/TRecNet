@@ -25,8 +25,8 @@ from keras.optimizers import *
 import keras_tuner as kt
 #from clr_callback import * 
 
-import TRecNet.src.ml.normalize_new as normalize_new
-import TRecNet.src.ml.shape_timesteps_new as shape_timesteps_new
+import normalize_new
+import shape_timesteps_new
 
 
 
@@ -95,16 +95,14 @@ class Utilities:
 
         X_keys = ['j'+str(i+1)+'_'+v for i, v in itertools.product(range(n_jets),['pt','eta','phi','m','isbtag'])] + ['lep_pt', 'lep_eta', 'lep_phi', 'met_met', 'met_phi']
         Y_keys = ['th_pt', 'th_eta','th_phi','th_m', 'wh_pt', 'wh_eta', 'wh_phi', 'wh_m', 'tl_pt', 'tl_eta', 'tl_phi', 'tl_m', 'wl_pt', 'wl_eta', 'wl_phi', 'wl_m']
-        
         if 'ttbar' in model_name:
             Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
         if 'ttbb' in model_name:
-            # Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])   # might need to add this back in?
-            Y_keys.extend(['b_pt','b_m','b_eta','b_phi','bbar_pt','bbar_m','bbar_eta','bbar_phi'])
+            X_keys.extend(['j'+str(i+1)+'_btag_continuous' for i in range(n_jets)])
+            Y_keys.extend(['b_pt','b_m','b_eta','b_phi','bbar_pt','bbar_m','bbar_eta','bbar_phi', 'bbbar_dR']) 
+            Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
         if model_name=='JetPretrainer': 
             Y_keys = ['j'+str(i+1)+'_isTruth' for i in range(n_jets)]
-        if model_name == 'bbPretrainer':
-            Y_keys = ['j'+str(i+1)+'_isTruth_bb' for i in range(n_jets)]
 
         return X_keys, Y_keys
 

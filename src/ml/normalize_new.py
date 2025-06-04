@@ -15,7 +15,7 @@ class Scaler:
         df = pd.DataFrame(data_dic)
 
         # Figure out which variables you do and don't want to scale
-        dont = {key:1 if 'phi' in key or 'isbtag' in key or 'DL1r' in key or 'isTruth' in key else 0 for key in df.keys()}
+        dont = {key:1 if 'phi' in key or 'isbtag' in key or 'DL1r' in key or 'isTruth' in key or 'isTruth_bb' in key else 0 for key in df.keys()}
         do = {key:1-i for key, i in dont.items()}
 
         # Get the maxs and means of the variables we're using
@@ -41,7 +41,7 @@ class Scaler:
         df_unscaled = df_scaled*maxs + means
 
         # Figure out which variables you do and don't want to scale
-        dont = {key:1 if 'phi' in key or 'isbtag' in key or 'DL1r' in key or 'isTruth' in key else 0 for key in df_scaled.keys()}
+        dont = {key:1 if 'phi' in key or 'isbtag' in key or 'DL1r' in key or 'isTruth' in key or 'isTruth_bb' in key else 0 for key in df_scaled.keys()}
         do = {key:1-i for key, i in dont.items()}
 
         # Get a final dataset, with the desired variables scaled
@@ -80,7 +80,7 @@ class Scaler:
                 data_dic[key+'-sin'], data_dic[key+'-cos'] = sins, coss
                 
             # All other variables not yet added have no changes and can just be included as is
-            elif 'm' in key or 'btag' in key or 'isTruth' in key or key=='met_met':
+            elif 'm' in key or 'btag' in key or 'isTruth' in key or 'isTruth_bb' in key or key=='met_met' or key=='bbbar_dphi' or key=='bbbar_dR':
                 data_dic[key] = np.array(dataset.get(key))
 
         # Do a maxmean scaling of the data
@@ -116,7 +116,8 @@ class Scaler:
                 phis = self.inv_phi_triangle_transform(sin,cos)
                 unscaled_dic['met_phi'] = phis
 
-            elif 'm' in name or 'btag' in name or 'isTruth' in name or name=='met_met':
+            # All other variables not yet added have no changes and can just be included as is
+            elif 'm' in name or 'btag' in name or 'isTruth' in name or 'isTruth_bb' in name or name=='met_met' or name =='bbbar_dphi' or name =='bbbar_dR':
                 unscaled_dic[name] = data_dic[name]
 
         # Might not be quite ready to return it in this format but thats fine whatever
@@ -139,7 +140,7 @@ class Scaler:
                 scaled_Ykeys += [key+'-sin',key+'-cos']
                 
             # All other variables not yet added have no changes and can just be included as is
-            elif 'm' in key or 'btag' in key or 'isTruth' in key or key=='met_met':
+            elif 'm' in key or 'btag' in key or 'isTruth' in key or 'isTruth_bb' in key or key=='met_met' or key=='bbbar_dphi' or key=='bbbar_dR':
                 scaled_Ykeys += [key]
 
         return scaled_Ykeys    

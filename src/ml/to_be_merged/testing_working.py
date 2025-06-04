@@ -37,7 +37,7 @@ import keras.backend as K
 from keras.optimizers import *
 #from clr_callback import * 
 
-from MLUtil import *
+from MLUtil_working import *
 
 
 
@@ -54,7 +54,7 @@ class Testing:
         self.X_scaled_keys = None
         self.Y_scaled_keys = None
 
-    def calculateExtraVariables(self, model_name, preds, eventNumbers,ttbb):
+    def calculateExtraVariables(self, model_name, preds, eventNumbers, ttbb):
 
         print('Calculating extra variables ...')
         
@@ -140,7 +140,7 @@ class Testing:
         preds_scaled = Model.model.predict([testX_jets, testX_other])
 
         # Invert scaling
-        scaler = TRecNet.src.ml.normalize_new.Scaler()
+        scaler = normalize_new.Scaler()
         preds_origscale_dic = scaler.invscale_arrays(preds_scaled, self.Y_scaled_keys, Y_maxmean_dic)
 
 
@@ -148,17 +148,15 @@ class Testing:
         with h5py.File(self.test_file,'r') as dataset:
             eventNumbers = np.array(dataset.get('eventNumber'))
             if self.data_type=='nominal': 
-                if not ttbb:
-                    truth_keys = ['eventNumber','jet_n']+list(filter(lambda a: 'th_' in a or 'tl_' in a or 'ttbar_' in a or 'wh_' in a or 'wl_' in a, dataset.keys()))  
-                else:
-                    truth_keys = ['eventNumber','jet_n']+list(filter(lambda a: 'th_' in a or 'tl_' in a or 'ttbar_' in a or 'wh_' in a or 'wl_' in a or 'b_' in a or 'bbar_' in a, dataset.keys()))
+                if not ttbb: truth_keys = ['eventNumber','jet_n']+list(filter(lambda a: 'th_' in a or 'tl_' in a or 'ttbar_' in a or 'wh_' in a or 'wl_' in a, dataset.keys()))
+                else: truth_keys = ['eventNumber','jet_n']+list(filter(lambda a: 'th_' in a or 'tl_' in a or 'ttbar_' in a or 'wh_' in a or 'wl_' in a or 'b_' in a or 'bbar_' in a, dataset.keys())) #or 'bbbar_' in a
                 truths_df = pd.DataFrame({key:dataset.get(key) for key in truth_keys})
             else:
                 truths_df = None  # If working with systematics or ttbb data, we have no truth
                 
         # Calculate all the same variables we had for truth, using the predicted values
         preds_df = pd.DataFrame(preds_origscale_dic)
-        preds_df = self.calculateExtraVariables(Model.model_name, preds_df, eventNumbers,ttbb)
+        preds_df = self.calculateExtraVariables(Model.model_name, preds_df, eventNumbers, ttbb)
 
         # Save results
         self.save_results(Model, preds_df, truths_df, save_loc)
@@ -171,7 +169,7 @@ class Testing:
 
 # Set up argument parser
 parser = ArgumentParser()
-parser.add_argument('--model_name', help='Name of the model to be trained.', type=str, required=True, choices=['TRecNet','TRecNet+ttbar','TRecNet+ttbar+JetPretrain','JetPretrainer','TRecNet+ttbar+JetPretrainUnfrozen'])
+parser.add_argument('--model_name', help='Name of the model to be trained.', type=str, required=True) #, choices=['TRecNet','TRecNet+ttbar','TRecNet+ttbar+JetPretrain','JetPretrainer','TRecNet+ttbar+JetPretrainUnfrozen']
 parser.add_argument('--data', help="Path and file name for the training data to be used (e.g. '/mnt/xrootdg/jchishol/mntuples_08_01_22/variables_ttbar_ljets_6j_train.h5').", type=str, required=True)
 parser.add_argument('--xmaxmean', help="Path and file name for the X_maxmean file to be used (e.g. '/home/jchishol/TRecNet/X_maxmean_variables_ttbar_ljets_6j_train.npy')", type=str, required=True)
 parser.add_argument('--ymaxmean', help="Path and file name for the Y_maxmean file to be used (e.g. '/home/jchishol/TRecNet/Y_maxmean_variables_ttbar_ljets_6j_train.npy')", type=str, required=True)

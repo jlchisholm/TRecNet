@@ -1,0 +1,589 @@
+{   "test_filename": "/home/dciarniello/summer2023/TRecNet/ttbb_training_data/root_data_with_truth_no_bdphi_10jets_3btag_h5/train_test_h5files_test.h5",
+    "datatype": "test",
+    "save_loc": "/home/dciarniello/summer2023/TRecNet/ttbb_TRecNet+ttbar+JetPretrainUnfrozen/",
+    "model_specs":
+    {
+        "TRecNet+ttbar":
+        {
+            "shortname": "TRN+ttbar",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/ttbb_TRecNet+ttbar/TRecNet+ttbar_6jets_20230411_234414_nominal_Results1.root",
+            "sysUP_input": null,
+            "sysDOWN_input": null,
+            "truth_units": "GeV",
+            "reco_units": "GeV",
+            "cuts": 
+            [
+                {
+                    "cut_on": null,
+                    "max": null,
+                    "min": null,
+                    "tag": "No Cuts",
+                    "color_scheme": "tab:pink"
+                }
+            ]
+        },
+        "TRecNet+ttbar+JetPretrain":
+        {
+            "shortname": "TRN+ttbar+JP",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/ttbb_TRecNet+ttbar+JetPretrain/TRecNet+ttbar+JetPretrain_6jets_20230417_233901_nominal_Results.root",
+            "sysUP_input": null,
+            "sysDOWN_input": null,
+            "truth_units": "GeV",
+            "reco_units": "GeV",
+            "cuts": 
+            [
+                {
+                    "cut_on": null,
+                    "max": null,
+                    "min": null,
+                    "tag": "No Cuts",
+                    "color_scheme": "tab:purple"
+                }
+            ]
+        },
+        "TRecNet+ttbar+JetPretrainUnfrozen":
+        {
+            "shortname": "TRN+ttbar+JP",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/ttbb_TRecNet+ttbar+JetPretrainUnfrozen/TRecNet+ttbar+JetPretrain_6jets_20230413_193930_nominal_Results.root",
+            "sysUP_input": null,
+            "sysDOWN_input": null,
+            "truth_units": "GeV",
+            "reco_units": "GeV",
+            "cuts": 
+            [
+                {
+                    "cut_on": null,
+                    "max": null,
+                    "min": null,
+                    "tag": "No Cuts",
+                    "color_scheme": "tab:red"
+                }
+            ]
+        },
+        "TRecNet+ttbb.v01":
+        {
+            "shortname": "TRN+ttbb",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v01/TRecNet+ttbb.v01_6jets_20230529_121740_nominal_Results.root",
+            "sysUP_input": null,
+            "sysDOWN_input": null,
+            "truth_units": "GeV",
+            "reco_units": "GeV",
+            "cuts": 
+            [
+                {
+                    "cut_on": null,
+                    "max": null,
+                    "min": null,
+                    "tag": "No Cuts",
+                    "color_scheme": "tab:blue"
+                }
+            ]
+        },
+        "TRecNet+ttbb.v02":
+        {
+            "shortname": "TRN+ttbb",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v02/TRecNet+ttbb.v02_10jets_20230529_144957_nominal_Results.root",
+            "sysUP_input": null,
+            "sysDOWN_input": null,
+            "truth_units": "GeV",
+            "reco_units": "GeV",
+            "cuts": 
+            [
+                {
+                    "cut_on": null,
+                    "max": null,
+                    "min": null,
+                    "tag": "No Cuts",
+                    "color_scheme": "tab:green"
+                }
+            ]
+        },
+        "TRecNet+ttbb.v05":
+        {
+            "shortname": "TRN+ttbb",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v05/TRecNet+ttbb.v05_10jets_20230602_173640_nominal_Results.root",
+            "sysUP_input": null,
+            "sysDOWN_input": null,
+            "truth_units": "GeV",
+            "reco_units": "GeV",
+            "cuts": 
+            [
+                {
+                    "cut_on": null,
+                    "max": null,
+                    "min": null,
+                    "tag": "No Cuts",
+                    "color_scheme": "tab:green"
+                }
+            ]
+        }
+    },
+    "plot_specs":
+    {
+        "TruthReco":
+        {
+            "make_plots": true,
+            "models":
+            {
+                "TRecNet+ttbar":
+                {
+                    "plot": false,
+                    "nbins": 30
+                },
+                "TRecNet+ttbar+JetPretrain":
+                {
+                    "plot": true,
+                    "nbins": 30
+                },
+                "TRecNet+ttbar+JetPretrainUnfrozen":
+                {
+                    "plot": false,
+                    "nbins": 30
+                },
+                "TRecNet+ttbb.v01":
+                {
+                    "plot": false,
+                    "nbins": 30
+                },
+                "TRecNet+ttbb.v02":
+                {
+                    "plot": false,
+                    "nbins": 30
+                },
+                "TRecNet+ttbb.v05":
+                {
+                    "plot": false,
+                    "nbins": 30
+                }                
+            }
+        },
+        "CM":
+        {
+            "make_plots": true,
+            "stats_binning": false,
+            "models":
+            {
+                "TRecNet+ttbar":
+                {
+                    "plot": false,
+                    "pt_cuts": 
+                    [
+                        {}
+                    ]
+                },
+                "TRecNet+ttbar+JetPretrain":
+                {
+                    "plot": false,
+                    "pt_cuts": 
+                    [
+                        {}
+                    ]
+                },
+                "TRecNet+ttbar+JetPretrainUnfrozen":
+                {
+                    "plot": true,
+                    "pt_cuts": 
+                    [
+                        {}
+                    ]
+                },
+                "TRecNet+ttbb.v01":
+                {
+                    "plot": false,
+                    "pt_cuts": 
+                    [
+                        {}
+                    ]
+                },
+                "TRecNet+ttbb.v02":
+                {
+                    "plot": false,
+                    "pt_cuts": 
+                    [
+                        {}
+                    ]
+                },
+                "TRecNet+ttbb.v05":
+                {
+                    "plot": false,
+                    "pt_cuts": 
+                    [
+                        {}
+                    ]
+                }
+            }
+        },
+        "Res":
+        {
+            "make_plots": true,
+            "include_model":
+            {
+                "TRecNet": false,
+                "TRecNet+ttbar": false,
+                "TRecNet+ttbar+JetPretrain": false,
+                "TRecNet+ttbar+JetPretrainUnfrozen": true,
+                "TRecNet+ttbb.v01": false,
+                "TRecNet+ttbb.v02": false,
+                "TRecNet+ttbb.v05": false
+
+            },
+            "nbins": 30,
+            "core_fit": "nofit",
+            "include_moments": true,
+            "pt_cuts": 
+            [
+                {},
+                {"pt_high":100},
+                {"pt_low":250, "pt_high":500},
+                {"pt_low":500}
+            ]
+        }
+    },
+    "par_specs":
+    {
+        "th":
+        {
+            "label": "t,had",
+            "alt_names": ["thad","topHad","top_had"],
+            "observables":
+            [
+                {
+                    "name": "pt",
+                    "label": "p_T",
+                    "start": 0,
+                    "stop": 550,
+                    "step": 50,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "px",
+                    "label": "p_x",
+                    "start": -250,
+                    "stop": 300,
+                    "step": 50,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "py",
+                    "label": "p_y",
+                    "start": -250,
+                    "stop": 300,
+                    "step": 50,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "eta",
+                    "label": "\\eta",
+                    "start": -6,
+                    "stop": 7.5,
+                    "step": 1.5,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": null
+                },
+                {
+                    "name": "y",
+                    "label": "y",
+                    "start": -2.5,
+                    "stop": 3,
+                    "step": 0.5,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": null
+                },
+                {
+                    "name": "phi",
+                    "label": "\\phi",
+                    "start": -3,
+                    "stop": 3.75,
+                    "step": 0.75,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": null
+                },
+                {
+                    "name": "m",
+                    "label": "m",
+                    "start": 100,
+                    "stop": 260,
+                    "step": 20,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "E",
+                    "label": "E",
+                    "start": 100,
+                    "stop": 1600,
+                    "step": 150,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "pout",
+                    "label": "p_{out}",
+                    "start": -275,
+                    "stop": 325,
+                    "step": 50,
+                    "unit": "GeV",
+                    "res": "Residuals",
+                    "alt_names": ["Pout"]
+                }
+            ]
+        },
+        "tl":
+        {
+            "label": "t,lep",
+            "alt_names": ["tlep","topLep","top_lep"],
+            "observables":
+            [
+                {
+                    "name": "pt",
+                    "label": "p_T",
+                    "start": 0,
+                    "stop": 550,
+                    "step": 50,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "px",
+                    "label": "p_x",
+                    "start": -250,
+                    "stop": 300,
+                    "step": 50,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "py",
+                    "label": "p_y",
+                    "start": -250,
+                    "stop": 300,
+                    "step": 50,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "eta",
+                    "label": "\\eta",
+                    "start": -6,
+                    "stop": 7.5,
+                    "step": 1.5,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": null
+                },
+                {
+                    "name": "y",
+                    "label": "y",
+                    "start": -2.5,
+                    "stop": 3,
+                    "step": 0.5,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": null
+                },
+                {
+                    "name": "phi",
+                    "label": "\\phi",
+                    "start": -3,
+                    "stop": 3.75,
+                    "step": 0.75,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": null
+                },
+                {
+                    "name": "m",
+                    "label": "m",
+                    "start": 100,
+                    "stop": 260,
+                    "step": 20,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "E",
+                    "label": "E",
+                    "start": 100,
+                    "stop": 1600,
+                    "step": 150,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "pout",
+                    "label": "p_{out}",
+                    "start": -275,
+                    "stop": 325,
+                    "step": 50,
+                    "unit": "GeV",
+                    "res": "Residuals",
+                    "alt_names": ["Pout"]
+                }
+            ]
+        },
+        "ttbar":
+        {
+            "label": "t\\overline{t}",
+            "alt_names": [],
+            "observables":
+            [
+                {
+                    "name": "pt",
+                    "label": "p_T",
+                    "start": 0,
+                    "stop": 550,
+                    "step": 50,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "px",
+                    "label": "p_x",
+                    "start": -250,
+                    "stop": 300,
+                    "step": 50,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "py",
+                    "label": "p_y",
+                    "start": -250,
+                    "stop": 300,
+                    "step": 50,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "eta",
+                    "label": "\\eta",
+                    "start": -6,
+                    "stop": 7.5,
+                    "step": 1.5,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": null
+                },
+                {
+                    "name": "y",
+                    "label": "y",
+                    "start": -2.5,
+                    "stop": 3,
+                    "step": 0.5,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": null
+                },
+                {
+                    "name": "phi",
+                    "label": "\\phi",
+                    "start": -3,
+                    "stop": 3.75,
+                    "step": 0.75,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": null
+                },
+                {
+                    "name": "m",
+                    "label": "m",
+                    "start": 200,
+                    "stop": 1700,
+                    "step": 150,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "E",
+                    "label": "E",
+                    "start": 200,
+                    "stop": 2700,
+                    "step": 250,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": null
+                },
+                {
+                    "name": "dphi",
+                    "label": "|\\Delta\\phi|",
+                    "start": 0,
+                    "stop": 3.6,
+                    "step": 0.45,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": ["deltaPhi"]
+                },
+                {
+                    "name": "deta",
+                    "label": "|\\Delta\\eta|",
+                    "start": 0,
+                    "stop": 10,
+                    "step": 1,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": ["deltaEta"]
+                },
+                {
+                    "name": "Ht",
+                    "label": "H_T",
+                    "start": 0,
+                    "stop": 1200,
+                    "step": 120,
+                    "unit": "GeV",
+                    "res": "Resolution",
+                    "alt_names": ["HT"]
+                },
+                {
+                    "name": "yboost",
+                    "label": "y_{boost}",
+                    "start": -3,
+                    "stop": 3.75,
+                    "step": 0.75,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": ["y_boost"]
+                },
+                {
+                    "name": "ystar",
+                    "label": "y_{star}",
+                    "start": -2.5,
+                    "stop": 3,
+                    "step": 0.5,
+                    "unit": "",
+                    "res": "Residuals",
+                    "alt_names": ["y_star"]
+                },
+                {
+                    "name": "chi",
+                    "label": "\\chi",
+                    "start": 0,
+                    "stop": 25,
+                    "step": 2.5,
+                    "unit": "",
+                    "res": "Resolution",
+                    "alt_names": ["chi_tt"]
+                }
+            ]
+        }
+    }
+}
