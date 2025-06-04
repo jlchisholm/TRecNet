@@ -324,11 +324,11 @@ class truthPrep:
     A class for prepping the MC truth values for TRecNet
 
         Methods:
+            switchBBBarToB1B2: takes truth values determined by b and bbar and distinuishes them by leading b (b1) and the other b (b2)
             switchTTBarToHadLep: takes truth values determined by t and tbar and distinguishes them by thad and tlep
             addExtras: adds/computes missing truth information from MC including y, E, Pout, chi_tt, y_boost, and deltaPhi
             prepTruth: takes an input root files, preps the truth information in the tree (input parameter), and returns a new root file with the prepared truth info (and the other necessary branches from the input tree)
     """
-
 
     # Constructor
     def __init__(self):
@@ -490,8 +490,38 @@ class truthPrep:
         return tree, keys
 
 
+    def switchBBBarToB1B2(self, tree, keys):
+        """
+        Takes an input root tree and corresponding keys, and adds b1 and b2 distinguisments for truth values depending on b and bbar
 
-    def prepTruth(self, root_file, save_dir, tree_name):
+            Parameters:
+                tree (root tree): nominal tree
+                keys: keys for nominal tree
+
+            Returns:
+                tree (root tree): nominal tree with updated truth values
+                keys: fixed keys for nominal tree
+        """
+        # Specify range of events
+        range_events = range(len(tree["eventNumber"]))
+    
+        # Get truth information for b quarks (after FSR)
+        for v in ['pt','eta','phi','m', 'y', 'E']:
+            for s in ['afterFSR']:
+                sel = np.greater(tree['MC_b_afterFSR_pt'], tree['MC_bbar_afterFSR_pt'])
+
+                # Leading b
+                keys.append('MC_b1_'+s+'_'+v)
+                tree['MC_b1_'+s+'_'+v] = np.where(sel, tree['MC_b_'+s+'_'+v], tree['MC_bbar_'+s+'_'+v])
+
+                # Other b
+                keys.append('MC_b2_'+s+'_'+v)
+                tree['MC_b2_'+s+'_'+v] = np.where(sel, tree['MC_bbar_'+s+'_'+v], tree['MC_b_'+s+'_'+v])
+    
+        return tree, keys
+
+
+    def prepTruth(self, root_file, save_dir, tree_name, no_name_change):
         """
         Prepares the truth data for use in TRecNet by adding distinguishments between thad and tlep truth data and adding truth data not found in MC data
         
@@ -516,16 +546,25 @@ class truthPrep:
         print('Converting truth values from t/tbar to thad/tlep')
         nom_tree, nom_keys = self.switchTTBarToHadLep(nom_tree, nom_keys)
 
-        # add deltaPhi, HT, and chi for tt, and y_boost
-        print('Computing remaining truth values')
+        # add extra truth values
+        print('Computing other truth values')
         nom_tree, nom_keys = self.addExtras(nom_tree, nom_keys)
+
+        # add leading b and other b (b1 and b2) truth info
+        print('Adding b1 (leading b) and b2 truth info')
+        nom_tree, nom_keys = self.switchBBBarToB1B2(nom_tree, nom_keys)
 
         # add tree back to fixed root file
         fix_file[tree_name] = {key:nom_tree[key] for key in nom_keys}
 
         # save and close fixed root file
-        print('Saved file: '+save_dir+'/'+in_name.split('.root')[0]+'_fixed_truth_'+'.root')
+        print('Saved file: '+save_dir+'/'+in_name.split('.root')[0]+'_fixed_truths'+'.root')
         fix_file.close()
+
+        if no_name_change:
+            # Replacing old file and keeping name
+            print('Replacing old file and keeping name')
+            os.rename(save_dir+'/'+in_name.split('.root')[0]+'_fixed_truths'+'.root', root_file)
 
 
 
@@ -563,6 +602,7 @@ p_convertKeys.add_argument('--no_name_change', help='option to keep file name th
 p_prepTruth.add_argument('--root_file', help='input root file including path', required=True)
 p_prepTruth.add_argument('--save_dir', help='path to save directory', required=True)
 p_prepTruth.add_argument('--tree_name', help='name of tree', required=True)
+p_prepTruth.add_argument('--no_name_change', help='option to keep file name the same after changes', action='store_true')
 
 # Main script
 args = parser.parse_args()
@@ -574,6 +614,6 @@ elif args.function == 'convertKeys':
     converter.convertKeys(args.root_file, args.save_dir, args.tree_name, args.new_tree_name, args.no_name_change)
 elif args.function == 'prepTruth':
     prepper = truthPrep()
-    prepper.prepTruth(args.root_file, args.save_dir, args.tree_name)
+    prepper.prepTruth(args.root_file, args.save_dir, args.tree_name, args.no_name_change)
 else:
     print('Invalid function type.')
