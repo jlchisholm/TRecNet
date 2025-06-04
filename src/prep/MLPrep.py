@@ -297,6 +297,7 @@ class filePrep:
         # Pad btag with -2.'s
         #padded_btags = np.asarray(ak.fill_none(ak.pad_none(reco_tree['jet_btagged'], jn, clip=True), -2.))
         padded_btags = np.asarray(ak.fill_none(ak.pad_none(reco_tree['jet_isbtagged_DL1r_70'], jn, clip=True), -2.))
+        padded_btags_cont = np.asarray(ak.fill_none(ak.pad_none(reco_tree['jet_tagWeightBin_DL1r_Continuous'], jn, clip=True), -2.))
 
         # Finish off the dataframes
         for j, df in enumerate(df_jets):
@@ -307,6 +308,7 @@ class filePrep:
 
             # Include btags
             df['isbtag'] = padded_btags[:,j]
+            df['btag_continuous'] = padded_btags_cont[:,j]
 
             # Convert from MeV to GeV
             df['pt'] = df['pt']/1000
@@ -665,7 +667,7 @@ class filePrep:
             df['j'+str(j+1)+'_py'] = df['j'+str(j+1)+'_pt']*np.sin(df['j'+str(j+1)+'_phi'])
     
             # Append max and mean
-            for v in ['pt','px','py','eta','m','isbtag']:
+            for v in ['pt','px','py','eta','m','isbtag','btag_continuous']:
                 X_maxmean['j'+str(j+1)+'_'+v] = [df['j'+str(j+1)+'_'+v].abs().max(),df['j'+str(j+1)+'_'+v].mean()]
             
             # Also append isTruth
@@ -702,6 +704,7 @@ class filePrep:
             particles = ['th_','wh_','tl_','wl_','ttbar_']
         else:
             particles = ['th_','wh_','tl_','wl_','ttbar_','b_','bbar_']
+            
         for p in particles:
             df[p+'px'] = df[p+'pt']*np.cos(df[p+'phi'])
             df[p+'py'] = df[p+'pt']*np.sin(df[p+'phi'])
