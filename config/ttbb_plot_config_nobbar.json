@@ -1,12 +1,12 @@
-{   "test_filename": "/mnt/xrootdc/TRecNet_ttbb_training_data/ttbb_training_data/V01_2/ttbb+bbmatch_8jets_4btags_h5/TrainTestH5Files_test.h5",
+{   "test_filename": "/home/dciarniello/summer2023/TRecNet/ttbb_training_data/root_data_with_truth_no_bdphi_10jets_3btag_h5/train_test_h5files_test.h5",
     "datatype": "test",
-    "save_loc": "/home/dciarniello/summer2023/TRecNet/",
+    "save_loc": "/home/dciarniello/summer2023/TRecNet/ttbb_TRecNet+ttbar+JetPretrainUnfrozen/",
     "model_specs":
     {
-        "TRecNet+ttbb.v1.0":
+        "TRecNet+ttbar":
         {
-            "shortname": "TRN+ttbb.v1.0",
-            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v1.0/TRecNet+ttbb.v1.0_8jets_20230609_114705/TRecNet+ttbb.v1.0_8jets_20230609_114705_nominal_Results.root",
+            "shortname": "TRN+ttbar",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/ttbb_TRecNet+ttbar/TRecNet+ttbar_6jets_20230411_234414_nominal_Results1.root",
             "sysUP_input": null,
             "sysDOWN_input": null,
             "truth_units": "GeV",
@@ -18,33 +18,14 @@
                     "max": null,
                     "min": null,
                     "tag": "No Cuts",
-                    "color_scheme": "tab:orange"
+                    "color_scheme": "tab:pink"
                 }
             ]
         },
-        "TRecNet+ttbb.v1.1":
+        "TRecNet+ttbar+JetPretrain":
         {
-            "shortname": "TRN+ttbb.v1.1",
-            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v1.1/TRecNet+ttbb.v1.1_8jets_20230609_222520/TRecNet+ttbb.v1.1_8jets_20230609_222520_nominal_Results.root",
-            "sysUP_input": null,
-            "sysDOWN_input": null,
-            "truth_units": "GeV",
-            "reco_units": "GeV",
-            "cuts": 
-            [
-                {
-                    "cut_on": null,
-                    "max": null,
-                    "min": null,
-                    "tag": "No Cuts",
-                    "color_scheme": "tab:red"
-                }
-            ]
-        },
-        "TRecNet+ttbb.v1.2":
-        {
-            "shortname": "TRN+ttbb.v1.2",
-            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v1.2/TRecNet+ttbb.v1.2_8jets_20230612_122017/TRecNet+ttbb.v1.2_8jets_20230612_122017TRecNet+ttbb.v1.2_8jets_20230612_122017_nominal_Results.root",
+            "shortname": "TRN+ttbar+JP",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/ttbb_TRecNet+ttbar+JetPretrain/TRecNet+ttbar+JetPretrain_6jets_20230417_233901_nominal_Results.root",
             "sysUP_input": null,
             "sysDOWN_input": null,
             "truth_units": "GeV",
@@ -60,10 +41,29 @@
                 }
             ]
         },
-        "TRecNet+ttbb+bbPretrain":
+        "TRecNet+ttbar+JetPretrainUnfrozen":
         {
-            "shortname": "TRN+ttbb+bbPre",
-            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb+bbPretrain/TRecNet+ttbb+bbPretrain_8jets_20230613_180555/TRecNet+ttbb+bbPretrain_8jets_20230613_180555_nominal_Results.root",
+            "shortname": "TRN+ttbar+JP",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/ttbb_TRecNet+ttbar+JetPretrainUnfrozen/TRecNet+ttbar+JetPretrain_6jets_20230413_193930_nominal_Results.root",
+            "sysUP_input": null,
+            "sysDOWN_input": null,
+            "truth_units": "GeV",
+            "reco_units": "GeV",
+            "cuts": 
+            [
+                {
+                    "cut_on": null,
+                    "max": null,
+                    "min": null,
+                    "tag": "No Cuts",
+                    "color_scheme": "tab:red"
+                }
+            ]
+        },
+        "TRecNet+ttbb.v01":
+        {
+            "shortname": "TRN+ttbb",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v01/TRecNet+ttbb.v01_6jets_20230529_121740_nominal_Results.root",
             "sysUP_input": null,
             "sysDOWN_input": null,
             "truth_units": "GeV",
@@ -79,10 +79,29 @@
                 }
             ]
         },
-        "TRecNet+ttbb+bbPretrain+JetPretrain":
+        "TRecNet+ttbb.v02":
         {
-            "shortname": "TRN+ttbb+bbPre+JetPre",
-            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb+bbPretrain+JetPretrain/TRecNet+ttbb+bbPretrain+JetPretrain_8jets_20230613_180847/TRecNet+ttbb+bbPretrain+JetPretrain_8jets_20230613_180847_nominal_Results.root",
+            "shortname": "TRN+ttbb",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v02/TRecNet+ttbb.v02_10jets_20230529_144957_nominal_Results.root",
+            "sysUP_input": null,
+            "sysDOWN_input": null,
+            "truth_units": "GeV",
+            "reco_units": "GeV",
+            "cuts": 
+            [
+                {
+                    "cut_on": null,
+                    "max": null,
+                    "min": null,
+                    "tag": "No Cuts",
+                    "color_scheme": "tab:green"
+                }
+            ]
+        },
+        "TRecNet+ttbb.v05":
+        {
+            "shortname": "TRN+ttbb",
+            "nom_input": "/home/dciarniello/summer2023/TRecNet/TRecNet+ttbb.v05/TRecNet+ttbb.v05_10jets_20230602_173640_nominal_Results.root",
             "sysUP_input": null,
             "sysDOWN_input": null,
             "truth_units": "GeV",
@@ -106,29 +125,34 @@
             "make_plots": true,
             "models":
             {
-                "TRecNet+ttbb.v1.0":
+                "TRecNet+ttbar":
+                {
+                    "plot": false,
+                    "nbins": 30
+                },
+                "TRecNet+ttbar+JetPretrain":
                 {
                     "plot": true,
                     "nbins": 30
                 },
-                "TRecNet+ttbb.v1.1":
+                "TRecNet+ttbar+JetPretrainUnfrozen":
                 {
-                    "plot": true,
+                    "plot": false,
                     "nbins": 30
                 },
-                "TRecNet+ttbb.v1.2":
+                "TRecNet+ttbb.v01":
                 {
-                    "plot": true,
+                    "plot": false,
                     "nbins": 30
                 },
-                "TRecNet+ttbb+bbPretrain":
+                "TRecNet+ttbb.v02":
                 {
-                    "plot": true,
+                    "plot": false,
                     "nbins": 30
                 },
-                "TRecNet+ttbb+bbPretrain+JetPretrain":
+                "TRecNet+ttbb.v05":
                 {
-                    "plot": true,
+                    "plot": false,
                     "nbins": 30
                 }                
             }
@@ -139,7 +163,23 @@
             "stats_binning": false,
             "models":
             {
-                "TRecNet+ttbb.v1.0":
+                "TRecNet+ttbar":
+                {
+                    "plot": false,
+                    "pt_cuts": 
+                    [
+                        {}
+                    ]
+                },
+                "TRecNet+ttbar+JetPretrain":
+                {
+                    "plot": false,
+                    "pt_cuts": 
+                    [
+                        {}
+                    ]
+                },
+                "TRecNet+ttbar+JetPretrainUnfrozen":
                 {
                     "plot": true,
                     "pt_cuts": 
@@ -147,33 +187,25 @@
                         {}
                     ]
                 },
-                "TRecNet+ttbb.v1.1":
+                "TRecNet+ttbb.v01":
                 {
-                    "plot": true,
+                    "plot": false,
                     "pt_cuts": 
                     [
                         {}
                     ]
                 },
-                "TRecNet+ttbb.v1.2":
+                "TRecNet+ttbb.v02":
                 {
-                    "plot": true,
+                    "plot": false,
                     "pt_cuts": 
                     [
                         {}
                     ]
                 },
-                "TRecNet+ttbb+bbPretrain":
+                "TRecNet+ttbb.v05":
                 {
-                    "plot": true,
-                    "pt_cuts": 
-                    [
-                        {}
-                    ]
-                },
-                "TRecNet+ttbb+bbPretrain+JetPretrain":
-                {
-                    "plot": true,
+                    "plot": false,
                     "pt_cuts": 
                     [
                         {}
@@ -186,40 +218,25 @@
             "make_plots": true,
             "include_model":
             {
-                "TRecNet+ttbb.v1.0": true,
-                "TRecNet+ttbb.v1.1": true,
-                "TRecNet+ttbb.v1.2": true,
-                "TRecNet+ttbb+bbPretrain": true,
-                "TRecNet+ttbb+bbPretrain+JetPretrain": true
+                "TRecNet": false,
+                "TRecNet+ttbar": false,
+                "TRecNet+ttbar+JetPretrain": false,
+                "TRecNet+ttbar+JetPretrainUnfrozen": true,
+                "TRecNet+ttbb.v01": false,
+                "TRecNet+ttbb.v02": false,
+                "TRecNet+ttbb.v05": false
+
             },
             "nbins": 30,
             "core_fit": "nofit",
             "include_moments": true,
             "pt_cuts": 
             [
-                {}
+                {},
+                {"pt_high":100},
+                {"pt_low":250, "pt_high":500},
+                {"pt_low":500}
             ]
-        },
-        "Res_vs_Var":
-        {
-            "make_plots": true,
-            "include_model":
-            {
-                "TRecNet+ttbb.v1.0": true,
-                "TRecNet+ttbb.v1.1": true,
-                "TRecNet+ttbb.v1.2": true,
-                "TRecNet+ttbb+bbPretrain": true,
-                "TRecNet+ttbb+bbPretrain+JetPretrain": true
-            },
-            "plots":
-            {
-                "th": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30]},{"y_var":"m","x_var":"pt","xbins":[60,600,30]},{"y_var":"eta","x_var":"pt","xbins":[0,600,30]}],
-                "tl": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30]},{"y_var":"m","x_var":"pt","xbins":[60,600,30]},{"y_var":"eta","x_var":"pt","xbins":[0,600,30]}],
-                "ttbar": [{"y_var":"pt","x_var":"pt","xbins":[0,600,30]},{"y_var":"m","x_var":"pt","xbins":[60,600,30]},{"y_var":"eta","x_var":"pt","xbins":[0,600,30]}],
-                "b": [{"y_var":"pt","x_var":"pt","xbins":[0,240,12]},{"y_var":"m","x_var":"pt","xbins":[24,240,12]},{"y_var":"eta","x_var":"pt","xbins":[0,240,12]}],
-                "bbar": [{"y_var":"pt","x_var":"pt","xbins":[0,240,12]},{"y_var":"m","x_var":"pt","xbins":[24,240,12]},{"y_var":"eta","x_var":"pt","xbins":[0,240,12]}]
-            },
-            "core_fit": "nofit"
         }
     },
     "par_specs":
@@ -565,142 +582,6 @@
                     "unit": "",
                     "res": "Resolution",
                     "alt_names": ["chi_tt"]
-                }
-            ]
-        },
-        "b":
-        {
-            "label": "b",
-            "alt_names": [],
-            "observables":
-            [
-                {
-                    "name": "pt",
-                    "label": "p_T",
-                    "start": 0,
-                    "stop": 220,
-                    "step": 20,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "px",
-                    "label": "p_x",
-                    "start": -250,
-                    "stop": 300,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "py",
-                    "label": "p_y",
-                    "start": -250,
-                    "stop": 300,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "eta",
-                    "label": "\\eta",
-                    "start": -6,
-                    "stop": 7.5,
-                    "step": 1.5,
-                    "unit": "",
-                    "res": "Residuals",
-                    "alt_names": null
-                },
-                {
-                    "name": "phi",
-                    "label": "\\phi",
-                    "start": -3,
-                    "stop": 3.75,
-                    "step": 0.75,
-                    "unit": "",
-                    "res": "Residuals",
-                    "alt_names": null
-                },
-                {
-                    "name": "m",
-                    "label": "m",
-                    "start": 3,
-                    "stop": 7,
-                    "step": 0.25,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                }
-            ]
-        },
-        "bbar":
-        {
-            "label": "b",
-            "alt_names": [],
-            "observables":
-            [
-                {
-                    "name": "pt",
-                    "label": "p_T",
-                    "start": 0,
-                    "stop": 220,
-                    "step": 20,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "px",
-                    "label": "p_x",
-                    "start": -250,
-                    "stop": 300,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "py",
-                    "label": "p_y",
-                    "start": -250,
-                    "stop": 300,
-                    "step": 50,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
-                },
-                {
-                    "name": "eta",
-                    "label": "\\eta",
-                    "start": -6,
-                    "stop": 7.5,
-                    "step": 1.5,
-                    "unit": "",
-                    "res": "Residuals",
-                    "alt_names": null
-                },
-                {
-                    "name": "phi",
-                    "label": "\\phi",
-                    "start": -3,
-                    "stop": 3.75,
-                    "step": 0.75,
-                    "unit": "",
-                    "res": "Residuals",
-                    "alt_names": null
-                },
-                {
-                    "name": "m",
-                    "label": "m",
-                    "start": 3,
-                    "stop": 7,
-                    "step": 0.25,
-                    "unit": "GeV",
-                    "res": "Resolution",
-                    "alt_names": null
                 }
             ]
         }
