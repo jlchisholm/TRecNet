@@ -8,7 +8,7 @@
 #  The intention is to identify which jets are direct products of    #
 #  ttbbar, and use this flag to help train TRecNet.                  #
 #                                                                    #
-#  Thoughts for improvements: Use config to get variable names.      #
+#  Thoughts for improvements:                                        #
 #                                                                    #
 ######################################################################
 
@@ -28,9 +28,7 @@ class JetMatcher:
     A class for matching ttbar decay products to reco level jets.
 
         Methods:
-            pruneTrees: Removes events we can't use from the trees (i.e. events with nan y and non-semileptonic events)
             getMatches: Matches ttbar decay products to reco-level jets.
-            appendJetMatches: Gets the jet match tags and creates a new root file from the old one, including these new tags.
 
     """
 
@@ -156,94 +154,3 @@ class JetMatcher:
 
 
         return isttbarJet, match_info
-
-
-    def appendJetMatches(self,input_file,save_dir,var_conf,dR_cut,allowDoubleMatching):
-        """
-        Gets the jet match tags and creates a new root file from the old one, including these new tags.
-
-            Parameters:
-                input_file (str): Name (including path) of the root file you'd like to add the jet matches to.
-                save_dir (str): Desired directory to save the output root file in.
-                var_conf (str): Name (including path) of the config file for the variable names.
-                dR_cut (float): A threshold which the dR for all matches must be below.
-                allowDoubleMatch (bool): Whether or not two or more decay products are allowed to be matched to the same jet.
-
-            Returns:
-                Creates a new root file that includes the systematic uncertainty trees, as well as the nominal tree with the new jet match tags included as 'jet_isTruth'.
-        """
-
-        # Separate input file name and its path
-        #in_path = os.path.split(input_file)[0]
-        in_name = os.path.split(input_file)[1]
-
-        # Just need this little string for file saving purposes
-        match_tag = '_jetMatch'+str(dR_cut).replace('.','')
-
-        # Open the original file and a new file to write to
-        print('Opening root file ...')
-        og_file = uproot.open(input_file)
-
-        # Get the reco and parton trees from the original file
-        nom_name, up_name, down_name = getBranchNames(var_conf)
-        down_tree = og_file[down_name].arrays()
-        up_tree = og_file[up_name].arrays()
-        nom_tree = og_file[nom_name].arrays()
-
-        # Save the keys for later
-        down_keys = og_file[down_name].keys()
-        up_keys = og_file[up_name].keys()
-        nom_keys = og_file[nom_name].keys()
-
-        # Close the original file
-        og_file.close()
-
-        # Remove events from the trees that we can't use
-        #print('Pruning trees ...')
-        #nom_tree = self.pruneTree(nom_tree)  # MOVED TO EVENTREMOVER
-
-        # Get the jet matches
-        print('Matching jets ...')
-        isttbarJet, matching_info = self.getMatches(nom_tree, dR_cut, allowDoubleMatching)
-
-        # Save the truth tags to the reco tree
-        nom_tree['jet_isTruth'] = isttbarJet
-        nom_keys.append('jet_isTruth')
-
-        # Write the trees to the file
-        print('Writing trees to new file...')
-        new_file = uproot.recreate(save_dir+'/'+in_name.split('.root')[0]+match_tag+'.root')
-        new_file[down_name] = {key:down_tree[key] for key in down_keys}
-        new_file[up_name] = {key:up_tree[key] for key in up_keys}
-        new_file[nom_name] = {key:nom_tree[key] for key in nom_keys}
-
-        print('Saved file: '+save_dir+'/'+in_name.split('.root')[0]+match_tag+'.root')
-
-        # Close new file
-        new_file.close()
-
-        # Save the matching info separately, since it's a weird shape, and save in its own folder
-        if not os.path.exists(save_dir+'/matching_info'):
-            os.mkdir(save_dir+'/matching_info')
-        np.save(save_dir+'/matching_info/'+in_name.split('.root')[0]+match_tag,matching_info)
-        print('Saved file: '+save_dir+'/matching_info/'+in_name.split('.root')[0]+match_tag+'.npy')
-        
-        
-# ---------- GET ARGUMENTS FROM COMMAND LINE ---------- #      
-        
-# Create the main parser
-parser = ArgumentParser()
-
-# Define arguments for JetMatcher
-parser.add_argument('--input',help='Input file (including path).',required=True)
-parser.add_argument('--save_dir',help='Path for directory where file will be saved.',required=True)
-parser.add_argument('--var_conf',help='Config file (including path) for names of variables.',required=True)
-parser.add_argument('--dR_cut',help='Maximum dR for the cut on dR (default: 1.0).',type=float,default=1.0)
-parser.add_argument('--allow_double_matching',help='Use this flag to allow double matching.',action='store_false')
-
-# Parse the arguments and proceed with stuff
-args = parser.parse_args()
-matcher = JetMatcher()
-matcher.appendJetMatches(args.input,args.save_dir,args.var_conf,args.dR_cut,args.allow_double_matching)
-
-print('Done :)')

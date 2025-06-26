@@ -245,7 +245,7 @@ class EventRemover:
 # Create the main parser
 parser = ArgumentParser()
 
-# Define arguments for saveMaxMean
+# Define arguments for EventRemover
 parser.add_argument('--input',help='Input file (including path).',required=True)
 parser.add_argument('--save_dir',help='Path for directory where file will be saved.',required=True)
 parser.add_argument('--var_conf',help='Config file (including path) for names of variables.',required=True)
