@@ -44,9 +44,10 @@ from keras.optimizers import *
 import keras_tuner as kt
 #from clr_callback import * 
 
-from MLUtil import *
-import normalize_new as normalize_new
-import shape_timesteps_new as shape_timesteps_new
+from MLUtil import Utilities
+import Scaler as Scaler
+import ml.ShapeTimesteps as ShapeTimesteps
+from ModelBuilder import TRecNet_Model, ModelBuilder
 
 import tracemalloc
 tracemalloc.start()
@@ -78,8 +79,8 @@ class Training:
                 Y_keys (list of str): Keys for the (original scale) Y variables.
                 X_scaled_keys (list of str): Keys for the (maxmean scale) X variables.
                 Y_scaled_keys (list of str): Keys for the (maxmean scale) Y variables.
-                jets_shape (tuple): Shape of the jets input.
-                other_shape (tuple): Shape of the other input.
+                training_time (datetime): Time it takes to train the model.
+                training_history (keras.model.history.history): Training history for the model.
         """
         self.train_file = config_file["data"]
         self.xmm_file = config_file["xmaxmean"]
@@ -87,14 +88,18 @@ class Training:
         self.split = config_file["split"][0]/(config_file["split"][0]+config_file["split"][1])   # Gave 85% to train file, now want 70% for the actual training ([0]=% in train, [1]=% in val, [2]=% in test)
         self.pretrain_file = config_file["jet_pretrain"]
         self.frozen_file = config_file["frozen_model"]
+        self.frozen_model_id = None
+        
         self.max_epochs = config_file["max_epochs"]
         self.patience = config_file["patience"]
+        
         self.X_keys = None
         self.Y_keys = None
         self.X_scaled_keys = None
         self.Y_scaled_keys = None
-        self.jets_shape = None
-        self.other_shape = None
+        
+        self.training_time = None
+        self.training_history = None
 
         # Want to make sure we've got GPU
         if tf.config.list_physical_devices('GPU')==[]:
@@ -154,155 +159,25 @@ class Training:
 
         # Load maxmean
         X_maxmean_dic, Y_maxmean_dic = processor.loadMaxMean(self.xmm_file, self.ymm_file)
-        
-        #current, peak = tracemalloc.get_traced_memory()
-        #print(f"Current memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
-
 
         # Pre-process the data
-        totalX_jets, totalX_other, totalY, self.X_scaled_keys, self.Y_scaled_keys = processor.prepData(self.train_file, X_maxmean_dic, Y_maxmean_dic, self.X_keys, self.Y_keys, Model.n_jets, Model.mask_value)
-
-        #current, peak = tracemalloc.get_traced_memory()
-        #print(f"Current memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
-
+        totalX_jets, totalX_other, totalY, self.X_scaled_keys, self.Y_scaled_keys = processor.scale_and_shape(self.train_file, X_maxmean_dic, Y_maxmean_dic, self.X_keys, self.Y_keys, Model.n_jets, Model.mask_value)
+        
+        # Save shapes for later
+        Model.had_shape = sum('th_' in key or 'wh_' in key for key in self.Y_scaled_keys)
+        Model.lep_shape = sum('tl_' in key or 'wl_' in key for key in self.Y_scaled_keys)
+        Model.ttbar_shape = sum('ttbar_' in key for key in self.Y_scaled_keys)
+        Model.bbbar_shape = sum('b_' in key or 'bbar_' in key for key in self.Y_scaled_keys)
 
         # Split the data
         trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = train_test_split(totalX_jets, totalX_other, totalY, train_size=self.split)
         
         # Save the shapes for later
-        self.jets_shape = trainX_jets.shape
-        self.other_shape = trainX_other.shape
+        Model.jets_shape = trainX_jets.shape
+        Model.other_shape = trainX_other.shape
         
         return trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY
-    
-    
-    def build_model(self, model_name, mask_value, initial_lr, final_lr_div, lr_power, lr_decay_step, ttbb, pretrain_model=None):
-        """
-        Build the model architecture.
 
-            Parameters:
-                model_name (str): Name of the model.
-                mask_value (int): Value that will mask non-existent jets.
-                initial_lr (float): Initial learning rate.
-                final_lr_div (float): Final learning rate divisor (i.e. final_lr = initial_lr/final_lr_div).
-                lr_power (float): Power for the decaying polynomial learning rate.
-                lr_decay_step (int): Learning rate decay step.
-                ttbb (bool): 
-            
-            Optional:
-                pretrain_model (Model object): Jet pre-trained model (default: None).
-
-            Returns:
-                model (Model object): Built model.
-        """
-        
-        # Print before
-        #current, peak = tracemalloc.get_traced_memory()
-        #print(f"Current (before) memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
-        
-        # Might need to clear session so keras doesn't run out of memory
-        K.clear_session()
-        
-        # Print after
-        #current, peak = tracemalloc.get_traced_memory()
-        #print(f"Current (after) memory usage is {current / 10**3}KB; Peak was {peak / 10**3}KB; Diff = {(peak - current) / 10**3}KB")
-         
-        print('Building model...')
-
-        # This will help for dimension of output layers
-        had_shape = sum('th_' in key or 'wh_' in key for key in self.Y_scaled_keys)
-        lep_shape = sum('tl_' in key or 'wl_' in key for key in self.Y_scaled_keys)
-        ttbar_shape = sum('ttbar_' in key for key in self.Y_scaled_keys)
-        if ttbb: bbbar_shape = sum('b_' in key or 'bbar_' in key for key in self.Y_scaled_keys)
-
-        # Input layers
-        jet_input = Input(shape=(self.jets_shape[1], self.jets_shape[2]),name='jet_input')
-        other_input = Input(shape=(self.other_shape[1],),name='other_input')
-
-        # Mask the jets that are just there for padding (do I want this to be what's put into the flattened jets? or no, since it's being reshaped?) and use some TDDense layers
-        Mask = Masking(mask_value, name='masking_jets')(jet_input)
-        Maskshape = Reshape((self.jets_shape[1], self.jets_shape[2]), name='reshape_masked_jets')(Mask)
-        TDDense11 = TimeDistributed(Dense(128, activation='relu'), name='TDDense128')(Maskshape)
-        TDDense12 = TimeDistributed(Dense(64, activation='relu'), name='TDDense64')(TDDense11)
-
-        # Concatenate flattened jets and other and use some dense layers (but not for TRecNet+ttbar+JetPretrain, since this is done in JetPretrainer)
-        if model_name!='TRecNet+ttbar+JetPretrain':
-            flat_jets =  Flatten(name ='flattened_jets')(jet_input) 
-            concat0 = concatenate([other_input, flat_jets], name = 'concat_jets_other')
-            PreDense1 = Dense(256, activation='relu', name = 'dense256_1')(concat0)
-            PreDense2 = Dense(256, activation='relu', name = 'dense256_2')(PreDense1) 
-
-        # This is mostly all we need for the rest of JetPretrainer
-        if model_name=='JetPretrainer':
-
-            # Final output
-            output = Dense(self.jets_shape[1], activation='sigmoid', name='jet_match_output')(PreDense2)
-            
-        # Lots more layers for the actual training
-        else:
-
-            # Use sigmoid to give jets a weight
-            if model_name=='TRecNet+ttbar+JetPretrain':
-                pretrain_model.trainable = False                                      # Freezing the jet pretrain model (i.e. want to use the previously trained weights)
-                pretrain = pretrain_model([jet_input,other_input], training=False)    # Putting the inputs into the pretrain model
-                Shape_Dot = Reshape((-1,1), name='reshape')(pretrain)
-            else:
-                PreDense3 = Dense(self.jets_shape[1], activation='sigmoid', name='dense6_sigmoid')(PreDense2)
-                Shape_Dot = Reshape((-1,1), name='reshape')(PreDense3)
-            Dot_jets = Multiply(name='weight_jets')([Shape_Dot, TDDense12])
-
-            # Use some more TDDense layers with the weighted jets
-            TDDense13 = TimeDistributed(Dense(256, activation='relu'), name='TDDense256_1')(Dot_jets)
-            TDDense14= TimeDistributed(Dense(256, activation='relu'), name='TDDense256_2')(TDDense13)
-            flat_right = Flatten(name='flattened_weighted_jets')(TDDense14)
-        
-            # On the other side, do some dense layers
-            Dense21 = Dense(128, activation='relu', name='dense128')(other_input)
-            Dense22 = Dense(64, activation='relu', name='dense64')(Dense21)
-            flat_other = Flatten(name='flattened_other')(Dense22)
-        
-            # Concatenate the two sides
-            concat = concatenate([flat_other, flat_right], name = 'concat_everything')
-        
-            # Output leptonic side
-            ldense1 = Dense(256, activation='relu', name='ldense256')(concat)
-            ldense2 = Dense(128, activation='relu', name='ldense128')(ldense1)
-            loutput = Dense(lep_shape, name='lep_output')(ldense2)
-            
-            # Output hadronic(+ttbar) side
-            hconcat = concatenate([loutput, concat])
-            hdense1 = Dense(256, activation='relu', name='hdense256')(hconcat)
-            hdense2 = Dense(128, activation='relu', name='hdense128')(hdense1)
-            houtput = Dense(had_shape+ttbar_shape, name='had_output')(hdense2)
-            
-            # If ttbb, output b and bbar
-            if ttbb:
-                jbdense1 = TimeDistributed(Dense(256, activation='relu'), name='jb_TDDense256_1')(Dot_jets)
-                jbdense2 = TimeDistributed(Dense(256, activation='relu'), name='jb_TDDense256_2')(jbdense1)
-                jbflatten = Flatten(name='jb_flattened')(jbdense2)
-                bconcat = concatenate([loutput, houtput, jbflatten])
-                bdense1 = Dense(256, activation='relu', name='bdense256_1')(bconcat)
-                bdense2 = Dense(256, activation='relu', name='bdense256_2')(bdense1)
-                bdense3 = Dense(128, activation='relu', name='bdense128_3')(bdense2)
-                boutput = Dense(bbbar_shape, name='b_bbar_output')(bdense3)
-            
-            # Final output
-            if not ttbb: 
-                output = concatenate([houtput, loutput], name='output')
-            else:
-                output = concatenate([houtput, loutput, boutput], name='output')
-
-        # Putting the model together
-        model = keras.models.Model(inputs=[jet_input, other_input], outputs=output)
-        lr_schedule = keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=initial_lr, decay_steps=lr_decay_step,end_learning_rate=initial_lr/final_lr_div,power=lr_power)
-        optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
-        if model_name == 'JetPretrainer':
-            model.compile(loss='binary_crossentropy', optimizer= optimizer, metrics=['mae','mse'],jit_compile=False)
-        else:
-            model.compile(loss='mae', optimizer= optimizer, metrics=['mse'],jit_compile=False)
-
-        return model 
-   
  
     def save_model(self, Model):
         """
@@ -326,7 +201,7 @@ class Training:
 
         # Save model and history
         Model.model.save(dir+'/'+Model.model_id+'.keras')
-        np.save(dir+'/'+Model.model_id+'_TrainHistory.npy',Model.training_history)
+        np.save(dir+'/'+Model.model_id+'_TrainHistory.npy',self.training_history)
         
         # Save maxmean scaling files
         shutil.copy(self.xmm_file, dir)
@@ -336,7 +211,7 @@ class Training:
         file = open(dir+'/'+Model.model_id+"_Info.txt", "w")
         file.write("Model Name: %s \n" % Model.model_name)
         file.write("Model ID: %s \n" % Model.model_id)
-        if 'Unfrozen' in Model.model_name: file.write("Frozen Model ID: %s \n" % Model.frozen_model_id)
+        if 'Unfrozen' in Model.model_name: file.write("Frozen Model ID: %s \n" % self.frozen_model_id)
         if 'TRecNet+ttbar+JetPretrain' in Model.model_name: file.write("JetPretrain Model: %s \n" % self.pretrain_file)
         file.write("\n ---------------------------------------------------  \n")
         file.write("Training Data File: %s \n" % self.train_file)
@@ -351,11 +226,10 @@ class Training:
         file.write("Learning Rate: Polynomial Decay with initial_lr=%s, final_lr=%s, decay_step=%s, and power=%s \n" % (self.initial_lr, (self.initial_lr/self.final_lr_div), self.lr_decay_step, self.lr_power))
         file.write("Batch Size: %s \n" % self.batch_size)
         file.write("Max Number of Epochs: %s \n" % self.max_epochs)
-        file.write("Number of Epochs Used: %s \n" % len(Model.training_history['loss']))
+        file.write("Number of Epochs Used: %s \n" % len(self.training_history['loss']))
         file.write("Patience: %s \n" % self.patience)
-        #file.write("Training Time: %s \n" % time.strftime("%H:%M:%S", time.gmtime(Model.training_time)))
-        file.write("Training Time: %02d:%02d:%02d:%02d \n" % (Model.training_time.days, Model.training_time.seconds // 3600, Model.training_time.seconds // 60 % 60, Model.training_time.seconds % 60))
-        file.write("Training History: \n %s \n" % pd.DataFrame(Model.training_history).to_string(index=False))
+        file.write("Training Time: %02d:%02d:%02d:%02d \n" % (self.training_time.days, self.training_time.seconds // 3600, self.training_time.seconds // 60 % 60, self.training_time.seconds % 60))
+        file.write("Training History: \n %s \n" % pd.DataFrame(self.training_history).to_string(index=False))
         file.write("\n ---------------------------------------------------  \n")
         file.write("Model Architecture:\n")
         with redirect_stdout(file): Model.model.summary(expand_nested=True, show_trainable=True)
@@ -364,8 +238,8 @@ class Training:
         # Save training history plots
         if Model.model_name=='JetPretrainer':
             plt.figure(figsize=(9,6))
-            plt.plot(Model.training_history['loss'], label='training')
-            plt.plot(Model.training_history['val_loss'], label='validation')
+            plt.plot(self.training_history['loss'], label='training')
+            plt.plot(self.training_history['val_loss'], label='validation')
             plt.xlabel('Epoch')
             plt.ylabel('Binary Cross Entropy Loss')
             plt.legend()
@@ -373,8 +247,8 @@ class Training:
             plt.savefig(dir+'/'+Model.model_id+'_BinaryCrossEntropy.png',bbox_inches='tight')
 
             plt.figure(figsize=(9,6))
-            plt.plot(Model.training_history['mae'], label='training')
-            plt.plot(Model.training_history['val_mae'], label='validation')
+            plt.plot(self.training_history['mae'], label='training')
+            plt.plot(self.training_history['val_mae'], label='validation')
             plt.xlabel('Epoch')
             plt.ylabel('MAE Loss')
             plt.legend()
@@ -382,8 +256,8 @@ class Training:
             plt.savefig(dir+'/'+Model.model_id+'_MAE.png',bbox_inches='tight')
         else:
             plt.figure(figsize=(9,6))
-            plt.plot(Model.training_history['loss'], label='training')
-            plt.plot(Model.training_history['val_loss'], label='validation')
+            plt.plot(self.training_history['loss'], label='training')
+            plt.plot(self.training_history['val_loss'], label='validation')
             plt.xlabel('Epoch')
             plt.ylabel('MAE Loss')
             plt.legend()
@@ -391,8 +265,8 @@ class Training:
             plt.savefig(dir+'/'+Model.model_id+'_MAE.png',bbox_inches='tight')
             
         plt.figure(figsize=(9,6))
-        plt.plot(Model.training_history['mse'], label='training')
-        plt.plot(Model.training_history['val_mse'], label='validation')
+        plt.plot(self.training_history['mse'], label='training')
+        plt.plot(self.training_history['val_mse'], label='validation')
         plt.xlabel('Epoch')
         plt.ylabel('MSE Loss')
         plt.legend()
@@ -400,7 +274,7 @@ class Training:
         plt.savefig(dir+'/'+Model.model_id+'_MSE.png',bbox_inches='tight')
         
         
-    def train(self, Model, ttbb):
+    def train(self, Model):
         """
         Builds, trains, and saves the model.
 
@@ -412,35 +286,17 @@ class Training:
         # Get the data
         trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = self.load_and_prep(Model)
         
-        # If doing the model with jet pretraining, we want to unfreeze and fine tune the weights
-        if Model.model_name=='TRecNet+ttbar+JetPretrainUnfrozen':
-            
-            # Load the frozen model to start with
-            Model.model = keras.layers.TFSMLayer(self.frozen_file, call_endpoint="serving_default")
-            
-            # Find the jet pre-training layer and unfreeze all those sublayers
-            for layer in Model.model.layers:
-                if isinstance(layer, keras.Model):
-                    layer.trainable = True 
-            
-            # Use a smaller learning rate since we're fine-tuning now
-            lr_schedule = keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=self.initial_lr, decay_steps=self.lr_decay_step,end_learning_rate=self.initial_lr/self.final_lr_div,power=self.lr_power)
-            optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
-            
-            # Recompile the model    
-            Model.model.compile(loss='mae', optimizer=optimizer, metrics=['mse'])
-            
+        # Build the model
+        modelbuilder = ModelBuilder(Model)
+        if Model.model_name=='TRecNet+ttbar+JetPretrain':
+            pretrain_model = keras.layers.TFSMLayer(self.pretrain_file, call_endpoints="serving_default")
+            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, pretrain_model=pretrain_model)
+        elif Model.model_name=='TRecNet+ttbar+JetPretrainUnfrozen':
+            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, frozen_file=self.frozen_file)
         else:
-        
-            # Build the model
-            # Need to load jet pretraining if TRecNet+ttbar+JetPretrain
-            if Model.model_name=='TRecNet+ttbar+JetPretrain':
-                pretrain_model = keras.layers.TFSMLayer(self.pretrain_file, call_endpoints="serving_default")
-                Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, ttbb, pretrain_model=pretrain_model)
-            else:
-                Model.model = self.build_model(Model.model_name, Model.mask_value, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, ttbb)
-            print(Model.model_name+' model has been built and compiled.')
-        
+            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step)    
+        print(Model.model_name+' model has been built and compiled.')
+            
         
         # Set early stopping (so no overfitting) and tensorboard callback (for monitoring)
         early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=self.patience)
@@ -450,8 +306,8 @@ class Training:
         start = datetime.now()
         history = Model.model.fit([trainX_jets, trainX_other], trainY, verbose=1, epochs=self.max_epochs, validation_data=([valX_jets, valX_other], valY), shuffle=True, callbacks=[early_stop, tensorboard_callback], batch_size=self.batch_size)
         end = datetime.now()
-        Model.training_time = end - start
-        Model.training_history = history.history
+        self.training_time = end - start
+        self.training_history = history.history
         
         # Save the model, its history, and loss plots
         self.save_model(Model)
@@ -479,7 +335,7 @@ class Training:
         file = open(dir+'/Hypertuning_Info.txt', "w")
         file.write("Model Name: %s \n" % Model.model_name)
         file.write("Model ID: %s \n" % Model.model_id)
-        if 'Unfrozen' in Model.model_name: file.write("Frozen Model ID: %s \n" % Model.frozen_model_id)
+        if 'Unfrozen' in Model.model_name: file.write("Frozen Model ID: %s \n" % self.frozen_model_id)
         if 'TRecNet+ttbar+JetPretrain' in Model.model_name: file.write("JetPretrain Model: %s \n" % self.pretrain_file)
         file.write("Tuner: %s \n" % self.tuner_type)
         file.write("--------------------------------------------------- \n")
@@ -494,8 +350,7 @@ class Training:
         file.write("--------------------------------------------------- \n")
         with redirect_stdout(file): tuner.search_space_summary(extended=True)
         file.write("--------------------------------------------------- \n")
-        #file.write("Total Hypertuning Time: %s \n" % time.strftime("%H:%M:%S", time.gmtime(Model.training_time)))
-        file.write("Total Hypertuning Time: %02d:%02d:%02d:%02d \n" % (Model.training_time.days, Model.training_time.seconds // 3600, Model.training_time.seconds // 60 % 60, Model.training_time.seconds % 60))
+        file.write("Total Hypertuning Time: %02d:%02d:%02d:%02d \n" % (self.training_time.days, self.training_time.seconds // 3600, self.training_time.seconds // 60 % 60, self.training_time.seconds % 60))
         with redirect_stdout(file): tuner.results_summary(10)
         file.write("--------------------------------------------------- \n")
         best_hps = tuner.get_best_hyperparameters()[0]
@@ -561,7 +416,7 @@ class Training:
         start = datetime.now()
         tuner.search(x=[trainX_jets, trainX_other], y=trainY, validation_data=([valX_jets, valX_other], valY), epochs=self.max_epochs, callbacks=[early_stop, tensorboard_callback], shuffle=True,verbose=0)
         end = datetime.now()
-        Model.training_time = end - start
+        self.training_time = end - start
 
         # Save results
         self.save_hypertune_results(Model,tuner)
@@ -682,10 +537,9 @@ class Training:
 
 # Set up argument parser
 parser = ArgumentParser()
-parser.add_argument('--model_name', help='Name of the model to be trained.', type=str, required=True, choices=['TRecNet','TRecNet+ttbar','JetPretrainer','TRecNet+ttbar+JetPretrain','TRecNet+ttbar+JetPretrainUnfrozen'])
+parser.add_argument('--model_name', help='Name of the model to be trained.', type=str, required=True, choices=['TRecNet','TRecNet+ttbar','JetPretrainer','TRecNet+ttbar+JetPretrain','TRecNet+ttbar+JetPretrainUnfrozen','TRecNet_ttbb'])
 parser.add_argument('--config_file', help="File (including path) with training (or hypertuning) specifications.", type=str, required=True)
 parser.add_argument('--hypertune', help="Use this flag to hypertune your model.", action="store_true")
-parser.add_argument('--ttbb', help="Adds b and bbar output for ttbb.", action="store_true")
 
 # Only need tuner if we're hypertuning
 args, tuner_arg = parser.parse_known_args()
@@ -737,7 +591,7 @@ else:
         os.makedirs(Model.model_name+'/'+Model.model_id)
     Trainer = Training(config)
     Trainer.set_train_params(config["training"])
-    Trainer.train(Model, args.ttbb)
+    Trainer.train(Model)
 
 
 print('done :)')

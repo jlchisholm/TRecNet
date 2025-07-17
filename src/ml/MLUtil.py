@@ -25,43 +25,9 @@ from keras.optimizers import *
 import keras_tuner as kt
 #from clr_callback import * 
 
-import TRecNet.src.ml.normalize_new as normalize_new
-import TRecNet.src.ml.shape_timesteps_new as shape_timesteps_new
+import Scaler
+import ShapeTimesteps
 
-
-
-class TRecNet_Model:
-    """
-    A class for creating a machine learning model object.
-    """
-
-    def __init__(self, model_name, model_id=None, n_jets=None):
-        """
-        Initializes a machine learning model object.
-
-            Parameters:
-                model_name (str): Name of the model (e.g. 'TRecNet+ttbar').
-                model_id (str): Unique model identifier (default: None).
-                n_jets (int): Number of jets the model is trained with (default: None).
-
-            Attributes:
-                model_name (str): Name of the model (e.g. 'TRecNet+ttbar').
-                model_id (str): Unique model identifier, based on model name, number of jets, and time it was created.
-                mask_value
-                n_jets (int): Number of jets the model is trained with.
-                model (keras.model): Trained keras model.
-                training_time
-                training_history (keras.model.history.history): Training history for the model.
-        """
-        
-        self.model_name = model_name
-        self.model_id = time.strftime(model_name+"_"+str(n_jets)+"jets_%Y%m%d_%H%M%S") if model_id==None else model_id   # Model unique save name (based on the date)
-        self.n_jets = n_jets if model_id==None else int(model_id.split('_')[1].split('jets')[0]) # If not given, get from model_id
-        self.mask_value = -2   # Define here so it's consist between model building and jet timestep building
-        self.model = None
-        self.frozen_model_id = None
-        self.training_time = None
-        self.training_history = None
 
 
 
@@ -99,12 +65,11 @@ class Utilities:
         if 'ttbar' in model_name:
             Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
         if 'ttbb' in model_name:
-            # Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])   # might need to add this back in?
             Y_keys.extend(['b_pt','b_m','b_eta','b_phi','bbar_pt','bbar_m','bbar_eta','bbar_phi'])
         if model_name=='JetPretrainer': 
             Y_keys = ['j'+str(i+1)+'_isTruth' for i in range(n_jets)]
-        if model_name == 'bbPretrainer':
-            Y_keys = ['j'+str(i+1)+'_isTruth_bb' for i in range(n_jets)]
+        #if model_name == 'bbPretrainer':
+        #    Y_keys = ['j'+str(i+1)+'_isTruth_bb' for i in range(n_jets)]
 
         return X_keys, Y_keys
 
@@ -149,7 +114,7 @@ class Utilities:
                 scaled_Y_keys (list of str): Scaled Y keys.
         """        
 
-        scaler = normalize_new.Scaler()
+        scaler = Scaler.Scaler()
         X_df = scaler.scale_arrays(dataset, X_keys, X_maxmean_dic)
         scaled_X_keys = X_df.keys()
         
@@ -164,7 +129,7 @@ class Utilities:
 
 
 
-    def prepData(self, datafile, X_maxmean_dic, Y_maxmean_dic, X_keys, Y_keys, jn, mask_value, onlyX=False):
+    def scale_and_shape(self, datafile, X_maxmean_dic, Y_maxmean_dic, X_keys, Y_keys, jn, mask_value, onlyX=False):
         """
         Prepares data for training by performing a mean-max scaling and phi-encoding, and then splitting dataset into (time-stepped) jets, other, and y data.
 
@@ -194,7 +159,7 @@ class Utilities:
         with h5py.File(datafile,'r') as dataset:   # Only want the dataset open as long as we need it
             
             # Create the timestep builder while we still have the dataset open
-            timestep_builder = shape_timesteps_new.Shape_timesteps(dataset, jn, mask_value)
+            timestep_builder = ShapeTimesteps.ShapeTimesteps(dataset, jn, mask_value)
             
             # Scales data set to be between -1 and 1, with a mean of 0, and encodes phi in other variables (e.g. px, py)
             X_df, Y_df, scaled_X_keys, scaled_Y_keys = self.scale(dataset, X_keys, Y_keys, X_maxmean_dic, Y_maxmean_dic, onlyX)
