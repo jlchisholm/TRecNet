@@ -537,7 +537,7 @@ class Training:
 
 # Set up argument parser
 parser = ArgumentParser()
-parser.add_argument('--model_name', help='Name of the model to be trained.', type=str, required=True, choices=['TRecNet','TRecNet+ttbar','JetPretrainer','TRecNet+ttbar+JetPretrain','TRecNet+ttbar+JetPretrainUnfrozen','TRecNet_ttbb'])
+parser.add_argument('--model_name', help='Name of the model to be trained.', type=str, required=True, choices=['TRecNet','TRecNet+ttbar','JetPretrainer','TRecNet+ttbar+JetPretrain','TRecNet+ttbar+JetPretrainUnfrozen','bbPretrainer','TRecNet_ttbb'])
 parser.add_argument('--config_file', help="File (including path) with training (or hypertuning) specifications.", type=str, required=True)
 parser.add_argument('--hypertune', help="Use this flag to hypertune your model.", action="store_true")
 
