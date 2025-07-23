@@ -133,7 +133,7 @@ if __name__ == "__main__":
             print('WARNING: Selected tuner is not yet available for TRecNet. Using BayesianOptimization by default.')
             
         # Create the model
-        Model = TRecNet_Model(args.version, config["njets"], config["create"]["add_ttbar"], add_jetpretrain, add_bbpretrain, False)
+        Model = TRecNet_Model(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["b_mode"], add_jetpretrain, add_bbpretrain, False)
         
         print('Beginning hypertuning for '+Model.model_id+'...')
         Trainer = Training(config)

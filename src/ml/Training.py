@@ -175,7 +175,7 @@ class Training:
 
         # These are the keys for what we're feeding into the pre-processing, and getting back in the end
         # X and Y variables to be used (NOTE: later have option to feed these in?)
-        self.X_keys, self.Y_keys = processor.getInputKeys(Model.model_name, Model.n_jets)
+        self.X_keys, self.Y_keys = processor.getInputKeys(Model.model_name, Model.n_jets, Model.add_ttbar, Model.b_mode)
 
         # Load maxmean
         X_maxmean_dic, Y_maxmean_dic = processor.loadMaxMean(self.xmm_file, self.ymm_file)
@@ -187,7 +187,7 @@ class Training:
         Model.had_shape = sum('th_' in key or 'wh_' in key for key in self.Y_scaled_keys)
         Model.lep_shape = sum('tl_' in key or 'wl_' in key for key in self.Y_scaled_keys)
         Model.ttbar_shape = sum('ttbar_' in key for key in self.Y_scaled_keys)
-        Model.bbbar_shape = sum('b_' in key or 'bbar_' in key for key in self.Y_scaled_keys)
+        Model.b_shape = sum('b_' in key or 'bbar_' in key or 'b1_' in key or 'b2_' in key for key in self.Y_scaled_keys)
 
         # Split the data
         trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = train_test_split(totalX_jets, totalX_other, totalY, train_size=self.split)

@@ -14,6 +14,7 @@
     "create":
     {
         "add_ttbar": true,
+        "b_mode": "bbar",
         "pretrained_jet_classifier": null,
         "pretrained_bb_classifier": null
     },

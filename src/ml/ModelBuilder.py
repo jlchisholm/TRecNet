@@ -24,7 +24,7 @@ class TRecNet_Model:
     A class for creating a machine learning model object, mainly to store relevant attributes of the model.
     """
 
-    def __init__(self, version, n_jets, add_ttbar, add_jetpretrain, add_bbpretrain, unfreeze_mode):
+    def __init__(self, version, n_jets, add_ttbar, b_mode, add_jetpretrain, add_bbpretrain, unfreeze_mode):
         """
         Initializes a machine learning model object.
 
@@ -60,6 +60,7 @@ class TRecNet_Model:
 
         self.mask_value = -2   # Define here so it's consist between model building and jet timestep building
         self.with_ttbar = add_ttbar
+        self.b_mode = b_mode
         self.use_JetPretaining = add_jetpretrain
         self.use_bbPretraining = add_bbpretrain
         self.unfreeze = unfreeze_mode
@@ -69,7 +70,7 @@ class TRecNet_Model:
         self.had_shape = None
         self.lep_shape = None
         self.ttbar_shape = None
-        self.bbbar_shape = None 
+        self.bb_shape = None 
 
 class ModelBuilder:
     """

@@ -46,7 +46,7 @@ class Utilities:
     def __init__(self):
         pass
 
-    def getInputKeys(self, model_name, n_jets):
+    def getInputKeys(self, model_name, n_jets, add_ttbar, b_mode):
         """
         Gets lists of the (original scale) X and Y variable keys.
 
@@ -59,17 +59,24 @@ class Utilities:
                 Y_keys (list of str): Keys for the (original scale) Y variables.
         """
 
+        # X keys (always the same)
         X_keys = ['j'+str(i+1)+'_'+v for i, v in itertools.product(range(n_jets),['pt','eta','phi','m','isbtag'])] + ['lep_pt', 'lep_eta', 'lep_phi', 'met_met', 'met_phi']
-        Y_keys = ['th_pt', 'th_eta','th_phi','th_m', 'wh_pt', 'wh_eta', 'wh_phi', 'wh_m', 'tl_pt', 'tl_eta', 'tl_phi', 'tl_m', 'wl_pt', 'wl_eta', 'wl_phi', 'wl_m']
-        
-        if 'ttbar' in model_name:
-            Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
-        if 'ttbb' in model_name:
-            Y_keys.extend(['b_pt','b_m','b_eta','b_phi','bbar_pt','bbar_m','bbar_eta','bbar_phi'])
+            
+        # Y keys
         if model_name=='JetPretrainer': 
             Y_keys = ['j'+str(i+1)+'_isTruth' for i in range(n_jets)]
-        #if model_name == 'bbPretrainer':
-        #    Y_keys = ['j'+str(i+1)+'_isTruth_bb' for i in range(n_jets)]
+            
+        elif model_name == 'bbPretrainer':
+            Y_keys = ['j'+str(i+1)+'_isTruth_bb' for i in range(n_jets)]
+            
+        else:
+            Y_keys = ['th_pt', 'th_eta','th_phi','th_m', 'wh_pt', 'wh_eta', 'wh_phi', 'wh_m', 'tl_pt', 'tl_eta', 'tl_phi', 'tl_m', 'wl_pt', 'wl_eta', 'wl_phi', 'wl_m']
+            if add_ttbar:
+                Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
+            if b_mode == 'bbar':
+                Y_keys.extend(['b_pt','b_m','b_eta','b_phi','bbar_pt','bbar_m','bbar_eta','bbar_phi'])
+            elif b_mode == 'b1b2':
+                Y_keys.extend(['b1_pt','b1_m','b1_eta','b1_phi','b2_pt','b2_m','b2_eta','b2_phi'])
 
         return X_keys, Y_keys
 
