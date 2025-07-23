@@ -17,7 +17,7 @@
 
 from keras.layers import Flatten, Dense, concatenate
 
-def construct_JetPretrainer_v1(Model, jet_input, other_input):
+def construct_JetClassifier_v1(Model, jet_input, other_input):
     
     flat_jets =  Flatten(name ='flattened_jets')(jet_input) 
     concat0 = concatenate([other_input, flat_jets], name = 'concat_jets_other')

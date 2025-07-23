@@ -24,39 +24,43 @@ import Training
 import tracemalloc
 tracemalloc.start()
 
+# Dictionary of compatible models for each of the pretrained classifiers
+compatible_models = {"JetClassifier_v1": ["TRecNet_tt_v1", "TRecNet_ttbb_v1", "TRecNet_ttbb_v2", "TRecNet_ttbb_v3", "TRecNet_ttbb_v4", "TRecNet_ttbb_v5"],
+                    "bbClassifier_v1": ["TRecNet_ttbb_v1"]}
 
-def pretrain_check(config):
+
+def pretrained_classifier_check(model_version, config, classifier):
     
-    # Initialize some things
-    add_jetpretrain = False
-    add_bbpretrain = False
-    
-    # Check that there is a jet pre-train model, with the same number of jets, if needed
-    if config["create"]["jet_pretrain"]!=None:
-        add_jetpretrain = True
-        pretrain_n_jets = int(config["create"]["jet_pretrain"].split('/')[-1].split('jets')[0].split('_')[-1])
-        if pretrain_n_jets != config["njets"]:
-            print("Please provide a jet pretrain model with the same number of jets as you desire.")
-            sys.exit()
-        print('Pretrained Jet Classifier added to model.')
+    # Check that there is a jet pre-train model
+    if config["create"][classifier]!=None:
+        add_pretrained_classifier = True
         
-    # Check that there is a bb pre-train model, with the same number of jets, if needed
-    if config["create"]["bb_pretrain"]!=None:
-        add_bbpretrain = True
-        bb_pretrain_n_jets = int(config["create"]["bb_pretrain"].split('/')[-1].split('jets')[0].split('_')[-1])
-        if bb_pretrain_n_jets != config["njets"]:
-            print("Please provide a bb pretrain model with the same number of jets as you desire.")
+        # Ensure number of jets is okay
+        classifier_n_jets = int(config["create"][classifier].split('/')[-1].split('jets')[0].split('_')[-1])
+        if classifier_n_jets != config["njets"]:
+            print("Please provide a "+classifier+" model with the same number of jets as you desire.")
             sys.exit()
-        print('Pretrained bb Classifier added to model.')
+            
+        # Check that pretrained classifier model is compatible with TRecNet model
+        classifier_id = config["create"][classifier].split('/')[-1]
+        classifier_version = classifier+classifier_id.split('_')[1]
+        if model_version not in compatible_models[classifier_version]:
+            print("Pretrained classifier version "+ classifier_version + " is not compatible with " + model_version + "!")
+            sys.exit()
+            
+        print('Pretrained classifier added to model.')
         
-        return add_jetpretrain, add_bbpretrain
+    else:
+        add_pretrained_classifier = False
+            
+    return add_pretrained_classifier
     
 
 if __name__ == "__main__":
     
     # Set up argument parser
     parser = ArgumentParser()
-    parser.add_argument('-v', '--version', help="Architecture version of the model to be trained.", type=str, required=True, choices=['JetPretrainer_v1','TRecNet_tt_v1','TRecNet_ttbb_v1','TRecNet_ttbb_v2','TRecNet_ttbb_v3','TRecNet_ttbb_v4','TRecNet_ttbb_v5'])
+    parser.add_argument('-v', '--version', help="Architecture version of the model to be trained.", type=str, required=True, choices=['JetClassifier_v1', 'bbClassifier_v1', 'TRecNet_tt_v1','TRecNet_ttbb_v1','TRecNet_ttbb_v2','TRecNet_ttbb_v3','TRecNet_ttbb_v4','TRecNet_ttbb_v5'])
     parser.add_argument('-c', '--config_file', help="File (including path) with training (or hypertuning) specifications.", type=str, required=True)
     parser.add_argument('-m', '--mode', help="Whether to create a new model to train, unfreeze an old model, or hypertune a model.", choices=['create','unfreeze','hypertune'])
     
@@ -70,7 +74,8 @@ if __name__ == "__main__":
         print("Starting 'create' training mode.")
         
         # Check if the pretrain files are there and good
-        add_jetpretrain, add_bbpretrain = pretrain_check(config)
+        add_jetpretrain = pretrained_classifier_check(args.version, config, "pretrained_jet_classifier")
+        add_bbpretrain = pretrained_classifier_check(args.version, config, "pretrained_bb_classifier")
             
         # Create the model
         Model = TRecNet_Model(args.version, config["njets"], config["create"]["add_ttbar"], add_jetpretrain, add_bbpretrain, False)
@@ -120,7 +125,8 @@ if __name__ == "__main__":
         print("Starting 'hypertune' training mode.")
         
         # Check if the pretrain files are there and good
-        add_jetpretrain, add_bbpretrain = pretrain_check(config)
+        add_jetpretrain = pretrained_classifier_check(args.version, config, "pretrained_jet_classifier")
+        add_bbpretrain = pretrained_classifier_check(args.version, config, "pretrained_bb_classifier")
         
         # Check that the hypertuner selected is appropriate
         if (config["hypertuning"]["tuner"]!="Hyperband" and config["hypertuning"]["tuner"]!="BayesianOptimization"):

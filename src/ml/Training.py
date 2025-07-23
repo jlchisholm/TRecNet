@@ -111,8 +111,8 @@ class Training:
                 create_config (dict): Creation configuration dictionary.
         """
         
-        self.jet_pretrain_file = create_config["jet_pretrain_model"]
-        self.bb_pretrain_file = create_config["bb_pretrain_model"]
+        self.jet_pretrain_file = create_config["pretrained_jet_classifier"]
+        self.bb_pretrain_file = create_config["pretrained_bb_classifier"]
         
         
     def set_unfreeze_params(self, unfreeze_config):

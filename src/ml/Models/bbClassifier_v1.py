@@ -5,8 +5,8 @@
 #  Updated: Jul.23/25                                                    #
 #                                                                        #
 #  Function to construct architecture for first version of               #
-#  bbPretrainer. Compatible with any TRecNet_ttbb model, so long as the  #
-#  same jet input and other input shape are used.                        #                                                      # 
+#  bbPretrainer. Compatible with any TRecNet_ttbb_v5 model, so long as   #
+# the same jet input and other input shape are used.                     #                                                      # 
 #                                                                        #
 #  This is the current (as of July 2025) recommended architecture for    #
 #  bbPretrainer.                                                         #
@@ -17,7 +17,7 @@
 
 from keras.layers import Flatten, Dense, concatenate
 
-def construct_bbPretrainer_v1(Model, jet_input, other_input):
+def construct_bbClassifier_v1(Model, jet_input, other_input):
     
     flat_jets =  Flatten(name ='flattened_jets')(jet_input) 
     concat0 = concatenate([other_input, flat_jets], name = 'concat_jets_other')

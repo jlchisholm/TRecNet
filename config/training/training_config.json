@@ -14,8 +14,8 @@
     "create":
     {
         "add_ttbar": true,
-        "jet_pretrain_model": null,
-        "bb_pretrain_model": null
+        "pretrained_jet_classifier": null,
+        "pretrained_bb_classifier": null
     },
     "unfreeze":
     {

@@ -91,12 +91,12 @@ class ModelBuilder:
         
     def construct_architecture(self, jet_input, other_input, jet_pretrain_model, bb_pretrain_model):
         
-        if (self.Model.model_v == 'JetPretrainer_v1'):
-            from Models.JetPretrainer_v1 import construct_JetPretrainer_v1
-            output = construct_JetPretrainer_v1(self.Model, jet_input, other_input)    
-        elif (self.Model.model_v == 'bbPretrainer_v1'):
-            from Models.JetPretrainer_v1 import construct_JetPretrainer_v1
-            output = construct_JetPretrainer_v1(self.Model, jet_input, other_input)     
+        if (self.Model.model_v == 'JetClassifier_v1'):
+            from Models.JetClassifier_v1 import construct_JetClassifier_v1
+            output = construct_JetClassifier_v1(self.Model, jet_input, other_input)    
+        elif (self.Model.model_v == 'bbClassifier_v1'):
+            from Models.bbClassifier_v1 import construct_bbClassifier_v1
+            output = construct_bbClassifier_v1(self.Model, jet_input, other_input)     
         elif (self.Model.model_v == 'TRecNet_tt_v1'):
             from Models.TRecNet_tt_v1 import construct_TRecNet_tt_v1
             output = construct_TRecNet_tt_v1(self.Model, jet_input, other_input, jet_pretrain_model)
