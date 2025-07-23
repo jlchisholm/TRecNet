@@ -294,6 +294,40 @@ class Training:
         plt.savefig(dir+'/'+Model.model_id+'_MSE.png',bbox_inches='tight')
         
         
+    def build_model(self, Model, initial_lr, final_lr_div, lr_power, lr_decay_step):
+        """
+        Uses instance of ModelBuilder to create a model to train.
+        
+            Parameters:
+                Model (Model object): Model to be built and trained.
+                initial_lr (int): Initial learning rate.
+                final_lr_div (int): Number by which to divide the initial learning rate to get the final learning rate.
+                lr_power (float): Power of the learning rate.
+                lr_decay_step (int): Decay step of the learning rate.
+                
+        """
+        
+        modelbuilder = ModelBuilder(Model)
+        
+        if Model.use_JetPretraining and Model.use_bbPretraining:
+            jet_pretrain_model = keras.layers.TFSMLayer(self.jet_pretrain_file, call_endpoints="serving_default")
+            bb_pretrain_model = keras.layers.TFSMLayer(self.bb_pretrain_file, call_endpoints="serving_default")
+            Model.model = modelbuilder.create_model(initial_lr, final_lr_div, lr_power, lr_decay_step, jet_pretrain_model=jet_pretrain_model, bb_pretrain_model=bb_pretrain_model)
+        elif Model.use_JetPretraining:
+            pretrain_model = keras.layers.TFSMLayer(self.jet_pretrain_file, call_endpoints="serving_default")
+            Model.model = modelbuilder.create_model(initial_lr, final_lr_div, lr_power, lr_decay_step, jet_pretrain_model=pretrain_model)
+        elif Model.use_bbPretraining:
+            pretrain_model = keras.layers.TFSMLayer(self.jet_pretrain_file, call_endpoints="serving_default")
+            Model.model = modelbuilder.create_model(initial_lr, final_lr_div, lr_power, lr_decay_step, jet_pretrain_model=pretrain_model)
+        elif Model.unfreeze:
+            Model.model = modelbuilder.create_model(initial_lr, final_lr_div, lr_power, lr_decay_step, frozen_file=self.frozen_file)
+        else:
+            Model.model = modelbuilder.create_model(initial_lr, final_lr_div, lr_power, lr_decay_step,)  
+              
+        print(Model.model_id+' model has been built and compiled.')
+        
+        
+        
     def train(self, Model):
         """
         Builds, trains, and saves the model.
@@ -307,24 +341,8 @@ class Training:
         trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = self.load_and_prep(Model)
         
         # Build the model
-        modelbuilder = ModelBuilder(Model)
-        if Model.use_JetPretraining and Model.use_bbPretraining:
-            jet_pretrain_model = keras.layers.TFSMLayer(self.jet_pretrain_file, call_endpoints="serving_default")
-            bb_pretrain_model = keras.layers.TFSMLayer(self.bb_pretrain_file, call_endpoints="serving_default")
-            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, jet_pretrain_model=jet_pretrain_model, bb_pretrain_model=bb_pretrain_model)
-        elif Model.use_JetPretraining:
-            pretrain_model = keras.layers.TFSMLayer(self.jet_pretrain_file, call_endpoints="serving_default")
-            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, jet_pretrain_model=pretrain_model)
-        elif Model.use_bbPretraining:
-            pretrain_model = keras.layers.TFSMLayer(self.jet_pretrain_file, call_endpoints="serving_default")
-            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, jet_pretrain_model=pretrain_model)
-        elif Model.unfreeze:
-            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, frozen_file=self.frozen_file)
-        else:
-            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step)    
-        print(Model.model_id+' model has been built and compiled.')
+        self.build_model(Model, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step)
             
-        
         # Set early stopping (so no overfitting) and tensorboard callback (for monitoring)
         early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=self.patience)
         tensorboard_callback = keras.callbacks.TensorBoard(log_dir= "tensorboard_logs/fit/"+Model.model_id, histogram_freq=1)
@@ -519,22 +537,6 @@ class Training:
             hp_dic = self.get_hyperparams(hp)
             
             # Build the model
-            modelbuilder = ModelBuilder(self.Model)
-            if self.Model.use_JetPretraining and self.Model.use_bbPretraining:
-                jet_pretrain_model = keras.layers.TFSMLayer(self.trainer.jet_pretrain_file, call_endpoints="serving_default")
-                bb_pretrain_model = keras.layers.TFSMLayer(self.trainer.bb_pretrain_file, call_endpoints="serving_default")
-                self.Model.model = modelbuilder.create_model(hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], jet_pretrain_model=jet_pretrain_model, bb_pretrain_model=bb_pretrain_model)
-            elif self.Model.use_JetPretraining:
-                pretrain_model = keras.layers.TFSMLayer(self.trainer.jet_pretrain_file, call_endpoints="serving_default")
-                self.Model.model = modelbuilder.create_model(hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], jet_pretrain_model=pretrain_model)
-            elif self.Model.use_bbPretraining:
-                pretrain_model = keras.layers.TFSMLayer(self.trainer.jet_pretrain_file, call_endpoints="serving_default")
-                self.Model.model = modelbuilder.create_model(hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], bb_pretrain_model=pretrain_model)
-            elif self.Model.unfreeze:
-                self.Model.model = modelbuilder.create_model(hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], frozen_file=self.trainer.frozen_file)
-            else:
-                self.Model.model = modelbuilder.create_model(hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'])    
-            print(self.Model.model_id+' model has been built and compiled.')
-
+            self.trainer.build_model(self.Model, hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'])
         
             return self.Model.model
