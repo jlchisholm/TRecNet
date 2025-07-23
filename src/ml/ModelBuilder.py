@@ -16,13 +16,15 @@ from keras.layers import Input, TFSMLayer
 from keras import regularizers 
 from keras import initializers
 
+import time
+
 
 class TRecNet_Model:
     """
     A class for creating a machine learning model object, mainly to store relevant attributes of the model.
     """
 
-    def __init__(self, model_name, model_id=None, n_jets=None):
+    def __init__(self, version, n_jets, add_ttbar, add_jetpretrain, add_bbpretrain, unfreeze_mode):
         """
         Initializes a machine learning model object.
 
@@ -38,16 +40,29 @@ class TRecNet_Model:
                 n_jets (int): Number of jets the model is trained with.
         """
         
+        # Derive the model name
+        model_name = version
+        if add_ttbar:
+            model_name += '+ttbar'
+        if add_jetpretrain:
+            model_name += '+JetPretrain'
+        if add_bbpretrain:
+            model_name += '+bbPretrain'
+        if unfreeze_mode:
+            model_name += 'Unfrozen'
+            
+        # Set attributes
+        self.model_v = version
         self.model_name = model_name
-        self.model_id = time.strftime(model_name+"_"+str(n_jets)+"jets_%Y%m%d_%H%M%S") if model_id==None else model_id   # Model unique save name (based on the date)
-        self.n_jets = n_jets if model_id==None else int(model_id.split('_')[1].split('jets')[0]) # If not given, get from model_id
+        self.model_num = time.strftime("%Y%m%d_%H%M%S")
+        self.n_jets = n_jets
+        self.model_id = time.strftime(model_name+"_"+str(n_jets)+"jets_%Y%m%d_%H%M%S") # Model unique save name (based on the date)
+
         self.mask_value = -2   # Define here so it's consist between model building and jet timestep building
-        
-        self.pretrainer = True if 'Pretrainer' in model_name else False
-        self.use_JetPretaining = True if '+JetPretrain' in model_name else False
-        self.use_bbPretraining = True if '+bbPretrain' in model_name else False
-        self.unfreeze = True if 'Unfrozen' in model_name else False
-        self.for_ttbb = True if 'ttbb' in model_name else False
+        self.with_ttbar = add_ttbar
+        self.use_JetPretaining = add_jetpretrain
+        self.use_bbPretraining = add_bbpretrain
+        self.unfreeze = unfreeze_mode
         
         self.jets_shape = None
         self.other_shape = None

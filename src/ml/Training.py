@@ -1,8 +1,8 @@
 ##########################################################################
 #                                                                        #
-#  training.py                                                           #
+#  Training.py                                                           #
 #  Author: Jenna Chisholm                                                #
-#  Updated: June.4/24                                                    #
+#  Updated: Jul.23/25                                                    #
 #                                                                        #
 #  Defines classes and functions relevant for training and hypertuning   #
 #  neural networks.                                                      # 
@@ -86,9 +86,6 @@ class Training:
         self.xmm_file = config_file["xmaxmean"]
         self.ymm_file = config_file["ymaxmean"]
         self.split = config_file["split"][0]/(config_file["split"][0]+config_file["split"][1])   # Gave 85% to train file, now want 70% for the actual training ([0]=% in train, [1]=% in val, [2]=% in test)
-        self.pretrain_file = config_file["jet_pretrain"]
-        self.frozen_file = config_file["frozen_model"]
-        self.frozen_model_id = None
         
         self.max_epochs = config_file["max_epochs"]
         self.patience = config_file["patience"]
@@ -104,7 +101,31 @@ class Training:
         # Want to make sure we've got GPU
         if tf.config.list_physical_devices('GPU')==[]:
             print("WARNING: Networks will be trained on CPU. Move into container to use GPU.") 
-            
+          
+          
+    def set_create_params(self, create_config):
+        """
+        Sets the training parameters from the config file.
+
+            Parameters:
+                create_config (dict): Creation configuration dictionary.
+        """
+        
+        self.jet_pretrain_file = create_config["jet_pretrain_model"]
+        self.bb_pretrain_file = create_config["bb_pretrain_model"]
+        
+        
+    def set_unfreeze_params(self, unfreeze_config):
+        """
+        Sets the training parameters from the config file.
+
+            Parameters:
+                unfreeze_config (dict): Unfreeze configuration dictionary.
+        """
+        
+        self.frozen_file = unfreeze_config["frozen_model"]
+        self.frozen_model_id = unfreeze_config["frozen_file"].split('/')[-1]
+         
             
     def set_train_params(self, train_config):
         """
@@ -121,17 +142,16 @@ class Training:
         self.batch_size = train_config["batch_size"]
         
         
-    def set_hyper_config(self, tuner_type, hyper_config):
+    def set_hyper_config(self, hyper_config):
         """
         Sets the hypertuning configuration for later use.
 
             Parameters:
-                tuner_type (str): Tuning algorithm to be used (e.g. 'Hyperband' or 'Bayesian Optimization').
                 hyper_config (dict): Hypertuning configuration dictionary.
         """
         
-        self.tuner_type = tuner_type
-        self.hyper_config = hyper_config
+        self.tuner_type = hyper_config["tuner"]
+        self.hyper_config = hyper_config["hyperparams"]
  
  
     def load_and_prep(self, Model):
@@ -193,7 +213,7 @@ class Training:
 
         print('Saving model...')
         
-        dir = 'models/'+Model.model_name+'/'+Model.model_id
+        dir = 'trained_models/'+Model.model_v+'/'+Model.model_name+'/'+Model.model_id
         
         # Create directory for saving things in if it doesn't exist
         if not os.path.exists(dir): 
@@ -209,10 +229,10 @@ class Training:
 
         # Save important information about this model into a text file
         file = open(dir+'/'+Model.model_id+"_Info.txt", "w")
-        file.write("Model Name: %s \n" % Model.model_name)
         file.write("Model ID: %s \n" % Model.model_id)
-        if 'Unfrozen' in Model.model_name: file.write("Frozen Model ID: %s \n" % self.frozen_model_id)
-        if 'TRecNet+ttbar+JetPretrain' in Model.model_name: file.write("JetPretrain Model: %s \n" % self.pretrain_file)
+        if Model.unfreeze: file.write("Frozen Model ID: %s \n" % self.frozen_model_id)
+        if Model.use_JetPretraining: file.write("JetPretrain Model: %s \n" % self.jet_pretrain_file)
+        if Model.use_bbPretraining: file.write("bbPretrain Model: %s \n" % self.bb_pretrain_file)
         file.write("\n ---------------------------------------------------  \n")
         file.write("Training Data File: %s \n" % self.train_file)
         file.write("X Maxmean File: %s \n" % self.xmm_file)
@@ -236,7 +256,7 @@ class Training:
         file.close()
 
         # Save training history plots
-        if Model.model_name=='JetPretrainer':
+        if 'JetPretrainer' in Model.model_v or 'bbPretrainer' in Model.model_v:
             plt.figure(figsize=(9,6))
             plt.plot(self.training_history['loss'], label='training')
             plt.plot(self.training_history['val_loss'], label='validation')
@@ -288,14 +308,21 @@ class Training:
         
         # Build the model
         modelbuilder = ModelBuilder(Model)
-        if Model.model_name=='TRecNet+ttbar+JetPretrain':
-            pretrain_model = keras.layers.TFSMLayer(self.pretrain_file, call_endpoints="serving_default")
-            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, pretrain_model=pretrain_model)
-        elif Model.model_name=='TRecNet+ttbar+JetPretrainUnfrozen':
+        if Model.use_JetPretraining and Model.use_bbPretraining:
+            jet_pretrain_model = keras.layers.TFSMLayer(self.jet_pretrain_file, call_endpoints="serving_default")
+            bb_pretrain_model = keras.layers.TFSMLayer(self.bb_pretrain_file, call_endpoints="serving_default")
+            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, jet_pretrain_model=jet_pretrain_model, bb_pretrain_model=bb_pretrain_model)
+        elif Model.use_JetPretraining:
+            pretrain_model = keras.layers.TFSMLayer(self.jet_pretrain_file, call_endpoints="serving_default")
+            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, jet_pretrain_model=pretrain_model)
+        elif Model.use_bbPretraining:
+            pretrain_model = keras.layers.TFSMLayer(self.jet_pretrain_file, call_endpoints="serving_default")
+            Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, jet_pretrain_model=pretrain_model)
+        elif Model.unfreeze:
             Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step, frozen_file=self.frozen_file)
         else:
             Model.model = modelbuilder.create_model(self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step)    
-        print(Model.model_name+' model has been built and compiled.')
+        print(Model.model_id+' model has been built and compiled.')
             
         
         # Set early stopping (so no overfitting) and tensorboard callback (for monitoring)
@@ -324,7 +351,7 @@ class Training:
         
         print('Saving hyperparamter tuning results ...')
         
-        dir = 'models/'+Model.model_name+'/hypertuning/'+Model.model_id+'_Hypertuning'
+        dir = 'trained_models/'+Model.model_v+'/'+Model.model_name+'/hypertuning/'+Model.model_id+'_Hypertuning'
         
         # Create directory for saving things in if it doesn't exist
         if not os.path.exists(dir): 
@@ -333,10 +360,10 @@ class Training:
         
         # Save important information about this model into a text file
         file = open(dir+'/Hypertuning_Info.txt', "w")
-        file.write("Model Name: %s \n" % Model.model_name)
         file.write("Model ID: %s \n" % Model.model_id)
-        if 'Unfrozen' in Model.model_name: file.write("Frozen Model ID: %s \n" % self.frozen_model_id)
-        if 'TRecNet+ttbar+JetPretrain' in Model.model_name: file.write("JetPretrain Model: %s \n" % self.pretrain_file)
+        if Model.unfreeze: file.write("Frozen Model ID: %s \n" % self.frozen_model_id)
+        if Model.use_JetPretrain: file.write("JetPretrain Model: %s \n" % self.jet_pretrain_file)
+        if Model.use_bbPretrain: file.write("bbPretrain Model: %s \n" % self.bb_pretrain_file)
         file.write("Tuner: %s \n" % self.tuner_type)
         file.write("--------------------------------------------------- \n")
         file.write("Training Data File: %s \n" % self.train_file)
@@ -387,12 +414,6 @@ class Training:
             Model (Model object): Model we'll be hypertuning.
         """
     
-        # Create directory for results
-        ht_dir = 'models/'+Model.model_name+'/hypertuning/'+Model.model_id+'_Hypertuning'
-        
-        # Create directory for saving things in if it doesn't exist
-        if not os.path.exists(ht_dir): 
-            os.makedirs(ht_dir) 
             
         # Get the data
         trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = self.load_and_prep(Model)
@@ -497,109 +518,23 @@ class Training:
             # Defining a set of hyperparametrs for tuning and a range of values for each
             hp_dic = self.get_hyperparams(hp)
             
-            # If doing the model with jet pretraining, we want to unfreeze and fine tune the weights
-            if self.Model.model_name=='TRecNet+ttbar+JetPretrainUnfrozen':
-                
-                # Load the frozen model to start with
-                self.Model.model = keras.layers.TFSMLayer(self.trainer.frozen_file, call_endpoint="serving_default")
-                
-                # Double check that we're unfreezing the correct layer
-                if self.Model.model.layers[4].trainable:
-                    print('Trying to fine-tune the wrong layer. Look at model summary below and find the correct index for the jet pretrained layer.')
-                    print(self.Model.model.summary(expand_nested=True, show_trainable=True))
-                    sys.exit()
-
-                # Unfreeze ALL jet pretrained layers
-                self.Model.model.layers[4].trainable = True    
-                
-                # Use a smaller learning rate since we're fine-tuning now
-                lr_schedule = keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=hp_dic['initial_lr'], decay_steps=hp_dic['lr_decay_step'],end_learning_rate=hp_dic['initial_lr']/hp_dic['final_lr_div'],power=hp_dic['lr_power'])
-                optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
-                
-                # Recompile the model    
-                self.Model.model.compile(loss='mae', optimizer=optimizer, metrics=['mse'])
-            
+            # Build the model
+            modelbuilder = ModelBuilder(self.Model)
+            if self.Model.use_JetPretraining and self.Model.use_bbPretraining:
+                jet_pretrain_model = keras.layers.TFSMLayer(self.trainer.jet_pretrain_file, call_endpoints="serving_default")
+                bb_pretrain_model = keras.layers.TFSMLayer(self.trainer.bb_pretrain_file, call_endpoints="serving_default")
+                self.Model.model = modelbuilder.create_model(hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], jet_pretrain_model=jet_pretrain_model, bb_pretrain_model=bb_pretrain_model)
+            elif self.Model.use_JetPretraining:
+                pretrain_model = keras.layers.TFSMLayer(self.trainer.jet_pretrain_file, call_endpoints="serving_default")
+                self.Model.model = modelbuilder.create_model(hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], jet_pretrain_model=pretrain_model)
+            elif self.Model.use_bbPretraining:
+                pretrain_model = keras.layers.TFSMLayer(self.trainer.jet_pretrain_file, call_endpoints="serving_default")
+                self.Model.model = modelbuilder.create_model(hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], bb_pretrain_model=pretrain_model)
+            elif self.Model.unfreeze:
+                self.Model.model = modelbuilder.create_model(hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], frozen_file=self.trainer.frozen_file)
             else:
-            
-                # Need to load jet pretraining if TRecNet+ttbar+JetPretrain
-                if self.Model.model_name=='TRecNet+ttbar+JetPretrain':
-                    pretrain_model = keras.models.load_model(self.trainer.pretrain_file)
-                    self.Model.model = self.trainer.build_model(self.Model.model_name, self.Model.mask_value, hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'], pretrain_model = pretrain_model)
-                else:
-                    self.Model.model = self.trainer.build_model(self.Model.model_name, self.Model.mask_value, hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'])
+                self.Model.model = modelbuilder.create_model(hp_dic['initial_lr'], hp_dic['final_lr_div'], hp_dic['lr_power'], hp_dic['lr_decay_step'])    
+            print(self.Model.model_id+' model has been built and compiled.')
+
         
             return self.Model.model
-            
-        
-
-
-# ------ MAIN CODE ------ #
-
-# Set up argument parser
-parser = ArgumentParser()
-parser.add_argument('--model_name', help='Name of the model to be trained.', type=str, required=True, choices=['TRecNet','TRecNet+ttbar','JetPretrainer','TRecNet+ttbar+JetPretrain','TRecNet+ttbar+JetPretrainUnfrozen','bbPretrainer','TRecNet_ttbb'])
-parser.add_argument('--config_file', help="File (including path) with training (or hypertuning) specifications.", type=str, required=True)
-parser.add_argument('--hypertune', help="Use this flag to hypertune your model.", action="store_true")
-
-# Only need tuner if we're hypertuning
-args, tuner_arg = parser.parse_known_args()
-if args.hypertune:
-    parser.add_argument('--tuner', required=True, choices=["Hyperband","BayesianOptimization"])
-    #parser.parse_args(tuner_arg, namespace = args)
-
-# Get config file
-config = json.load(open(args.config_file))
-
-
-# Check that there is a pre-train model, with the same number of jets, if needed
-if '+JetPretrain' in args.model_name:
-    if config["jet_pretrain"]==None:
-        print('Please provide a jet pretrained model in order to train TRecNet+ttbar+JetPretrain.')
-        sys.exit()
-    else:
-        pretrain_n_jets = int(config["jet_pretrain"].split('/')[-1].split('jets')[0].split('_')[-1])
-        if pretrain_n_jets != config["njets"]:
-            print("Please provide a jet pretrain model with the same number of jets as you desire.")
-            sys.exit()
-
-# Check that there is a frozen version of the model, with the same number of jets, if needed
-if 'Unfrozen' in args.model_name:
-    if config["frozen_model"]==None:
-        print('Please provide a frozen version of the model in order to unfreeze and fine-tune weights.')
-        sys.exit()
-    else:
-        frozen_n_jets = int(config["frozen_model"].split('/')[-1].split('jets')[0].split('_')[-1])
-        if frozen_n_jets != config["njets"]:
-            print("Please provide a frozen model with the same number of jets as you desire.")
-            sys.exit()
-
-# Instantiate model
-Model = TRecNet_Model(args.model_name, n_jets=config["njets"])
-
-# Hypertune
-if args.hypertune:
-    print('Beginning hypertuning for '+args.model_name+'...')
-    hyper_config = config["hypertuning"]
-    Trainer = Training(config)
-    Trainer.set_hyper_config(tuner_arg[1],config["hypertuning"])
-    Trainer.hypertune(Model)
-
-# Train
-else:
-    print('Beginning training for '+args.model_name+'...')
-    if not os.path.exists(Model.model_name+'/'+Model.model_id):
-        os.makedirs(Model.model_name+'/'+Model.model_id)
-    Trainer = Training(config)
-    Trainer.set_train_params(config["training"])
-    Trainer.train(Model)
-
-
-print('done :)')
-
-
-
-
-
-
-        
-        
