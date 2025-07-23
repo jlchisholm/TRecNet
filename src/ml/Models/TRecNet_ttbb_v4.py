@@ -14,7 +14,7 @@
 
 from keras.layers import Flatten, Dense, concatenate, Masking, TimeDistributed, Reshape, Multiply
 
-def construct_TRecNet_ttbb_v3(Model,jet_input, other_input,jet_pretrain_model):
+def construct_TRecNet_ttbb_v4(Model,jet_input, other_input,jet_pretrain_model):
     
     # --- INITIAL JET PROCESSOR --- #
     

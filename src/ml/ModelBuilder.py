@@ -91,25 +91,28 @@ class ModelBuilder:
         
     def construct_architecture(self, jet_input, other_input, jet_pretrain_model, bb_pretrain_model):
         
-        if ('JetPretrainer_v1' in self.Model.model_name):
+        if (self.Model.model_v == 'JetPretrainer_v1'):
             from Models.JetPretrainer_v1 import construct_JetPretrainer_v1
-            output = construct_JetPretrainer_v1(self.Model, jet_input, other_input)       
-        elif ('TRecNet_tt_v1' in self.Model.model_name):
+            output = construct_JetPretrainer_v1(self.Model, jet_input, other_input)    
+        elif (self.Model.model_v == 'bbPretrainer_v1'):
+            from Models.JetPretrainer_v1 import construct_JetPretrainer_v1
+            output = construct_JetPretrainer_v1(self.Model, jet_input, other_input)     
+        elif (self.Model.model_v == 'TRecNet_tt_v1'):
             from Models.TRecNet_tt_v1 import construct_TRecNet_tt_v1
             output = construct_TRecNet_tt_v1(self.Model, jet_input, other_input, jet_pretrain_model)
-        elif ('TRecNet_ttbb_v1' in self.Model.model_name):
+        elif (self.Model.model_v == 'TRecNet_ttbb_v1'):
             from Models.TRecNet_ttbb_v1 import construct_TRecNet_ttbb_v1
             output = construct_TRecNet_ttbb_v1(self.Model, jet_input, other_input, jet_pretrain_model)
-        elif ('TRecNet_ttbb_v2' in self.Model.model_name):
+        elif (self.Model.model_v == 'TRecNet_ttbb_v2'):
             from Models.TRecNet_ttbb_v2 import construct_TRecNet_ttbb_v2
             output = construct_TRecNet_ttbb_v2(self.Model, jet_input, other_input, jet_pretrain_model)
-        elif ('TRecNet_ttbb_v3' in self.Model.model_name):
+        elif (self.Model.model_v == 'TRecNet_ttbb_v3'):
             from Models.TRecNet_ttbb_v3 import construct_TRecNet_ttbb_v3
             output = construct_TRecNet_ttbb_v3(self.Model, jet_input, other_input, jet_pretrain_model)
-        elif ('TRecNet_ttbb_v4' in self.Model.model_name):
+        elif (self.Model.model_v == 'TRecNet_ttbb_v4'):
             from Models.TRecNet_ttbb_v4 import construct_TRecNet_ttbb_v4
             output = construct_TRecNet_ttbb_v4(self.Model, jet_input, other_input, jet_pretrain_model)
-        elif ('TRecNet_ttbb_v5' in self.Model.model_name):
+        elif (self.Model.model_v == 'TRecNet_ttbb_v5'):
             from Models.TRecNet_ttbb_v5 import construct_TRecNet_ttbb_v5
             output = construct_TRecNet_ttbb_v5(self.Model, jet_input, other_input, jet_pretrain_model, bb_pretrain_model)
             

@@ -1,15 +1,15 @@
 ##########################################################################
 #                                                                        #
-#  JetPretrainer_v1.py                                                   #
+#  bbPretrainer_v1.py                                                    #
 #  Author: Jenna Chisholm                                                #
-#  Updated: Jul.21/25                                                    #
+#  Updated: Jul.23/25                                                    #
 #                                                                        #
 #  Function to construct architecture for first version of               #
-#  JetPretrainer. Compatible with any TRecNet model, so long as the      #
+#  bbPretrainer. Compatible with any TRecNet_ttbb model, so long as the  #
 #  same jet input and other input shape are used.                        #                                                      # 
 #                                                                        #
 #  This is the current (as of July 2025) recommended architecture for    #
-#  JetPretrainer                                                         #
+#  bbPretrainer.                                                         #
 #                                                                        #
 #  Thoughts for improvements:                                            #
 #                                                                        #
@@ -17,7 +17,7 @@
 
 from keras.layers import Flatten, Dense, concatenate
 
-def construct_JetPretrainer_v1(Model, jet_input, other_input):
+def construct_bbPretrainer_v1(Model, jet_input, other_input):
     
     flat_jets =  Flatten(name ='flattened_jets')(jet_input) 
     concat0 = concatenate([other_input, flat_jets], name = 'concat_jets_other')
