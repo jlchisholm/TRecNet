@@ -8,6 +8,7 @@
 #  purposes. Not intended for systematics.                           #
 #                                                                    #
 #  Thoughts for improvements:                                        #
+#       --> Include systematics
 #                                                                    #
 ######################################################################
 
@@ -33,7 +34,7 @@ class EventRemover:
         print("Creating EventRemover.")
     
     
-    def cutOnJets(tree,min_jets,str_jet_n):
+    def cutOnJets(self, tree,min_jets,str_jet_n):
         """
         Removes events that do not have at least min_jets jets.
         
@@ -53,7 +54,7 @@ class EventRemover:
         
         return tree
     
-    def cutOnbJets(tree,min_bjets,str_jet_isbtag):
+    def cutOnbJets(self, tree,min_bjets,str_jet_isbtag):
         """
         Removes events that do not have at least min_bjets b-tagged jets.
         
@@ -74,7 +75,7 @@ class EventRemover:
         return tree
     
     
-    def cutOnMinValue(tree,min,str_var):
+    def cutOnMinValue(self, tree,min,str_var):
         """
         Removes events that do not have at least the minimum value for a given variable.
         
@@ -95,7 +96,7 @@ class EventRemover:
         return tree
     
     
-    def cutOnMaxValue(tree,max,str_var):
+    def cutOnMaxValue(self, tree,max,str_var):
         """
         Removes events that have (strictly) more than the maximum value for a given variable.
         
@@ -116,7 +117,7 @@ class EventRemover:
         return tree
     
     
-    def removeNonSemiLep(tree,str_isSemiLep):
+    def removeNonSemiLep(self, tree,str_isSemiLep):
         """
         Removes events that are not semi-leptonic.
         
@@ -136,7 +137,7 @@ class EventRemover:
         return tree
     
     
-    def removeNonsense(tree,str_ttbar_eta):
+    def removeNonsense(self, tree,str_ttbar_eta):
         """
         Removes events that are generally problematic/non-sensical.
         
@@ -156,7 +157,7 @@ class EventRemover:
         return tree
         
         
-    def removeEvents(input_file,save_dir,var_conf,min_jets,min_bjets,min_met_met,remove_nonSemiLep,remove_nonsense):
+    def removeEvents(self, input_file,save_dir,var_conf,min_jets,min_bjets,min_met_met,remove_nonSemiLep,remove_nonsense):
         """
         Creates a new root file with the undesired events removed.
         
@@ -181,16 +182,18 @@ class EventRemover:
         # Open the original file and a new file to write to
         print('Opening root file ...')
         og_file = uproot.open(input_file)
+        
+        print(og_file["truth"].keys())
 
         # Get the reco and parton trees from the original file
         nom_name, up_name, down_name = getBranchNames(var_conf)
-        down_tree = og_file[down_name].arrays()
-        up_tree = og_file[up_name].arrays()
+        #down_tree = og_file[down_name].arrays()
+        #up_tree = og_file[up_name].arrays()
         nom_tree = og_file[nom_name].arrays()
 
         # Save the keys for later
-        down_keys = og_file[down_name].keys()
-        up_keys = og_file[up_name].keys()
+        #down_keys = og_file[down_name].keys()
+        #up_keys = og_file[up_name].keys()
         nom_keys = og_file[nom_name].keys()
         
         # Close the original file
@@ -227,8 +230,8 @@ class EventRemover:
         print('Writing trees to new file...')
         new_file_name = save_dir+'/'+in_name.split('.root')[0]+'_pruned.root'
         new_file = uproot.recreate(new_file_name)
-        new_file[down_name] = {key:down_tree[key] for key in down_keys}
-        new_file[up_name] = {key:up_tree[key] for key in up_keys}
+        #new_file[down_name] = {key:down_tree[key] for key in down_keys}
+        #new_file[up_name] = {key:up_tree[key] for key in up_keys}
         new_file[nom_name] = {key:nom_tree[key] for key in nom_keys}
         print('Saved file: '+new_file_name)
 
