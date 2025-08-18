@@ -182,8 +182,6 @@ class EventRemover:
         # Open the original file and a new file to write to
         print('Opening root file ...')
         og_file = uproot.open(input_file)
-        
-        print(og_file["truth"].keys())
 
         # Get the reco and parton trees from the original file
         nom_name, up_name, down_name = getBranchNames(var_conf)
