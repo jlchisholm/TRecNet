@@ -194,7 +194,7 @@ class VarAdder:
         return tree, keys
         
     
-    def addVars(self, add_isSemiLep, add_jet_n, add_jet_isbtag, add_jet_isTruth, add_thtl, add_b1b2):
+    def addVars(self, add_isSemiLep, add_jet_n, add_jet_isbtag, add_jet_isTruth, add_hadlep, add_b1b2):
         """
         Adds desired variables to the root file.
         
@@ -203,7 +203,7 @@ class VarAdder:
                 add_jet_n (bool): Flag for adding jet_n (number of jets in event) variable.
                 add_jet_isbtag (bool): Flag for adding jet_isbtag variable (with 2 as the working default).
                 add_jet_isTruth (bool): Flag for adding jet truth tags.
-                add_thtl (bool): Flag for adding all ttbar variables in terms of th and tl.
+                add_hadlep (bool): Flag for adding all ttbar variables in terms of th and tl.
                 add_b1b2 (bool): Flag for adding all bbbar variables in terms of b1 and b2.
         """
     
@@ -214,17 +214,19 @@ class VarAdder:
         # Open the original file and a new file to write to
         print('Opening root file ...')
         og_file = uproot.open(self.input_file)
-
-        # Get the reco and parton trees from the original file
+        
+        # Get the branch names
         nom_name, up_name, down_name = getBranchNames(self.var_conf)
-        #down_tree = og_file[down_name].arrays()
-        #up_tree = og_file[up_name].arrays()
-        nom_tree = og_file[nom_name].arrays()
 
-        # Save the keys for later
+        # Save the keys
         #down_keys = og_file[down_name].keys()
         #up_keys = og_file[up_name].keys()
-        nom_keys = og_file[nom_name].keys()
+        nom_keys = [key for key in og_file[nom_name].keys() if 'TLV' not in key] # currently TLV branches with sub-branches that are causing issues
+        
+        # Get the reco and parton trees from the original file
+        #down_tree = og_file[down_name].arrays()
+        #up_tree = og_file[up_name].arrays()
+        nom_tree = og_file[nom_name].arrays(nom_keys)
 
         # Close the original file
         og_file.close()
@@ -244,7 +246,7 @@ class VarAdder:
             WP_id = 2 # hard coded for now...
             nom_tree, nom_keys = self.add_jet_isbtag(nom_tree,nom_keys)
             
-        if (add_thtl):
+        if (add_hadlep):
             print('Adding thtl ...')
             nom_tree, nom_keys = self.add_thtl_vars(nom_tree,nom_keys)
             
@@ -252,7 +254,7 @@ class VarAdder:
             print('Adding b1b2 ...')
             nom_tree, nom_keys = self.add_b1b2_vars(nom_tree,nom_keys)
             
-         if (add_jet_isTruth):
+        if (add_jet_isTruth):
             
             print('Matching jets ...')
             
@@ -280,8 +282,8 @@ class VarAdder:
         print('Writing trees to new file...')
         new_file_name = self.save_dir+'/'+in_name
         new_file = uproot.recreate(new_file_name)
-        new_file[down_name] = {key:down_tree[key] for key in down_keys}
-        new_file[up_name] = {key:up_tree[key] for key in up_keys}
+        #new_file[down_name] = {key:down_tree[key] for key in down_keys}
+        #new_file[up_name] = {key:up_tree[key] for key in up_keys}
         new_file[nom_name] = {key:nom_tree[key] for key in nom_keys}
 
         print('Saved file: '+new_file_name)
@@ -315,7 +317,7 @@ parser.add_argument('--add_b1b2',help='Add b1 (leading) and b2 variables.',actio
 # Parse the arguments and proceed with stuff
 args = parser.parse_args()
 adder = VarAdder(args.input,args.save_dir,args.var_conf)
-adder.addVars(args.add_isSemiLep,args.add_njets,args.add_jet_isTruth,args.add_hadlep,args.add_b1b2)
+adder.addVars(args.add_isSemiLep,args.add_njets,args.add_jet_isbtag,args.add_jet_isTruth,args.add_hadlep,args.add_b1b2)
 
 
 print('Done :)')
