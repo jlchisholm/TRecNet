@@ -35,13 +35,13 @@ class JetMatcher:
     def __init__(self):
         print("Creating jetMatcher.")
         
-    def getParticleVecs(self, nom_tree, var_conf, mode):
+    def getParticleVecs(self, nom_tree, nom_keys, var_conf, extra_b_mode):
         
         # Get the necessary ntuple observable names
-        str_bh_pt, str_bh_eta, str_bh_phi, str_bh_m = getObservableNames(var_conf,'bh_pt','bh_eta','bh_phi','bh_m')
-        str_bl_pt, str_bl_eta, str_bl_phi, str_bl_m = getObservableNames(var_conf,'bl_pt','bl_eta','bl_phi','bl_m')
-        str_wh_decay1_pt, str_wh_decay1_eta, str_wh_decay1_phi, str_wh_decay1_m = getObservableNames(var_conf,'wh_decay1_pt','wh_decay1_eta','wh_decay1_phi','wh_decay1_m')
-        str_wh_decay2_pt, str_wh_decay2_eta, str_wh_decay2_phi, str_wh_decay2_m = getObservableNames(var_conf,'wh_decay2_pt','wh_decay2_eta','wh_decay2_phi','wh_decay2_m')
+        str_bh_pt, str_bh_eta, str_bh_phi, str_bh_m = getObservableNames(var_conf,nom_keys,'bh_pt','bh_eta','bh_phi','bh_m')
+        str_bl_pt, str_bl_eta, str_bl_phi, str_bl_m = getObservableNames(var_conf,nom_keys,'bl_pt','bl_eta','bl_phi','bl_m')
+        str_wh_decay1_pt, str_wh_decay1_eta, str_wh_decay1_phi, str_wh_decay1_m = getObservableNames(var_conf,nom_keys,'wh_decay1_pt','wh_decay1_eta','wh_decay1_phi','wh_decay1_m')
+        str_wh_decay2_pt, str_wh_decay2_eta, str_wh_decay2_phi, str_wh_decay2_m = getObservableNames(var_conf,nom_keys,'wh_decay2_pt','wh_decay2_eta','wh_decay2_phi','wh_decay2_m')
         
         # Calculate particle vectors and add them to the dic
         b_from_thad_vec = vector.array({"pt":nom_tree[str_bh_pt],"eta":nom_tree[str_bh_eta],"phi":nom_tree[str_bh_phi],"m":nom_tree[str_bh_m]})
@@ -51,15 +51,15 @@ class JetMatcher:
         particle_vecs = {'b_from_thad_vec': b_from_thad_vec, 'b_from_tlep_vec': b_from_tlep_vec, 'Wdecay1_from_thad_vec': Wdecay1_from_thad_vec, 'Wdecay2_from_thad_vec': Wdecay2_from_thad_vec}
         
         # Do the same for ttbb cases, if that is the mode
-        if mode=='ttbar_bbbar':
-            str_b_pt, str_b_eta, str_b_phi, str_b_m = getObservableNames(var_conf,'b_pt','b_eta','b_phi','b_m')
-            str_bbar_pt, str_bbar_eta, str_bbar_phi, str_bbar_m = getObservableNames(var_conf,'bbar_pt','bbar_eta','bbar_phi','bbar_m')
+        if extra_b_mode=='bbbar':
+            str_b_pt, str_b_eta, str_b_phi, str_b_m = getObservableNames(var_conf,nom_keys,'b_pt','b_eta','b_phi','b_m')
+            str_bbar_pt, str_bbar_eta, str_bbar_phi, str_bbar_m = getObservableNames(var_conf,nom_keys,'bbar_pt','bbar_eta','bbar_phi','bbar_m')
             b_vec = vector.array({"pt":nom_tree[str_b_pt],"eta":nom_tree[str_b_eta],"phi":nom_tree[str_b_phi],"m":nom_tree[str_b_m]})
             bbar_vec = vector.array({"pt":nom_tree[str_bbar_pt],"eta":nom_tree[str_bbar_eta],"phi":nom_tree[str_bbar_phi],"m":nom_tree[str_bbar_m]})
             particle_vecs.update({'b_vec':b_vec, 'bbar_vec':bbar_vec})
-        elif mode=='ttbar_b1b2':
-            str_b1_pt, str_b1_eta, str_b1_phi, str_b1_m = getObservableNames(var_conf,'b1_pt','b1_eta','b1_phi','b1_m')
-            str_b2_pt, str_b2_eta, str_b2_phi, str_b2_m = getObservableNames(var_conf,'b2_pt','b2_eta','b2_phi','b2_m')
+        elif extra_b_mode=='b1b2':
+            str_b1_pt, str_b1_eta, str_b1_phi, str_b1_m = getObservableNames(var_conf,nom_keys,'b1_pt','b1_eta','b1_phi','b1_m')
+            str_b2_pt, str_b2_eta, str_b2_phi, str_b2_m = getObservableNames(var_conf,nom_keys,'b2_pt','b2_eta','b2_phi','b2_m')
             b1_vec = vector.array({"pt":nom_tree[str_b1_pt],"eta":nom_tree[str_b1_eta],"phi":nom_tree[str_b1_phi],"m":nom_tree[str_b1_m]})
             b2_vec = vector.array({"pt":nom_tree[str_b2_pt],"eta":nom_tree[str_b2_eta],"phi":nom_tree[str_b2_phi],"m":nom_tree[str_b2_m]})
             particle_vecs.update({'b1_vec':b1_vec, 'b2_vec':b2_vec})
@@ -69,16 +69,17 @@ class JetMatcher:
         
 
 
-    def getMatches(self,nom_tree, dR_cut, allowDoubleMatch, var_conf, mode):
+    def getMatches(self,nom_tree, nom_keys, var_conf, dR_cut, allowDoubleMatch, extra_b_mode):
         """
         Matches ttbar decay products to reco-level jets.
 
             Parameters:
                 nom_tree (root tree): Nominal tree from the root file.
+                nom_keys (list of str): Nominal tree observable key names.
+                var_conf (str): Name (including path) of the variable names config file.
                 dR_cut (float): A threshold which the dR for all matches must be below.
                 allowDoubleMatch (bool): Whether or not two or more decay products are allowed to be matched to the same jet.
-                var_conf (str): Name (including path) of the variable names config file.
-                mode (str): 'ttbar', 'ttbar_bbbar', or 'ttbar_b1b2'
+                mode (str): 'bbbar', or 'b1b2'
 
             Returns:
                 isttbarJet (jagged array of bools): Tags for each jet in each event, where 0 means it was not matched to something, and 1 means it was.
@@ -90,12 +91,12 @@ class JetMatcher:
         match_info = []     # Just gonna be one long list my dude
         
         # Get list of MC particle vectors
-        particle_vecs = self.getParticleVecs(nom_tree, var_conf, mode)
+        particle_vecs = self.getParticleVecs(nom_tree, nom_keys, var_conf, extra_b_mode)
         
         # Get ntuple jet and pdgid observable names
-        str_jet_pt, str_jet_eta, str_jet_phi, str_jet_e, str_jet_partonLabel, str_jet_n = getObservableNames(var_conf,'jet_pt','jet_eta','jet_phi','jet_e','jet_partonLabel','jet_n')
-        str_wh_decay1_pdgid = getObservableName(var_conf,'wh_decay1_pdgid')
-        str_wh_decay2_pdgid = getObservableName(var_conf,'wh_decay2_pdgid')
+        str_jet_pt, str_jet_eta, str_jet_phi, str_jet_e, str_jet_partonLabel, str_jet_n = getObservableNames(var_conf,nom_keys,'jet_pt','jet_eta','jet_phi','jet_e','jet_partonLabel','jet_n')
+        str_wh_decay1_pdgid = getObservableName(var_conf,nom_keys,'wh_decay1_pdgid')
+        str_wh_decay2_pdgid = getObservableName(var_conf,nom_keys,'wh_decay2_pdgid')
 
         # Need to go through event by event :(
         num_events = len(nom_tree['eventNumber'])
@@ -114,10 +115,10 @@ class JetMatcher:
 
             # Calculate dRs and fractional delta pts of all MC particles with the reco jets
             particle_dict = {}
-            if mode=='ttbar_bbbar':
+            if extra_b_mode=='bbbar':
                 particle_dict.update({'b':{'dRs':jet_vectors.deltaR(particle_vecs['b_vec'][i]),'frac_delta_pts':((particle_vecs['b_vec'][i].pt - jet_vectors.pt)/particle_vecs['b_vec'][i].pt)},
                                       'bbar':{'dRs':jet_vectors.deltaR(particle_vecs['bbar_vec'][i]),'frac_delta_pts':((particle_vecs['bbar_vec'][i].pt - jet_vectors.pt)/particle_vecs['bbar_vec'][i].pt)}})
-            elif mode=='ttbar_b1b2':
+            elif extra_b_mode=='b1b2':
                 particle_dict.update({'b1':{'dRs':jet_vectors.deltaR(particle_vecs['b1_vec'][i]),'frac_delta_pts':((particle_vecs['b1_vec'][i].pt - jet_vectors.pt)/particle_vecs['b1_vec'][i].pt)},
                                       'b2':{'dRs':jet_vectors.deltaR(particle_vecs['b2_vec'][i]),'frac_delta_pts':((particle_vecs['b2_vec'][i].pt - jet_vectors.pt)/particle_vecs['b2_vec'][i].pt)}})
             

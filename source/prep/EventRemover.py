@@ -23,10 +23,13 @@ class EventRemover:
     A class for removing unwanted events from a root file.
 
         Methods:
-            cutOnJets: Removes events that do not have at least min_jets jets. 
-            cutOnbJets: Removes events that do not have at least min_bjets b-tagged jets.
-            removeNonSemiLep: Removes events that are not semi-leptonic.
-            removeNonsense: Removes events that are generally problematic/non-sensical.
+            cutOnJets: removes events that do not have at least <min_jets> jets. 
+            cutOnbJets: removes events that do not have at least <min_bjets> b-tagged jets.
+            cutOnMinValue: removes events that do not have at least the minimum value for a given variable.
+            cutOnMaxValue: removes events that have (strictly) more than the maximum value for a given variable.
+            removeNonSemiLep: removes events that are not semi-leptonic.
+            removeNonsense: removes events that are generally problematic/non-sensical.
+            removeEvents: creates a new root file with the undesired events removed.
 
     """
 
@@ -36,7 +39,7 @@ class EventRemover:
     
     def cutOnJets(self, tree,min_jets,str_jet_n):
         """
-        Removes events that do not have at least min_jets jets.
+        Removes events that do not have at least <min_jets> jets.
         
             Parameters:
                 tree (root tree): Nominal tree from the root file.
@@ -56,12 +59,12 @@ class EventRemover:
     
     def cutOnbJets(self, tree,min_bjets,str_jet_isbtag):
         """
-        Removes events that do not have at least min_bjets b-tagged jets.
+        Removes events that do not have at least <min_bjets> b-tagged jets.
         
             Parameters:
                 tree (root tree): Nominal tree from the root file.
                 min_bjets (int): Minimum number of b-tagged jets per event.
-                n_jet_isbtag (str): Ntuple name for 'jet_isbtag'.
+                str_jet_isbtag (str): Ntuple name for 'jet_isbtag'.
 
             Returns:
                 tree (root tree): Nominal tree, with events of at least min_bjets b-tagged jets.
@@ -198,28 +201,25 @@ class EventRemover:
         og_file.close()
         
         # Remove non-desired events
-        if min_jets > 0:
+        if (min_jets > 0):
             print('Removing events with less than '+str(min_jets)+' jets ...')
-            str_jet_n = getObservableName('jet_n')
+            str_jet_n = getObservableName(var_conf,nom_keys,'jet_n')
             nom_tree = self.cutOnJets(nom_tree,min_jets,str_jet_n)
-        if min_bjets > 0:
+        if (min_bjets > 0):
             print('Removing events with less than '+str(min_bjets)+' b-tagged jets ...')
-            if('jet_isbtag' not in nom_keys):
-                print('Binary b-tags missing from nominal tree. Please add these to your ntuple before continuing.')
-                sys.exit()
-            str_jet_isbtag = getObservableName('jet_isbtag')
+            str_jet_isbtag = getObservableName(var_conf,nom_keys,'jet_isbtag')
             nom_tree = self.cutOnbJets(nom_tree,min_bjets,str_jet_isbtag)
-        if min_met_met > 0:
+        if (min_met_met > 0):
             print('Removing events with met_met less than '+str(min_met_met)+' ...')
-            str_met_met = getObservableName('met_met')
+            str_met_met = getObservableName(var_conf,nom_keys,'met_met')
             nom_tree = self.cutOnMinValue(nom_tree,min_met_met,str_met_met)
         if remove_nonSemiLep:
             print('Removing non semi-leptonic events ...')
-            str_isSemiLep = getObservableName('isSemiLep')
+            str_isSemiLep = getObservableName(var_conf,nom_keys,'isSemiLep')
             nom_tree = self.removeNonSemiLep(nom_tree,str_isSemiLep)
         if remove_nonsense:
             print('Removing nonsensical events ...')
-            str_ttbar_eta = getObservableName('ttbar_eta')
+            str_ttbar_eta = getObservableName(var_conf,nom_keys,'ttbar_eta')
             nom_tree = self.removeNonsense(nom_tree,str_ttbar_eta)
             
             
@@ -250,9 +250,9 @@ parser = ArgumentParser()
 parser.add_argument('--input',help='Input file (including path).',required=True)
 parser.add_argument('--save_dir',help='Path for directory where file will be saved.',required=True)
 parser.add_argument('--var_conf',help='Config file (including path) for names of variables.',required=True)
-parser.add_argument('--min_jets',help='Set minimum number of jets per event.',default=0)
-parser.add_argument('--min_bjets',help='Set minimum number of b-tagged jets per event.',default=0)
-parser.add_argument('--min_met_met',help='Set minimum met_met.',default=20)
+parser.add_argument('--min_jets',help='Set minimum number of jets per event.',default=0,type=int)
+parser.add_argument('--min_bjets',help='Set minimum number of b-tagged jets per event.',default=0,type=int)
+parser.add_argument('--min_met_met',help='Set minimum met_met.',default=20,type=float)
 parser.add_argument('--remove_nonSemiLep',help='Removes events that are not semi-leptonic.',action='store_true')
 parser.add_argument('--remove_nonsense',help='Removes events that are non-sensical.',action='store_true')
 
