@@ -154,7 +154,7 @@ class MLFilePrep:
         # Include jet origin info
         if include_jet_truths:
             for jet_truth in ['_isTruth','_isFromttbar','_isExtraB']:
-                if jet_truth in keys:
+                if 'jet'+jet_truth in keys:
                     padded_matches = np.asarray(ak.fill_none(ak.pad_none(truth_tree['jet'+jet_truth], jn, clip=True), 0))
                     for j in range(jn):
                         df_truth['j'+str(j+1)+jet_truth] = padded_matches[:,j]
