@@ -15,7 +15,7 @@ class Scaler:
         df = pd.DataFrame(data_dic)
 
         # Figure out which variables you do and don't want to scale
-        dont = {key:1 if 'phi' in key or 'isbtag' in key or 'DL1r' in key or 'isTruth' in key or 'isTruth_bb' in key else 0 for key in df.keys()}
+        dont = {key:1 if 'phi' in key or 'isbtag' in key or 'DL1r' in key or 'isTruth' in key else 0 for key in df.keys()}
         do = {key:1-i for key, i in dont.items()}
 
         # Get the maxs and means of the variables we're using
@@ -41,7 +41,7 @@ class Scaler:
         df_unscaled = df_scaled*maxs + means
 
         # Figure out which variables you do and don't want to scale
-        dont = {key:1 if 'phi' in key or 'isbtag' in key or 'DL1r' in key or 'isTruth' in key or 'isTruth_bb' in key else 0 for key in df_scaled.keys()}
+        dont = {key:1 if 'phi' in key or 'isbtag' in key or 'DL1r' in key or 'isTruth' in key else 0 for key in df_scaled.keys()}
         do = {key:1-i for key, i in dont.items()}
 
         # Get a final dataset, with the desired variables scaled
@@ -64,8 +64,12 @@ class Scaler:
             # Will be encoding phi as px and py when pt is available
             if 'pt' in key:
                 par = key.split('_')[0]
-                pts, etas, phis = np.array(dataset.get(key)), np.array(dataset.get(par+'_eta')), np.array(dataset.get(par+'_phi'))
-                pts, pxs, pys, etas = self.cart_pt_transform(pts, etas, phis)
+                #pts, etas, phis = np.array(dataset.get(key)), np.array(dataset.get(par+'_eta')), np.array(dataset.get(par+'_phi'))
+                #pts, pxs, pys, etas = self.cart_pt_transform(pts, etas, phis)
+                
+                vecs = vector.array({"pt":np.array(dataset.get(key)), "eta": np.array(dataset.get(par+'_eta')),"phi": np.array(dataset.get(par+'_phi'))})
+                pts, pxs, pys, etas = vecs.pt, vecs.px, vecs.py, vecs.eta
+                
                 data_dic[key], data_dic[par+'_px'], data_dic[par+'_py'], data_dic[par+'_eta'] = pts, pxs, pys, etas
                 
                 # And if it's truth, we also want to predict cos phi and sin phi
@@ -80,7 +84,7 @@ class Scaler:
                 data_dic[key+'-sin'], data_dic[key+'-cos'] = sins, coss
                 
             # All other variables not yet added have no changes and can just be included as is
-            elif 'm' in key or 'btag' in key or 'isTruth' in key or 'isTruth_bb' in key or key=='met_met' or key=='bbbar_dphi' or key=='bbbar_dR':
+            elif 'm' in key or 'btag' in key or 'isTruth' in key or key=='met_met':
                 data_dic[key] = np.array(dataset.get(key))
 
         # Do a maxmean scaling of the data
@@ -100,8 +104,12 @@ class Scaler:
         for name in names:
             if 'pt' in name:
                 par = name.split('_')[0]
-                pts, pxs, pys, etas = data_dic[name], data_dic[par+'_px'], data_dic[par+'_py'], data_dic[par+'_eta']
-                pts, etas, phis = self.inv_cart_pt_transform(pts, pxs, pys, etas)
+                #pts, pxs, pys, etas = data_dic[name], data_dic[par+'_px'], data_dic[par+'_py'], data_dic[par+'_eta']
+                #pts, etas, phis = self.inv_cart_pt_transform(pts, pxs, pys, etas)
+                
+                vecs = vector.array({"px": data_dic[par+'_px'],"py":data_dic[par+'_py']})
+                pts, etas, phis = data_dic[name], data_dic[par+'_eta'], vecs.phi
+                
                 unscaled_dic[name], unscaled_dic[par+'_eta'], unscaled_dic[par+'_phi'] = pts, etas, phis
                 
                 # And if it's truth, we also want to predict cos phi and sin phi
@@ -153,26 +161,26 @@ class Scaler:
 
     # SEE IF VECTOR WILL DO THESE INSTEAD? Should do first two but not second two ...
 
-    def cart_pt_transform(self, pt, eta, phi):  # Same as Tao's
-        px = pt*np.cos(phi)
-        py = pt*np.sin(phi)
-        return pt,px,py,eta
+    # def cart_pt_transform(self, pt, eta, phi):  # Same as Tao's
+    #     px = pt*np.cos(phi)
+    #     py = pt*np.sin(phi)
+    #     return pt,px,py,eta
     
-    def inv_cart_pt_transform(self, pt, px, py, eta):  # Same as Tao's
-        phi = np.arctan2(py, px)
-        return pt, eta, phi
+    # def inv_cart_pt_transform(self, pt, px, py, eta):  # Same as Tao's
+    #     phi = np.arctan2(py, px)
+    #     return pt, eta, phi
     
-    def phi_transform(self, phi):
-        w = phi % (2*np.pi)
-        s = np.sin(w)
-        c = np.cos(w)
-        return s,c
+    # def phi_transform(self, phi):
+    #     w = phi % (2*np.pi)
+    #     s = np.sin(w)
+    #     c = np.cos(w)
+    #     return s,c
     
-    def inv_phi_transform(self, s, c):
-        phi = np.arctan2(s,c)
-        phi = w % (2*np.pi)
-        phi = phi-2*np.pi*(phi>np.pi)
-        return phi
+    # def inv_phi_transform(self, s, c):
+    #     phi = np.arctan2(s,c)
+    #     phi = w % (2*np.pi)
+    #     phi = phi-2*np.pi*(phi>np.pi)
+    #     return phi
     
     def phi_triangle_transform(self, phi):   # Different
         w = phi % (2*np.pi)   # This might not be needed, unsure

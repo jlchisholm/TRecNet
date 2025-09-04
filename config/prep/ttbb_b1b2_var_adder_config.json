@@ -1,0 +1,35 @@
+{
+    "isSemiLep":
+    {
+        "add_var": true
+    },
+    "jet_n":
+    {
+        "add_var": true
+    },
+    "jet_isbtag":
+    {
+        "add_var": true,
+        "WP_id": 4
+    },
+    "hadlep":
+    {
+        "add_var": true
+    },
+    "b1b2":
+    {
+        "add_var": true
+    },
+    "jet_isTruth":
+    {
+        "add_var": true
+    },
+    "jet_isExtraB":
+    {
+        "add_var": true
+    },
+    "jet_isFromttbar":
+    {
+        "add_var": true
+    }
+}

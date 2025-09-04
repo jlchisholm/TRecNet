@@ -2,7 +2,7 @@ from __main__ import *
 import re
 import numpy as np
 
-class Shape_timesteps:
+class ShapeTimesteps:
     def __init__(self, dataset, jn, mask_value):
         #self.num_jet_features = None
         #self.num_jets = None
@@ -73,8 +73,6 @@ class Shape_timesteps:
 
         # Number of other is just the length
         num_other_Xfeatures = len(other_names)
-
-
 
         # This splits X into jets and other
         X_jets_df = X_total_df[jet_names]
