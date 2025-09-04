@@ -12,13 +12,33 @@ Before testing or training a TRecNet model, the data must be formatted properly 
 
 1. Create a `json` config file containing the names of the observables as they appear in your ntuple. Examples in `config/prep` (note: the names of the left are those used in TRecNet -- do NOT change these.)
 2. Add any extra variables you will need, by running VarAdder.py on each of your ntuples. To do this you will also require a json config file for VarAdder (example in `config/prep`). Note that new files will have the same name (and possibly overwrite the old files, depending on save directory).
+```console
+$ python source/prep/VarAdder.py --input <path/ntuple.root> --save_dir <save_directory_path> --var_conf config/prep/<var_names_config.json> --var_adder_conf config/prep/<var_adder_config.json>
+```
 3. Remove any bad events that will lead to poor training, by running EventRemover.py on each of the ntuples (after they've gone through VarAdder). The word 'pruned' will be added to the end of the file name.
+```console
+$ python source/prep/EventRemover.py --input <path/ntuple.root> --save_dir <save_directory_path> --var_conf config/prep/<var_names_config.json> --min_jets <min_jets> --min_bjets <min_bjets> --remove_nonSemiLep --remove_nonsense
+```
 4. Make h5 files, by running MLFilePrep.py/makeH5File on the ntuples that you have run through both VarAdder and EventRemover.
+```console
+$ python source/prep/MLFilePrep.py makeH5File --input <path/ntuple.root> --save_dir <save_directory_path> --tree_type nominal --var_conf config/prep/<var_names_config.json> --jn <num_jets> --extra_b_mode <e.g.b1b2> --include_jet_truths
+```
 5. Combine all your h5 files together and then split them into one training file and one testing file, using MLFilePrep/makeTrainTestH5Files. For this, you will need to create a text file that lists all of the h5 files you want to use (examples in `file_lists/` directory). This is what you will feed into TRecNet.
-6. Create the dictionaries of max/mean values, by running MaxMeanMachine.py on your training h5 file.
+```console
+$ python source/prep/MLFilePrep.py combineH5Files --file_list file_lists/<file_list.txt> --output <path/output_name>
+```
+6. Create the dictionaries of max/mean values, by running MaxMeanMachine.py on your training h5 file. You'll want to make sure `extra_b_mode` is set to the same thing that you used in the previous steps.
+```console
+$ python source/prep/MaxMeanMachine.py --input <path/training_file.h5>  --save_dir <save_directory_path> --extra_b_mode <e.g.b1b2>
+
+```
 
 **Tip:** If at any point you're having trouble running things and you're running out of memory, you can use `source/prep/FileSplitter.py` to split up your files into smaller chunks.
+
 **Tip:** All of the above steps (except for step 1) have example scripts in the `scripts` directory.
+
+### Machine Learning
+
 
 
 
