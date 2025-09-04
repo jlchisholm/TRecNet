@@ -2,7 +2,7 @@
 
 ## Introduction
 
-TRecNet is a deep neural network designed to infer the four-vectors of top and anti-top quarks from detector-level decay products in the semi-leptonic channel of top anti-top pair production. It was the main work of a master's thesis, which can be found [here](https://open.library.ubc.ca/soa/cIRcle/collections/ubctheses/24/items/1.0437237).
+TRecNet is a deep neural network designed to infer the four-vectors of top and anti-top quarks from detector-level decay products in the semi-leptonic channel of top anti-top pair production (TRecNet can currently handle: $t\bar{t}$ or $t\bar{t}b\bar{b}$). It was the main work of a master's thesis, which can be found [here](https://open.library.ubc.ca/soa/cIRcle/collections/ubctheses/24/items/1.0437237).
 
 ## Training/Testing a Model
 
@@ -37,7 +37,9 @@ _**Tip:**_ If at any point you're having trouble running things and you're runni
 
 _**Tip:**_ All of the above steps (except for step 1) have example scripts in the `scripts` directory.
 
-### Machine Learning
+### Training A New Model
+
+Everything to train (and test) your new model can be found in the directory `source/ml/`. Most often you'll be creating (referred to as `create` mode) a new TRecNet model or a new classifier (that can later be inserted into a TRecNet model). However, you can also unfreeze (referred to as `unfreeze` mode) TRecNet models that were previously trained with a pretrained classifier and fine-tune your network. Finally, you can hypertune (referred to as `hypertune` mode) a TRecNet or classifier model.
 
 **1. Set up container:** Before training your model, you will ensure you have an environment with all the necessary libraries and GPU. One can create an appropriate container by running:
 ```console
@@ -48,6 +50,14 @@ This only needs to be done once. Then one can run the container using the follow
 $ singularity run --nv --bind <directory_with_data> <directory_container_is_in>/<container_name.sif>
 ```
 **2. Create training config:** Create a `json` file full of your training configurations. This includes data files, number of jets, model hyperparameters, etc. Examples can be found in the `config/training/` directory. 
+
+**3. Select or create an architecture:** Each different model architecture has its own build file in the directory `source/ml/Models/`. Choose which one suits your needs, or create one that suits your needs.
+
+**4. Train your model:** Run your training model in `create` mode, using the following command (in the container):
+```console
+$ python source/ml/run_training.py -v <model_architecture_version> -c config/training/<training_config.json> -m create
+```
+
 
 
 
