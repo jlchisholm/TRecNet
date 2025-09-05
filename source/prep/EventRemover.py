@@ -13,7 +13,7 @@
 ######################################################################
 
 import uproot
-import os, sys
+import os
 from argparse import ArgumentParser
 from Util import *
 
@@ -23,10 +23,7 @@ class EventRemover:
     A class for removing unwanted events from a root file.
 
         Methods:
-            cutOnJets: removes events that do not have at least <min_jets> jets. 
-            cutOnbJets: removes events that do not have at least <min_bjets> b-tagged jets.
             cutOnMinValue: removes events that do not have at least the minimum value for a given variable.
-            cutOnMaxValue: removes events that have (strictly) more than the maximum value for a given variable.
             removeNonSemiLep: removes events that are not semi-leptonic.
             removeNonsense: removes events that are generally problematic/non-sensical.
             removeEvents: creates a new root file with the undesired events removed.
@@ -35,48 +32,9 @@ class EventRemover:
 
     def __init__(self):
         print("Creating EventRemover.")
-    
-    
-    def cutOnJets(self, tree,min_jets,str_jet_n):
-        """
-        Removes events that do not have at least <min_jets> jets.
-        
-            Parameters:
-                tree (root tree): Nominal tree from the root file.
-                min_jets (int): Minimum number of jets per event.
-                str_jet_n (str): Ntuple name for 'jet_n'.
-
-            Returns:
-                tree (root tree): Nominal tree, with events of at least min_jets jets.
-        """
-        
-        sel = tree[str_jet_n]>=min_jets
-        tree = tree[sel]
-        
-        print('Events with less than '+str(min_jets)+' jets removed.')
-        
-        return tree
-    
-    def cutOnbJets(self, tree,min_bjets,str_jet_isbtag):
-        """
-        Removes events that do not have at least <min_bjets> b-tagged jets.
-        
-            Parameters:
-                tree (root tree): Nominal tree from the root file.
-                min_bjets (int): Minimum number of b-tagged jets per event.
-                str_jet_isbtag (str): Ntuple name for 'jet_isbtag'.
-
-            Returns:
-                tree (root tree): Nominal tree, with events of at least min_bjets b-tagged jets.
-        """
-        
-        sel = [len(tree[str_jet_isbtag][i,:])>=min_bjets for i in tree[str_jet_isbtag]]
-        tree = tree[sel]
-        
-        print('Events with less than '+str(min_bjets)+' jets removed.')
-        
-        return tree
-    
+        self.ni = 0
+        self.ni_now = 0
+        self.nf = 0
     
     def cutOnMinValue(self, tree,min,str_var):
         """
@@ -94,31 +52,12 @@ class EventRemover:
         sel = tree[str_var]>=min
         tree = tree[sel]
         
-        print('Events with less than '+str(min)+' for '+str_var+' removed.')
+        # Keeping track of events removed
+        self.nf = len(tree)
+        print(str(self.ni_now-self.nf)+' events with less than '+str(min)+' for '+str_var+' removed.')
+        self.ni_now = self.nf
         
         return tree
-    
-    
-    def cutOnMaxValue(self, tree,max,str_var):
-        """
-        Removes events that have (strictly) more than the maximum value for a given variable.
-        
-            Parameters:
-                tree (root tree): Nominal tree from the root file.
-                min (double): Minimum number of b-tagged jets per event.
-                str_var (str): Ntuple name for the variable.
-
-            Returns:
-                tree (root tree): Nominal tree, with events of no more than max value for given variable.
-        """        
-        
-        sel = tree[str_var]<max
-        tree = tree[sel]
-        
-        print('Events with more than '+str(max)+' for '+str_var+' removed.')
-        
-        return tree
-    
     
     def removeNonSemiLep(self, tree,str_isSemiLep):
         """
@@ -135,7 +74,10 @@ class EventRemover:
         sel = tree[str_isSemiLep]==1
         tree = tree[sel]
 
-        print('Non semi-leptonic events removed.')
+        # Keeping track of events removed
+        self.nf = len(tree)
+        print(str(self.ni_now-self.nf)+' non semi-leptonic events removed.')
+        self.ni_now = self.nf
         
         return tree
     
@@ -152,10 +94,14 @@ class EventRemover:
                 tree (root tree): Nominal tree, with bad events removed.
         """
         
-        sel = tree[str_ttbar_eta]>-100
-        tree = tree[sel]
+        sel1 = tree[str_ttbar_eta]>-100
+        sel2 = tree[str_ttbar_eta]<100
+        tree = tree[sel1*sel2]
         
-        print('Nonsensical events removed.')
+        # Keeping track of events removed
+        self.nf = len(tree)
+        print(str(self.ni_now-self.nf)+' nonsensical (|ttbar_eta|>100) events removed.')
+        self.ni_now = self.nf
         
         return tree
         
@@ -200,15 +146,20 @@ class EventRemover:
         # Close the original file
         og_file.close()
         
+        # Get the initial number of events
+        self.ni = len(nom_tree)
+        self.ni_now = self.ni
+        print('Initial number of events: '+str(self.ni))
+        
         # Remove non-desired events
         if (min_jets > 0):
             print('Removing events with less than '+str(min_jets)+' jets ...')
             str_jet_n = getObservableName(var_conf,nom_keys,'jet_n')
-            nom_tree = self.cutOnJets(nom_tree,min_jets,str_jet_n)
+            nom_tree = self.cutOnMinValue(nom_tree,min_jets,str_jet_n)
         if (min_bjets > 0):
             print('Removing events with less than '+str(min_bjets)+' b-tagged jets ...')
-            str_jet_isbtag = getObservableName(var_conf,nom_keys,'jet_isbtag')
-            nom_tree = self.cutOnbJets(nom_tree,min_bjets,str_jet_isbtag)
+            str_bjet_n = getObservableName(var_conf,nom_keys,'bjet_n')
+            nom_tree = self.cutOnMinValue(nom_tree,min_bjets,str_bjet_n)
         if (min_met_met > 0):
             print('Removing events with met_met less than '+str(min_met_met)+' ...')
             str_met_met = getObservableName(var_conf,nom_keys,'met_met')
@@ -222,7 +173,7 @@ class EventRemover:
             str_ttbar_eta = getObservableName(var_conf,nom_keys,'ttbar_eta')
             nom_tree = self.removeNonsense(nom_tree,str_ttbar_eta)
             
-            
+        print("Total number of events removed: "+str(self.ni-self.ni_now))
             
         # Write the trees to the file
         print('Writing trees to new file...')

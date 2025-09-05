@@ -12,6 +12,10 @@
         "add_var": true,
         "WP_id": 4
     },
+    "bjet_n":
+    {
+        "add_var": true
+    },
     "hadlep":
     {
         "add_var": true

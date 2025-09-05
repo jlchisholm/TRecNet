@@ -28,7 +28,8 @@ class VarAdder:
         Methods:
             add_isSemiLep_var: adds a binary tag to each event for whether or not the event is semi-leptonic.
             add_jet_n_var: adds variable for the number of jets in each event.
-            add_jet_isbtag: adds jets a binary tag to say whether or not they are b-jets (based on the working point, <WP_id>).
+            add_jet_isbtag_var: adds jets a binary tag to say whether or not they are b-jets (based on the working point, <WP_id>).
+            add_bjet_n_var: adds variable for the number of bjets in each event.
             add_hadlep_vars: adds th and tl (etc.) distinguishments for truth values depending on t and tbar (etc.).
             add_b1b2_vars: adds b1 and b2 distinguishments for truth values depending on b and bbar.
             addVars: adds desired variables to given root file.
@@ -52,6 +53,7 @@ class VarAdder:
         self.add_isSemiLep = settings["isSemiLep"]["add_var"]
         self.add_jet_n = settings["jet_n"]["add_var"]
         self.add_jet_isbtag = settings["jet_isbtag"]["add_var"]
+        self.add_bjet_n = settings["bjet_n"]["add_var"]
         self.add_hadlep = settings["hadlep"]["add_var"]
         self.add_b1b2 = settings["b1b2"]["add_var"]
         self.add_jet_isTruth = settings["jet_isTruth"]["add_var"]
@@ -148,7 +150,34 @@ class VarAdder:
         tree[btag_key] = btags
         
         return tree, keys
+    
+    def add_bjet_n_var(self, tree, keys):
+        """
+        Adds variable for the number of bjets in each event.
+        
+            Parameters:
+                tree (awkward array): nominal tree
+                keys (list of str): keys for nominal tree
 
+            Returns:
+                tree (awkward array): nominal tree with updated truth values
+                keys (list of str): fixed keys for nominal tree
+        """
+        
+        # add n_jets key
+        bjet_key = "bjet_n"
+        keys.append(bjet_key)
+
+        # construct array of jet numbers based on jet_pt
+        str_jet_isbtag = getObservableName(self.var_conf, keys, "jet_isbtag")
+        btags = tree[str_jet_isbtag]
+        n_bjets = [len(bjets) for bjets in btags[btags==True]]
+
+        # set n_jets in tree
+        tree[bjet_key] = n_bjets
+        
+        return tree, keys 
+ 
     def add_hadlep_vars(self, tree, keys):
         """
         Adds th and tl (etc.) distinguishments for truth values depending on t and tbar (etc.).
@@ -380,6 +409,10 @@ class VarAdder:
             print('Adding jet_isbtag ...')
             nom_tree, nom_keys = self.add_jet_isbtag_var(nom_tree,nom_keys)
             
+        if (self.add_bjet_n):
+            print('Adding bjet_n ...')
+            nom_tree, nom_keys = self.add_bjet_n_var(nom_tree,nom_keys)
+            
         if (self.add_hadlep):
             print('Adding thtl ...')
             nom_tree, nom_keys = self.add_hadlep_vars(nom_tree,nom_keys)
@@ -403,7 +436,10 @@ class VarAdder:
                    
         # Write the trees to the file
         print('Writing trees to new file...')
-        new_file_name = self.save_dir+'/'+in_name
+        if self.add_jet_isbtag:
+            new_file_name = self.save_dir+'/'+in_name.split('.root')[0]+'_WP'+str(self.WP_id)+'.root'
+        else:
+            new_file_name = self.save_dir+'/'+in_name.split('.root')[0]+'_WP'+str(self.WP_id)+'.root'
         new_file = uproot.recreate(new_file_name)
         #new_file[down_name] = {key:down_tree[key] for key in down_keys}
         #new_file[up_name] = {key:up_tree[key] for key in up_keys}
