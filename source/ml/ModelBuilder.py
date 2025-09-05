@@ -38,8 +38,7 @@ class TRecNet_Model:
             Attributes:
                 model_v (str): Architecture version of the model to be trained (e.g. 'TRecNet_ttbb_v2').
                 model_name (str): Name of the model, including architecture version (e.g. 'TRecNet_ttbb_v2+ttbar').
-                model_num (str): Unique model identifier, based on model name, number of jets, and time it was created.
-                model_id (str): Full model ID, which includes the model name, number of jets, and unique model ID.
+                model_id (str): Full model ID, which includes the model name, number of jets, and unique model number.
                 n_jets (int): Number of jets to train the model on.
                 mask_value (int): Mask value for padded jets (needs to match data prep).
         """
@@ -60,7 +59,6 @@ class TRecNet_Model:
         # Set attributes
         self.model_v = version
         self.model_name = model_name
-        self.model_num = time.strftime("%Y%m%d_%H%M%S")
         self.n_jets = n_jets
         self.model_id = time.strftime(model_name+"_"+str(n_jets)+"jets_%Y%m%d_%H%M%S") # Model unique save name (based on the date)
 

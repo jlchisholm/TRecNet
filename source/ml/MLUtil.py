@@ -30,12 +30,12 @@ class Utilities:
     def __init__(self):
         pass
 
-    def getInputKeys(self, model_name, n_jets, add_ttbar, extra_b_mode):
+    def getInputKeys(self, model_v, n_jets, add_ttbar, extra_b_mode):
         """
         Gets lists of the (original scale) X and Y variable keys.
 
             Parameters:
-                model_name (str): Name of the model (e.g. 'TRecNet+ttbar').
+                model_v (str): Version of the model (e.g. 'TRecNet_ttbb_v1').
                 n_jets (int): Number of jets the model is or will be trained on.
                 add_ttbar (bool): Whether or not to include ttbar variables.
                 extra_b_mode (str): How extra b's are defined ('bbbar' or 'b1b2').
@@ -49,17 +49,17 @@ class Utilities:
         X_keys = ['j'+str(i+1)+'_'+v for i, v in itertools.product(range(n_jets),['pt','eta','phi','m','isbtag'])] + ['lep_pt', 'lep_eta', 'lep_phi', 'met_met', 'met_phi']
             
         # Y keys
-        if model_name=='JetPretrainer': 
+        if 'JetPretrainer' in model_v: 
             Y_keys = ['j'+str(i+1)+'_isFromttbar' for i in range(n_jets)]
             
-        elif model_name == 'bbPretrainer':
+        elif 'bbPretrainer' in model_v:
             Y_keys = ['j'+str(i+1)+'_isExtraB' for i in range(n_jets)]
             
         else:
             Y_keys = ['th_pt', 'th_eta','th_phi','th_m', 'wh_pt', 'wh_eta', 'wh_phi', 'wh_m', 'tl_pt', 'tl_eta', 'tl_phi', 'tl_m', 'wl_pt', 'wl_eta', 'wl_phi', 'wl_m']
             if add_ttbar:
                 Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
-            if extra_b_mode == 'bbar':
+            if extra_b_mode == 'bbbar':
                 Y_keys.extend(['b_pt','b_m','b_eta','b_phi','bbar_pt','bbar_m','bbar_eta','bbar_phi'])
             elif extra_b_mode == 'b1b2':
                 Y_keys.extend(['b1_pt','b1_m','b1_eta','b1_phi','b2_pt','b2_m','b2_eta','b2_phi'])

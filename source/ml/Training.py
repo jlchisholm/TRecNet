@@ -165,7 +165,7 @@ class Training:
 
         # These are the keys for what we're feeding into the pre-processing, and getting back in the end
         # X and Y variables to be used (NOTE: later have option to feed these in?)
-        self.X_keys, self.Y_keys = processor.getInputKeys(Model.model_name, Model.n_jets, Model.with_ttbar, Model.extra_b_mode)
+        self.X_keys, self.Y_keys = processor.getInputKeys(Model.model_v, Model.n_jets, Model.with_ttbar, Model.extra_b_mode)
 
         # Load maxmean
         X_maxmean_dic, Y_maxmean_dic = processor.loadMaxMean(self.xmm_file, self.ymm_file)
