@@ -2,3 +2,7 @@ __pycache__/
 .ipynb_checkpoints/
 .tensorboard_logs/
 .vscode/
+tensorboard_logs/
+image/TRecNetContainer.sif
+scripts/my_scripts/
+image/*.sif
