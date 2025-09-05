@@ -9,7 +9,7 @@ source /home/jchishol/scratch_env/bin/activate
 cd /home/jchishol/TRecNet/
 
 # run the code
-python source/prep/VarAdder.py  --input /data/ttbb/trecnet/ttbb_603192_mc20d_fullsim.root --save_dir /data/jchishol/ttbb_trecnet_0825/varAdder_ntuples --var_conf config/prep/ttbb_var_names_config.json --var_adder_conf config/prep/ttbb_b1b2_var_adder_config.json
+python source/prep/VarAdder.py  --input /data/ttbb/trecnet/ttbb_603192_mc20e_fullsim.root --save_dir /data/jchishol/ttbb_trecnet_0825/varAdder_ntuples --var_conf config/prep/ttbb_var_names_config.json --var_adder_conf config/prep/ttbb_b1b2_var_adder_config.json
 
 # done
 # do some cleanup, move output files elsewhere if needed
