@@ -13,8 +13,6 @@
 
 import keras
 from keras.layers import Input, TFSMLayer
-from keras import regularizers 
-from keras import initializers
 
 import time
 
@@ -24,24 +22,32 @@ class TRecNet_Model:
     A class for creating a machine learning model object, mainly to store relevant attributes of the model.
     """
 
-    def __init__(self, version, n_jets, add_ttbar, b_mode, add_jetpretrain, add_bbpretrain, unfreeze_mode):
+    def __init__(self, version, n_jets, add_ttbar, extra_b_mode, add_jetpretrain, add_bbpretrain, unfreeze_mode):
         """
         Initializes a machine learning model object.
 
             Parameters:
-                model_name (str): Name of the model (e.g. 'TRecNet+ttbar').
-                model_id (str): Unique model identifier (default: None).
+                version (str): Architecture version of the model to be trained (e.g. 'TRecNet_ttbb_v2').
                 n_jets (int): Number of jets the model is trained with (default: None).
+                add_ttbar (bool): Whether or not to include ttbar variables.
+                extra_b_mode (str): How extra b's are defined ('bbbar' or 'b1b2').
+                add_jetpretrain (bool): Whether or not use a pretrained jet classifier.
+                add_bbpretrain (bool): Whether or not use a pretrained bb classifier.
+                unfreeze_mode (bool): Whether or not we're unfreezing a previously trained model.    
 
             Attributes:
-                model_name (str): Name of the model (e.g. 'TRecNet+ttbar').
-                model_id (str): Unique model identifier, based on model name, number of jets, and time it was created.
-                mask_value (int): 
-                n_jets (int): Number of jets the model is trained with.
+                model_v (str): Architecture version of the model to be trained (e.g. 'TRecNet_ttbb_v2').
+                model_name (str): Name of the model, including architecture version (e.g. 'TRecNet_ttbb_v2+ttbar').
+                model_num (str): Unique model identifier, based on model name, number of jets, and time it was created.
+                model_id (str): Full model ID, which includes the model name, number of jets, and unique model ID.
+                n_jets (int): Number of jets to train the model on.
+                mask_value (int): Mask value for padded jets (needs to match data prep).
         """
         
         # Derive the model name
         model_name = version
+        if extra_b_mode!=None:
+            model_name += '_'+extra_b_mode
         if add_ttbar:
             model_name += '+ttbar'
         if add_jetpretrain:
@@ -60,8 +66,8 @@ class TRecNet_Model:
 
         self.mask_value = -2   # Define here so it's consist between model building and jet timestep building
         self.with_ttbar = add_ttbar
-        self.b_mode = b_mode
-        self.use_JetPretaining = add_jetpretrain
+        self.extra_b_mode = extra_b_mode
+        self.use_JetPretraining = add_jetpretrain
         self.use_bbPretraining = add_bbpretrain
         self.unfreeze = unfreeze_mode
         
@@ -70,7 +76,7 @@ class TRecNet_Model:
         self.had_shape = None
         self.lep_shape = None
         self.ttbar_shape = None
-        self.bb_shape = None 
+        self.bbbar_shape = None 
 
 class ModelBuilder:
     """

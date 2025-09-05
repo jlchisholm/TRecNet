@@ -12,7 +12,7 @@
 ##########################################################################
 
 
-import os, sys, time, shutil
+import os, sys, shutil
 from datetime import datetime
 sys.path.append("/home/jchishol/TRecNet")
 sys.path.append("home/jchishol/")
@@ -21,33 +21,20 @@ from argparse import ArgumentParser
 from contextlib import redirect_stdout
 
 import numpy as np
-import vector
-import itertools
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import h5py
-import uproot
-import json
 
 import tensorflow as tf
-import keras
-from keras.layers import Conv1D, Flatten, Dense, Input, concatenate, Masking, LSTM, TimeDistributed, Lambda, Reshape, Multiply, BatchNormalization, Bidirectional
-from keras import regularizers 
-from keras import initializers
 from sklearn.model_selection import train_test_split
-from keras.callbacks import TensorBoard
-from keras.callbacks import CSVLogger
-import keras.backend as K  
-from keras.optimizers import *
+import keras
 import keras_tuner as kt
 #from clr_callback import * 
 
 from MLUtil import Utilities
 import Scaler as Scaler
-import ml.ShapeTimesteps as ShapeTimesteps
-from ModelBuilder import TRecNet_Model, ModelBuilder
+from ModelBuilder import ModelBuilder
 
 import tracemalloc
 tracemalloc.start()
@@ -89,6 +76,9 @@ class Training:
         
         self.max_epochs = config_file["max_epochs"]
         self.patience = config_file["patience"]
+        
+        self.train_size = 0
+        self.val_size = 0
         
         self.X_keys = None
         self.Y_keys = None
@@ -175,7 +165,7 @@ class Training:
 
         # These are the keys for what we're feeding into the pre-processing, and getting back in the end
         # X and Y variables to be used (NOTE: later have option to feed these in?)
-        self.X_keys, self.Y_keys = processor.getInputKeys(Model.model_name, Model.n_jets, Model.add_ttbar, Model.b_mode)
+        self.X_keys, self.Y_keys = processor.getInputKeys(Model.model_name, Model.n_jets, Model.with_ttbar, Model.extra_b_mode)
 
         # Load maxmean
         X_maxmean_dic, Y_maxmean_dic = processor.loadMaxMean(self.xmm_file, self.ymm_file)
@@ -187,10 +177,14 @@ class Training:
         Model.had_shape = sum('th_' in key or 'wh_' in key for key in self.Y_scaled_keys)
         Model.lep_shape = sum('tl_' in key or 'wl_' in key for key in self.Y_scaled_keys)
         Model.ttbar_shape = sum('ttbar_' in key for key in self.Y_scaled_keys)
-        Model.b_shape = sum('b_' in key or 'bbar_' in key or 'b1_' in key or 'b2_' in key for key in self.Y_scaled_keys)
+        Model.bbbar_shape = sum('b_' in key or 'bbar_' in key or 'b1_' in key or 'b2_' in key for key in self.Y_scaled_keys)
 
         # Split the data
         trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = train_test_split(totalX_jets, totalX_other, totalY, train_size=self.split)
+        
+        # Save the number of events being used (to be written out later)
+        self.train_size = len(trainY)
+        self.val_size = len(valY)
         
         # Save the shapes for later
         Model.jets_shape = trainX_jets.shape
@@ -210,8 +204,6 @@ class Training:
                 Saves model as <model_name>/<model_name>_%Y%m%d%H%M%S.keras, saves training history as <model_name>/<model_name>_%Y%m%d%H%M%S_TrainHistory.npy
                 and saves loss plots in the <model_name> directory.
         """
-
-        print('Saving model...')
         
         dir = 'trained_models/'+Model.model_v+'/'+Model.model_name+'/'+Model.model_id
         
@@ -231,18 +223,21 @@ class Training:
         file = open(dir+'/'+Model.model_id+"_Info.txt", "w")
         file.write("Model ID: %s \n" % Model.model_id)
         if Model.unfreeze: file.write("Frozen Model ID: %s \n" % self.frozen_model_id)
-        if Model.use_JetPretraining: file.write("JetPretrain Model: %s \n" % self.jet_pretrain_file)
-        if Model.use_bbPretraining: file.write("bbPretrain Model: %s \n" % self.bb_pretrain_file)
-        file.write("\n ---------------------------------------------------  \n")
+        if Model.use_JetPretraining: file.write("JetPretrain Model File: %s \n" % self.jet_pretrain_file)
+        if Model.use_bbPretraining: file.write("bbPretrain Model File: %s \n" % self.bb_pretrain_file)
+        file.write("---------------------------------------------------")
         file.write("Training Data File: %s \n" % self.train_file)
         file.write("X Maxmean File: %s \n" % self.xmm_file)
         file.write("Y Maxmean File: %s \n" % self.ymm_file)
-        file.write("\n ---------------------------------------------------  \n")
+        file.write("---------------------------------------------------")
+        file.write("Number of training events: %s \n" % self.train_size)
+        file.write("Number of validating events: %s \n" % self.val_size)
+        file.write("---------------------------------------------------")
         file.write("X Keys: "+', '.join(self.X_keys)+'\n')
         file.write("X Scaled Keys: "+', '.join(self.X_scaled_keys)+'\n')
         file.write("Y Keys: "+', '.join(self.Y_keys)+'\n')
         file.write("Y Scaled Keys: "+', '.join(self.Y_scaled_keys)+'\n')
-        file.write("\n ---------------------------------------------------  \n")
+        file.write("---------------------------------------------------")
         file.write("Learning Rate: Polynomial Decay with initial_lr=%s, final_lr=%s, decay_step=%s, and power=%s \n" % (self.initial_lr, (self.initial_lr/self.final_lr_div), self.lr_decay_step, self.lr_power))
         file.write("Batch Size: %s \n" % self.batch_size)
         file.write("Max Number of Epochs: %s \n" % self.max_epochs)
@@ -250,7 +245,7 @@ class Training:
         file.write("Patience: %s \n" % self.patience)
         file.write("Training Time: %02d:%02d:%02d:%02d \n" % (self.training_time.days, self.training_time.seconds // 3600, self.training_time.seconds // 60 % 60, self.training_time.seconds % 60))
         file.write("Training History: \n %s \n" % pd.DataFrame(self.training_history).to_string(index=False))
-        file.write("\n ---------------------------------------------------  \n")
+        file.write("---------------------------------------------------")
         file.write("Model Architecture:\n")
         with redirect_stdout(file): Model.model.summary(expand_nested=True, show_trainable=True)
         file.close()
@@ -339,9 +334,11 @@ class Training:
         
         # Get the data
         trainX_jets, valX_jets, trainX_other, valX_other, trainY, valY = self.load_and_prep(Model)
+        print('Data loaded and scaled.')
         
         # Build the model
         self.build_model(Model, self.initial_lr, self.final_lr_div, self.lr_power, self.lr_decay_step)
+        print('Model built.')
             
         # Set early stopping (so no overfitting) and tensorboard callback (for monitoring)
         early_stop = keras.callbacks.EarlyStopping(monitor='val_loss', patience=self.patience)
@@ -353,9 +350,11 @@ class Training:
         end = datetime.now()
         self.training_time = end - start
         self.training_history = history.history
+        print('Training finished.')
         
         # Save the model, its history, and loss plots
         self.save_model(Model)
+        print('Model saved.')
         
 
     def save_hypertune_results(self,Model,tuner):

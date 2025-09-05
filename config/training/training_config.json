@@ -1,10 +1,10 @@
 {   
-    "data": "/mnt/xrootdg/jchishol/mntuples_08_01_22/variables_ttbar_ljets_10j_train.h5",
-    "xmaxmean": "/mnt/xrootdg/jchishol/mntuples_08_01_22/X_maxmean_variables_ttbar_ljets_10j_train.npy",
-    "ymaxmean": "/mnt/xrootdg/jchishol/mntuples_08_01_22/Y_maxmean_variables_ttbar_ljets_10j_train.npy",
+    "data": "/data/jchishol/ttbb_trecnet_0825/h5_files/nom_ttbb_10jets_b1b2_train.h5",
+    "xmaxmean": "/data/jchishol/ttbb_trecnet_0825/maxmean/X_maxmean_nom_ttbb_10jets_b1b2_train.npy",
+    "ymaxmean": "/data/jchishol/ttbb_trecnet_0825/maxmean/Y_maxmean_nom_ttbb_10jets_b1b2_train.npy",
     "split": [70,15,15],
-    "njets": 6,
-    "max_epochs": 256,
+    "njets": 8,
+    "max_epochs": 10,
     "patience": 8,
     "initial_lr": 1e-3,
     "final_lr_div": 2e1,
@@ -14,7 +14,7 @@
     "create":
     {
         "add_ttbar": true,
-        "b_mode": "bbar",
+        "extra_b_mode": "b1b2",
         "pretrained_jet_classifier": null,
         "pretrained_bb_classifier": null
     },
