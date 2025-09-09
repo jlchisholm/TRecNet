@@ -23,9 +23,9 @@ $ python source/prep/EventRemover.py --input <path/ntuple.root> --save_dir <save
 ```console
 $ python source/prep/MLFilePrep.py makeH5File --input <path/ntuple.root> --save_dir <save_directory_path> --tree_type nominal --var_conf config/prep/<var_names_config.json> --jn <num_jets> --extra_b_mode <e.g.b1b2> --include_jet_truths
 ```
-**5. Create train/test h5 files:** Combine all your h5 files together and then split them into one training file and one testing file, using MLFilePrep/makeTrainTestH5Files. For this, you will need to create a text file that lists all of the h5 files you want to use (examples in `file_lists/` directory). This is what you will feed into TRecNet.
+**5. Create train/test h5 files:** Combine all your h5 files together and then split them into one training file and one testing file, using MLFilePrep/makeTrainTestH5Files. For this, you will need to create a text file that lists all of the h5 files you want to use (examples in `file_lists/` directory), and decide on what percentage of events you want to go towards training+validation. This is what you will feed into TRecNet.
 ```console
-$ python source/prep/MLFilePrep.py combineH5Files --file_list file_lists/<file_list.txt> --output <path/output_name>
+$ python source/prep/MLFilePrep.py makeTrainTestH5Files --file_list file_lists/<file_list.txt> --output <path/output_name> --split <percent_for_training>
 ```
 **6. Create max/mean dictionary:** Create the dictionaries of max/mean values, by running MaxMeanMachine.py on your training h5 file. You'll want to make sure `extra_b_mode` is set to the same thing that you used in the previous steps.
 ```console
@@ -37,7 +37,7 @@ _**Tip:**_ If at any point you're having trouble running things and you're runni
 
 _**Tip:**_ All of the above steps (except for step 1) have example scripts in the `scripts` directory.
 
-### Training A New Model
+### Training a New Model
 
 Everything to train (and test) your new model can be found in the directory `source/ml/`. Most often you'll be creating (referred to as `create` mode) a new TRecNet model or a new classifier (that can later be inserted into a TRecNet model). However, you can also unfreeze (referred to as `unfreeze` mode) TRecNet models that were previously trained with a pretrained classifier and fine-tune your network. Finally, you can hypertune (referred to as `hypertune` mode) a TRecNet or classifier model.
 
@@ -58,9 +58,52 @@ $ singularity run --nv --bind <directory_with_data> <directory_container_is_in>/
 $ python source/ml/run_training.py -v <model_architecture_version> -c config/training/<training_config.json> -m create
 ```
 
+### Validating a Model
 
+During training, some percentage of the training data (depending on what you put in your config file), will be allotted to validation. We can take a look at the network's predictions on this set of data to validate that our model is doing what's expected and debug if necessary. To run validation, use the following command in the container (or another environment with all the necessary packages):
+```console
+$ python source/ml/run_validation.py -i <model_id> -d <train_data>
+```
+This will make predictions using the validation portion of the training data, and save some simple plots in the trained_models/<model_id>/ directory.
 
+### Testing a Model
 
-
+To test the model, use the following command in the container (or another environment with all the necessary packages):
+```console
+$ python source/ml/run_prediction.py -i <model_id> -d <test_data> -s <path/save_location> --testing
+```
+This will make predictions using the data set you provide (which should be orthogonal to the training data you use!!!), and saves them, as well as the truth values, in a root file at the desired location. If you would also like to save the scaled variables to this root file, append `--include_scaled` to your terminal command.
 
 ## Using a Model
+
+### Data Preparation
+
+Before using a TRecNet model, the data must be formatted properly to be fed into the model. Specifically, the TRecNet framework requires the h5 file format and very specific observable names. However, everything you should need to prepare your data is in the `source/prep/` directory; all that is required is your ntuples! For using a model, follow these data preparation steps:
+
+**1. Config file:** Create a `json` config file containing the names of the observables as they appear in your ntuple. Examples in `config/prep` (note: the names of the left are those used in TRecNet -- do NOT change these.)
+**2. Add variables:** Add any extra variables you will need, by running VarAdder.py on each of your ntuples. To do this you will also require a json config file for VarAdder (example in `config/prep`). Note that new files will have the same name (and possibly overwrite the old files, depending on save directory).
+```console
+$ python source/prep/VarAdder.py --input <path/ntuple.root> --save_dir <save_directory_path> --var_conf config/prep/<var_names_config.json> --var_adder_conf config/prep/<var_adder_config.json>
+```
+**3. Remove bad events:** Remove undesirable events (if they haven't been removed already), by running EventRemover.py on each of the ntuples (after they've gone through VarAdder). The word 'pruned' will be added to the end of the file name.
+```console
+$ python source/prep/EventRemover.py --input <path/ntuple.root> --save_dir <save_directory_path> --var_conf config/prep/<var_names_config.json> --min_jets <min_jets> --min_bjets <min_bjets> --remove_nonSemiLep --remove_nonsense
+```
+**4. Make h5 files:** Make h5 files, by running MLFilePrep.py/makeH5File on the ntuples that you have run through both VarAdder and EventRemover.
+```console
+$ python source/prep/MLFilePrep.py makeH5File --input <path/ntuple.root> --save_dir <save_directory_path> --tree_type nominal --var_conf config/prep/<var_names_config.json> --jn <num_jets> --extra_b_mode <e.g.b1b2> --include_jet_truths
+```
+**5. Combine h5 files:** Combine all your h5 files together into one file, using MLFilePrep/makeTrainTestH5Files. For this, you will need to create a text file that lists all of the h5 files you want to use (examples in `file_lists/` directory). This is what you will feed into TRecNet.
+```console
+$ python source/prep/MLFilePrep.py combineH5Files --file_list file_lists/<file_list.txt> --output <path/output_name>
+```
+
+### Making Predictions
+
+To make predictions using a trained model on a real data set (or other dataset that has no truth attached to it), we use a command very similar to that for testing the model:
+```console
+$ python source/ml/run_prediction.py -i <model_id> -d <data_set> -s <path/save_location> 
+```
+This will make predictions using the data set you provide, and saves them in a root file at the desired location. If you would also like to save the scaled variables to this root file, append `--include_scaled` to your terminal command.
+
+## Plotting Results
