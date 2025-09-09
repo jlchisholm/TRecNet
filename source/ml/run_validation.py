@@ -140,7 +140,6 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument('-i', '--model_id', help="ID of the model.", type=str, required=True)
     parser.add_argument('-d', '--train_data', help="Path and file name for the training data to be used.", type=str, required=True)
-    parser.add_argument('-s','--save_loc', help="Directory (including path) in which to save the results.", type=str, required=True)
 
     # Parse arguments
     args = parser.parse_args()
@@ -150,7 +149,7 @@ if __name__ == "__main__":
     model.load(args.model_id)
 
     # Test the model
-    print('Beginning predicting for '+args.model_id+'...')
+    print('Beginning validation for '+args.model_id+'...')
     Predictor = Predictor()
     scale_pred_dic, scale_true_dic, origscale_pred_dic, origscale_true_dic = Predictor.get_scaled_and_origscale_pred_dics(model, args.train_data, 'val')
     make_plots(model, scale_pred_dic, scale_true_dic, origscale_pred_dic, origscale_true_dic)
