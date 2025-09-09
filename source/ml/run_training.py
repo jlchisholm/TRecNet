@@ -18,7 +18,7 @@ os.environ["CUDA_VISIBLE_DEVICES"]="1"    # These are the GPUs visible for train
 from argparse import ArgumentParser
 import json
 
-from ModelBuilder import TRecNet_Model
+from TRecNet_Model import TRecNet_Model
 from Training import Training
 
 import tracemalloc
@@ -94,7 +94,8 @@ if __name__ == "__main__":
         add_bbpretrain = pretrained_classifier_check(args.version, config, "pretrained_bb_classifier")
             
         # Create the model
-        Model = TRecNet_Model(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["extra_b_mode"],add_jetpretrain, add_bbpretrain, False)
+        Model = TRecNet_Model()
+        Model.initialize(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["extra_b_mode"],add_jetpretrain, add_bbpretrain, False)
         
         # Start the training
         print('Beginning training for '+Model.model_id+'...')
@@ -128,8 +129,9 @@ if __name__ == "__main__":
                 print("Please provide a frozen model with the same number of jets as you desire.")
                 sys.exit()
                 
-        # Create the model
-        Model = TRecNet_Model(args.version, config["njets"], add_ttbar, extra_b_mode, add_jetpretrain, add_bbpretrain, True)
+        # Create the model.  # this should be load I feel like, change later!
+        Model = TRecNet_Model()
+        Model.initialize(args.version, config["njets"], add_ttbar, extra_b_mode, add_jetpretrain, add_bbpretrain, True)
         
         # Start the training
         print('Beginning training for '+Model.model_id+'...')
@@ -154,7 +156,8 @@ if __name__ == "__main__":
             print('WARNING: Selected tuner is not yet available for TRecNet. Using BayesianOptimization by default.')
             
         # Create the model
-        Model = TRecNet_Model(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["extra_b_mode"], add_jetpretrain, add_bbpretrain, False)
+        Model = TRecNet_Model()
+        Model.initialize(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["extra_b_mode"], add_jetpretrain, add_bbpretrain, False)
         
         print('Beginning hypertuning for '+Model.model_id+'...')
         Trainer = Training(config)

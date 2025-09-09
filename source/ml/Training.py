@@ -2,7 +2,7 @@
 #                                                                        #
 #  Training.py                                                           #
 #  Author: Jenna Chisholm                                                #
-#  Updated: Jul.23/25                                                    #
+#  Updated: Sept.8/25                                                    #
 #                                                                        #
 #  Defines classes and functions relevant for training and hypertuning   #
 #  neural networks.                                                      # 
@@ -72,7 +72,7 @@ class Training:
         self.train_file = config_file["data"]
         self.xmm_file = config_file["xmaxmean"]
         self.ymm_file = config_file["ymaxmean"]
-        self.split = config_file["split"][0]/(config_file["split"][0]+config_file["split"][1])   # Gave 85% to train file, now want 70% for the actual training ([0]=% in train, [1]=% in val, [2]=% in test)
+        self.split = config_file["split"][0]/(config_file["split"][0]+config_file["split"][1])   # [0]=% in train, [1]=% in val, [2]=% in test --> to get percentage of train file to actually use for training, need train / train + val
         
         self.max_epochs = config_file["max_epochs"]
         self.patience = config_file["patience"]
@@ -227,6 +227,8 @@ class Training:
         if Model.use_bbPretraining: file.write("bbPretrain Model File: %s \n" % self.bb_pretrain_file)
         file.write("---------------------------------------------------")
         file.write("Training Data File: %s \n" % self.train_file)
+        file.write("Percentage of Train Data Used for Training: %s \n" % self.split)     
+        file.write("Percentage of Train Data Used for Validation: %s \n" % 1 - self.split)   
         file.write("X Maxmean File: %s \n" % self.xmm_file)
         file.write("Y Maxmean File: %s \n" % self.ymm_file)
         file.write("---------------------------------------------------")

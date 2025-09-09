@@ -4,7 +4,7 @@
     "ymaxmean": "/data/jchishol/ttbb_trecnet_0825/maxmean/Y_maxmean_nom_ttbb_10jets_b1b2_train.npy",
     "split": [70,15,15],
     "njets": 8,
-    "max_epochs": 10,
+    "max_epochs": 100,
     "patience": 8,
     "initial_lr": 1e-3,
     "final_lr_div": 2e1,
