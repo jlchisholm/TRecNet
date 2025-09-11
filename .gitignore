@@ -3,6 +3,7 @@ __pycache__/
 .tensorboard_logs/
 .vscode/
 tensorboard_logs/
+env/TRecNet_env/
 image/TRecNetContainer.sif
 scripts/my_scripts/
 image/*.sif
