@@ -1,3 +1,3 @@
-/data/jchishol/ttbb_trecnet_0825/h5_files/ttbb_603192_mc20a_fullsim_10jets_b1b2_nom.h5
-/data/jchishol/ttbb_trecnet_0825/h5_files/ttbb_603192_mc20d_fullsim_10jets_b1b2_nom.h5
-/data/jchishol/ttbb_trecnet_0825/h5_files/ttbb_603192_mc20e_fullsim_10jets_b1b2_nom.h5
+/data/jchishol/ttbb_trecnet_0825/h5_files/ttbb_603192_mc20a_fullsim_WP4_10jets_b1b2_nom.h5
+/data/jchishol/ttbb_trecnet_0825/h5_files/ttbb_603192_mc20d_fullsim_WP4_10jets_b1b2_nom.h5
+/data/jchishol/ttbb_trecnet_0825/h5_files/ttbb_603192_mc20e_fullsim_WP4_10jets_b1b2_nom.h5

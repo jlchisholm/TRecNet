@@ -18,6 +18,7 @@
         "jet_n" : null,
         "jet_btag_index" : "signal_jet_btag_NOSYS",
         "jet_isbtag" : null,
+        "bjet_n": null,
         "jet_isTruth" : null,
         "jet_isExtraB" : null,
         "jet_isFromttbar" : null,
