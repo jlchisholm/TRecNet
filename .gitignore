@@ -7,3 +7,4 @@ env/TRecNet_env/
 image/TRecNetContainer.sif
 scripts/my_scripts/
 image/*.sif
+trained_models/
