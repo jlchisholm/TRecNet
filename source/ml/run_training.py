@@ -18,8 +18,8 @@ os.environ["CUDA_VISIBLE_DEVICES"]="1"    # These are the GPUs visible for train
 from argparse import ArgumentParser
 import json
 
-from ModelBuilder import TRecNet_Model
-import Training
+from TRecNet_Model import TRecNet_Model
+from Training import Training
 
 import tracemalloc
 tracemalloc.start()
@@ -30,6 +30,18 @@ compatible_models = {"JetClassifier_v1": ["TRecNet_tt_v1", "TRecNet_ttbb_v1", "T
 
 
 def pretrained_classifier_check(model_version, config, classifier):
+    """
+    Saves the model itself, the training history, and plots of the training loss.
+
+        Parameters:
+            model_version (str): Architecture version of the model to be trained (e.g. 'TRecNet_ttbb_v2').
+            config (dictionary): Dictionary of config settings for the training.
+            classifier (str): Classifier to check ('pretrained_jet_classifier' or 'pretrained_bb_classifier')
+
+        Returns:
+            add_pretrainer_classifier (bool): Whether or not this classifier should be added. Returns False if the config file doesn't list a pretrained classifer and True if it does (and this pretrained model is compatible with other settings.)
+            
+    """
     
     # Check that there is a jet pre-train model
     if config["create"][classifier]!=None:
@@ -54,8 +66,10 @@ def pretrained_classifier_check(model_version, config, classifier):
         add_pretrained_classifier = False
             
     return add_pretrained_classifier
-    
 
+
+### ----------- MAIN ----------- ###
+    
 if __name__ == "__main__":
     
     # Set up argument parser
@@ -65,20 +79,23 @@ if __name__ == "__main__":
     parser.add_argument('-m', '--mode', help="Whether to create a new model to train, unfreeze an old model, or hypertune a model.", choices=['create','unfreeze','hypertune'])
     
     # Parse the arguments and get the config file
-    args = parser.parse_known_args()
+    args = parser.parse_args()
     config = json.load(open(args.config_file))
     
     # Create mode
     if args.mode == "create":
         
-        print("Starting 'create' training mode.")
-        
+        print('===================================')
+        print('=           CREATE MODE           =')
+        print('===================================')
+         
         # Check if the pretrain files are there and good
         add_jetpretrain = pretrained_classifier_check(args.version, config, "pretrained_jet_classifier")
         add_bbpretrain = pretrained_classifier_check(args.version, config, "pretrained_bb_classifier")
             
         # Create the model
-        Model = TRecNet_Model(args.version, config["njets"], config["create"]["add_ttbar"], add_jetpretrain, add_bbpretrain, False)
+        Model = TRecNet_Model()
+        Model.initialize(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["extra_b_mode"],add_jetpretrain, add_bbpretrain, False)
         
         # Start the training
         print('Beginning training for '+Model.model_id+'...')
@@ -91,10 +108,13 @@ if __name__ == "__main__":
     # Unfreeze mode
     elif args.mode == "unfreeze":
         
-        print("Starting 'unfreeze' training mode.")
+        print('===================================')
+        print('=          UNFREEZE MODE          =')
+        print('===================================')
         
         # Set some things
         frozen_model_id = config["unfreeze"]["frozen_file"].split('/')[-1]
+        extra_b_mode = 'bbbar' if 'bbbar' in frozen_model_id else 'b1b2' if 'b1b2' in frozen_model_id else None
         add_ttbar = True if '+ttbar' in frozen_model_id else False
         add_jetpretrain = True if '+JetPretrain' in frozen_model_id else False
         add_bbpretrain = True if '+bbPretrain' in frozen_model_id else False
@@ -109,8 +129,9 @@ if __name__ == "__main__":
                 print("Please provide a frozen model with the same number of jets as you desire.")
                 sys.exit()
                 
-        # Create the model
-        Model = TRecNet_Model(args.version, config["njets"], add_ttbar, add_jetpretrain, add_bbpretrain, True)
+        # Create the model.  # this should be load I feel like, change later!
+        Model = TRecNet_Model()
+        Model.initialize(args.version, config["njets"], add_ttbar, extra_b_mode, add_jetpretrain, add_bbpretrain, True)
         
         # Start the training
         print('Beginning training for '+Model.model_id+'...')
@@ -122,7 +143,9 @@ if __name__ == "__main__":
     # Hypertune mode
     elif args.mode == "hypertune":
         
-        print("Starting 'hypertune' training mode.")
+        print('====================================')
+        print('=          HYPERTUNE MODE          =')
+        print('====================================')
         
         # Check if the pretrain files are there and good
         add_jetpretrain = pretrained_classifier_check(args.version, config, "pretrained_jet_classifier")
@@ -133,7 +156,8 @@ if __name__ == "__main__":
             print('WARNING: Selected tuner is not yet available for TRecNet. Using BayesianOptimization by default.')
             
         # Create the model
-        Model = TRecNet_Model(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["b_mode"], add_jetpretrain, add_bbpretrain, False)
+        Model = TRecNet_Model()
+        Model.initialize(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["extra_b_mode"], add_jetpretrain, add_bbpretrain, False)
         
         print('Beginning hypertuning for '+Model.model_id+'...')
         Trainer = Training(config)

@@ -13,64 +13,8 @@
 
 import keras
 from keras.layers import Input, TFSMLayer
-from keras import regularizers 
-from keras import initializers
 
 import time
-
-
-class TRecNet_Model:
-    """
-    A class for creating a machine learning model object, mainly to store relevant attributes of the model.
-    """
-
-    def __init__(self, version, n_jets, add_ttbar, b_mode, add_jetpretrain, add_bbpretrain, unfreeze_mode):
-        """
-        Initializes a machine learning model object.
-
-            Parameters:
-                model_name (str): Name of the model (e.g. 'TRecNet+ttbar').
-                model_id (str): Unique model identifier (default: None).
-                n_jets (int): Number of jets the model is trained with (default: None).
-
-            Attributes:
-                model_name (str): Name of the model (e.g. 'TRecNet+ttbar').
-                model_id (str): Unique model identifier, based on model name, number of jets, and time it was created.
-                mask_value (int): 
-                n_jets (int): Number of jets the model is trained with.
-        """
-        
-        # Derive the model name
-        model_name = version
-        if add_ttbar:
-            model_name += '+ttbar'
-        if add_jetpretrain:
-            model_name += '+JetPretrain'
-        if add_bbpretrain:
-            model_name += '+bbPretrain'
-        if unfreeze_mode:
-            model_name += 'Unfrozen'
-            
-        # Set attributes
-        self.model_v = version
-        self.model_name = model_name
-        self.model_num = time.strftime("%Y%m%d_%H%M%S")
-        self.n_jets = n_jets
-        self.model_id = time.strftime(model_name+"_"+str(n_jets)+"jets_%Y%m%d_%H%M%S") # Model unique save name (based on the date)
-
-        self.mask_value = -2   # Define here so it's consist between model building and jet timestep building
-        self.with_ttbar = add_ttbar
-        self.b_mode = b_mode
-        self.use_JetPretaining = add_jetpretrain
-        self.use_bbPretraining = add_bbpretrain
-        self.unfreeze = unfreeze_mode
-        
-        self.jets_shape = None
-        self.other_shape = None
-        self.had_shape = None
-        self.lep_shape = None
-        self.ttbar_shape = None
-        self.bb_shape = None 
 
 class ModelBuilder:
     """

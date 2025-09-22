@@ -6,7 +6,7 @@
 #                                                                        #
 #  Function to construct architecture for first version of               #
 #  bbPretrainer. Compatible with any TRecNet_ttbb_v5 model, so long as   #
-# the same jet input and other input shape are used.                     #                                                      # 
+#  the same jet input and other input shape are used.                    #                                                      # 
 #                                                                        #
 #  This is the current (as of July 2025) recommended architecture for    #
 #  bbPretrainer.                                                         #

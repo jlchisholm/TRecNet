@@ -1,34 +1,18 @@
-import os, sys, time
+import os, sys
 sys.path.append("/home/jchishol/TRecNet")
 sys.path.append("home/jchishol/")
 os.environ["CUDA_VISIBLE_DEVICES"]="1"    # These are the GPUs visible for training
 
 import numpy as np
-import vector
 import itertools
-import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import h5py
-import uproot
 
-import tensorflow as tf
-from tensorflow import keras
-from keras.layers import Conv1D, Flatten, Dense, Input, concatenate, Masking, LSTM, TimeDistributed, Lambda, Reshape, Multiply, BatchNormalization, Bidirectional
-from keras import regularizers 
-from keras import initializers
-from sklearn.model_selection import train_test_split
-from keras.callbacks import TensorBoard
-import keras.backend as K  
-from keras.optimizers import *
-import keras_tuner as kt
 #from clr_callback import * 
 
 import Scaler
 import ShapeTimesteps
-
-
 
 
 class Utilities:
@@ -46,14 +30,16 @@ class Utilities:
     def __init__(self):
         pass
 
-    def getInputKeys(self, model_name, n_jets, add_ttbar, b_mode):
+    def getInputKeys(self, model_v, n_jets, add_ttbar, extra_b_mode):
         """
         Gets lists of the (original scale) X and Y variable keys.
 
             Parameters:
-                model_name (str): Name of the model (e.g. 'TRecNet+ttbar').
+                model_v (str): Version of the model (e.g. 'TRecNet_ttbb_v1').
                 n_jets (int): Number of jets the model is or will be trained on.
-                
+                add_ttbar (bool): Whether or not to include ttbar variables.
+                extra_b_mode (str): How extra b's are defined ('bbbar' or 'b1b2').
+                                
             Returns:
                 X_keys (list of str): Keys for the (original scale) X variables.
                 Y_keys (list of str): Keys for the (original scale) Y variables.
@@ -63,19 +49,19 @@ class Utilities:
         X_keys = ['j'+str(i+1)+'_'+v for i, v in itertools.product(range(n_jets),['pt','eta','phi','m','isbtag'])] + ['lep_pt', 'lep_eta', 'lep_phi', 'met_met', 'met_phi']
             
         # Y keys
-        if model_name=='JetPretrainer': 
-            Y_keys = ['j'+str(i+1)+'_isTruth' for i in range(n_jets)]
+        if 'JetPretrainer' in model_v: 
+            Y_keys = ['j'+str(i+1)+'_isFromttbar' for i in range(n_jets)]
             
-        elif model_name == 'bbPretrainer':
-            Y_keys = ['j'+str(i+1)+'_isTruth_bb' for i in range(n_jets)]
+        elif 'bbPretrainer' in model_v:
+            Y_keys = ['j'+str(i+1)+'_isExtraB' for i in range(n_jets)]
             
         else:
             Y_keys = ['th_pt', 'th_eta','th_phi','th_m', 'wh_pt', 'wh_eta', 'wh_phi', 'wh_m', 'tl_pt', 'tl_eta', 'tl_phi', 'tl_m', 'wl_pt', 'wl_eta', 'wl_phi', 'wl_m']
             if add_ttbar:
                 Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
-            if b_mode == 'bbar':
+            if extra_b_mode == 'bbbar':
                 Y_keys.extend(['b_pt','b_m','b_eta','b_phi','bbar_pt','bbar_m','bbar_eta','bbar_phi'])
-            elif b_mode == 'b1b2':
+            elif extra_b_mode == 'b1b2':
                 Y_keys.extend(['b1_pt','b1_m','b1_eta','b1_phi','b2_pt','b2_m','b2_eta','b2_phi'])
 
         return X_keys, Y_keys
@@ -159,9 +145,6 @@ class Utilities:
                 scaled_X_keys (list of str): Names of the (scaled) input variables.
                 scaled_Y_keys (list of str): Names of the (scaled) output variables.
         """
-
-    
-        print('Preparing data...')
         
         with h5py.File(datafile,'r') as dataset:   # Only want the dataset open as long as we need it
             
