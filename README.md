@@ -57,7 +57,7 @@ $ singularity run --nv --bind <directory_with_data> <directory_container_is_in>/
 ```console
 $ python source/ml/run_training.py -v <model_architecture_version> -c config/training/<training_config.json> -m create
 ```
-Note that trained models and all their information will appear in the relevant subdirectory of the `trained_models/` directory.
+Note that trained models and all their information will appear in the relevant subdirectory of the `trained_models/` directory, which is not tracked by git. If you like a model enough that you want it saved in the git repository, move it to the `models/` directory.
 
 ### Validating a Model
 
