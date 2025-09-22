@@ -11,6 +11,7 @@ TRecNet is a deep neural network designed to infer the four-vectors of top and a
 Before testing or training a TRecNet model, the data must be formatted properly to be fed into the model. Specifically, the TRecNet framework requires the h5 file format, very specific observable names, and a dictionary of max/mean values for each of the observables. However, everything you should need to prepare your data is in the `source/prep/` directory; all that is required is your ntuples! For training a model, follow these data preparation steps:
 
 **1. Config file:** Create a `json` config file containing the names of the observables as they appear in your ntuple. Examples in `config/prep` (note: the names of the left are those used in TRecNet -- do NOT change these.)
+
 **2. Add variables:** Add any extra variables you will need, by running VarAdder.py on each of your ntuples. To do this you will also require a json config file for VarAdder (example in `config/prep`). Note that new files will have the same name (and possibly overwrite the old files, depending on save directory).
 ```console
 $ python source/prep/VarAdder.py --input <path/ntuple.root> --save_dir <save_directory_path> --var_conf config/prep/<var_names_config.json> --var_adder_conf config/prep/<var_adder_config.json>
@@ -82,6 +83,7 @@ This will make predictions using the data set you provide (which should be ortho
 Before using a TRecNet model, the data must be formatted properly to be fed into the model. Specifically, the TRecNet framework requires the h5 file format and very specific observable names. However, everything you should need to prepare your data is in the `source/prep/` directory; all that is required is your ntuples! For using a model, follow these data preparation steps:
 
 **1. Config file:** Create a `json` config file containing the names of the observables as they appear in your ntuple. Examples in `config/prep` (note: the names of the left are those used in TRecNet -- do NOT change these.)
+
 **2. Add variables:** Add any extra variables you will need, by running VarAdder.py on each of your ntuples. To do this you will also require a json config file for VarAdder (example in `config/prep`). Note that new files will have the same name (and possibly overwrite the old files, depending on save directory).
 ```console
 $ python source/prep/VarAdder.py --input <path/ntuple.root> --save_dir <save_directory_path> --var_conf config/prep/<var_names_config.json> --var_adder_conf config/prep/<var_adder_config.json>
