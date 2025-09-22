@@ -8,3 +8,6 @@ image/TRecNetContainer.sif
 scripts/my_scripts/
 image/*.sif
 trained_models/
+diagrams/*/*.log
+diagrams/*/*.aux
+diagrams/*/*.gz

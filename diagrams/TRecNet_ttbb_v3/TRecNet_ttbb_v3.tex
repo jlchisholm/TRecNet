@@ -1,3 +1,48 @@
+\documentclass[border=10pt,tikz,convert]{standalone}
+
+% Requigray package
+\usetikzlibrary{shapes, arrows.meta, positioning}
+\usetikzlibrary{shadows}
+
+\let\svtikzpicture\tikzpicture
+\def\tikzpicture{\noindent\svtikzpicture}
+
+\newlength{\w}
+\setlength{\w}{4cm}
+
+\newlength{\h}
+\setlength{\h}{1.25cm}
+
+\newlength{\s}
+\setlength{\s}{3cm}
+
+%\definecolor{outcolor}{rgb}{0.73, 0.33, 0.83}    % medium orchid
+%\definecolor{incolor}{rgb}{0.85, 0.57, 0.0}			 % harvest gold
+%\definecolor{hiddencolor}{rgb}{0.28, 0.82, 0.8} % medium turquoise
+
+
+%\definecolor{outcolor}{rgb}{0.84, 0.32, 0.03}    % medium orchid
+%\definecolor{outcolor}{rgb}{0.60, 0.37, 0.60}
+%\definecolor{incolor}{rgb}{0.94, 0.63, 0.04}			 % harvest gold
+%\definecolor{hiddencolor}{rgb}{0.33, 0.87, 0.88} % medium turquoise
+
+
+\definecolor{outcolor}{rgb}{0.55, 0.0, 0.55}
+\definecolor{hiddencolor}{rgb}{0.19, 0.55, 0.91}
+\definecolor{incolor}{rgb}{0.0, 0.55, 0.55} % purple
+%\definecolor{incolor}{rgb}{0.91, 0.41, 0.17} % orange
+
+\definecolor{bgcolor}{rgb}{0.74, 0.83, 0.9}   % gray-blue
+
+
+
+\tikzset{input/.style={draw=incolor!30, fill=incolor!30, text=incolor!20!black, minimum width=\w, minimum height=1cm,drop shadow}}
+\tikzset{hidden/.style={draw=hiddencolor!30, fill=hiddencolor!30, text=hiddencolor!20!black, minimum width=\w, minimum height=1cm,drop shadow}}
+\tikzset{output/.style={draw=outcolor!30, fill=outcolor!30, text=outcolor!20!black, minimum width=\w, minimum height=1cm,drop shadow}}
+
+\begin{document}
+
+
 	\begin{tikzpicture}
 	
 	%%% NODES %%%
@@ -30,12 +75,17 @@
 	\node[hidden] at (4*\s,-4.5*\h) (flattenedother) {Flatten};
 	
 	% JET REWEIGHTING
-	\draw[draw=bgcolor!40,very thick,fill=bgcolor!40] (5.5,-10.5) rectangle ++(-5,-9.25) node[below right,color=bgcolor!50!black] {Weighted Jet Processor};
+	\draw[draw=bgcolor!40,very thick,fill=bgcolor!40] (5.5,-10.5) rectangle ++(-11,-9.25) ;
+	\node[below left, color=bgcolor!50!black] at (5.5,-19.75) {Weighted Jet Processor};
 	\node[hidden] at (\s,-9*\h) (reshape) {Reshape};
 	\node[hidden] at (\s,-10.5*\h) (weightjets) {Multiply};
 	\node[hidden] at (\s,-12*\h) (TDDense256-1) {TDDense (ReLU, 256)};
 	\node[hidden] at (\s,-13.5*\h) (TDDense256-2) {TDDense (ReLU, 256)};
 	\node[hidden] at (\s,-15*\h) (flattenedweightedjets) {Flatten};
+	
+	\node[hidden] at (-\s,-12*\h) (TDDense256-1-2) {TDDense (ReLU, 256)};
+	\node[hidden] at (-\s,-13.5*\h) (TDDense256-2-2) {TDDense (ReLU, 256)};
+	\node[hidden] at (-\s,-15*\h) (flattenedweightedjets-2) {Flatten};
 	
 	% FIRST ENDING (LEP)
 	\draw[draw=bgcolor!40,very thick,fill=bgcolor!40] (23.5,-14) node[above left,color=bgcolor!50!black] {Final Processor} rectangle ++(-17,-7.5);
@@ -61,6 +111,7 @@
 	
 	
 	%%% EXTRA ARROW NODES %%%
+	\node[coordinate, below=0.375*\h of weightjets] (e0) {};
 	\node[coordinate, left=0.25*\w of concateverything] (e1) {};
 	\node[coordinate, left=0.25*\w of hconcat] (e2) {};
 	\node[coordinate, left=0.25*\w of bconcat] (e3) {};
@@ -99,6 +150,11 @@
 	\draw[-latex] (weightjets) -- (TDDense256-1);
 	\draw[-latex] (TDDense256-1) -- (TDDense256-2);
 	\draw[-latex] (TDDense256-2) -- (flattenedweightedjets);
+	\draw (weightjets) -- (e0);
+	\draw[-latex] (e0) -| (TDDense256-1-2);
+	\draw[-latex] (TDDense256-1-2) -- (TDDense256-2-2);
+	\draw[-latex] (TDDense256-2-2) -- (flattenedweightedjets-2);
+	\draw (flattenedweightedjets-2) |- (e5); 
 	
 	% FIRST ENDING
 	\draw (flattenedweightedjets) -| (e1);
@@ -117,17 +173,14 @@
 	\draw[-latex] (hdense128) -- (hadoutput);
 	
 	% THIRD ENDING
-	\draw (flattenedweightedjets) -- (e4);
-	\draw (e4) |- (e5);
 	\draw (lepoutput) -| (e6);
 	\draw (e5) -- (e3);
-	
 	\draw (hadoutput) -| (e3);
 	\draw[-latex] (e3) -- (bconcat);
-	
-
 	\draw[-latex] (bconcat) -- (bdense256);
 	\draw[-latex] (bdense256) -- (bdense128);
 	\draw[-latex] (bdense128) -- (boutput);
 	
 \end{tikzpicture}
+
+\end{document}
