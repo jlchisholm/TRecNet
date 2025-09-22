@@ -57,6 +57,7 @@ $ singularity run --nv --bind <directory_with_data> <directory_container_is_in>/
 ```console
 $ python source/ml/run_training.py -v <model_architecture_version> -c config/training/<training_config.json> -m create
 ```
+Note that trained models and all their information will appear in the relevant subdirectory of the `trained_models/` directory, which is not tracked by git. If you like a model enough that you want it saved in the git repository, move it to the `models/` directory.
 
 ### Validating a Model
 
@@ -107,3 +108,5 @@ $ python source/ml/run_prediction.py -i <model_id> -d <data_set> -s <path/save_l
 This will make predictions using the data set you provide, and saves them in a root file at the desired location. If you would also like to save the scaled variables to this root file, append `--include_scaled` to your terminal command.
 
 ## Plotting Results
+
+*Currently under construction*
