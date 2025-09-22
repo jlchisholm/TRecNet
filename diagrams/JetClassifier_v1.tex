@@ -1,0 +1,30 @@
+	\begin{tikzpicture}
+	
+	%%% NODES %%%
+	
+	
+	% INPUTS
+	\node[input] at (\s,0.5*\h) (jetinput) {Input (Jets)};
+	\node[input] at (3*\s,0.5*\h) (otherinput) {Input (Lepton+MET)};
+	
+	% JET PRETRAINER
+	\node[hidden] at (2\s,-1.5*\h) (flattenedjets) {Flatten};
+	\node[hidden] at (2\s,-3*\h) (concatjetsother) {Concatenate};
+	\node[hidden] at (2\s,-4.5*\h) (dense256-1) {Dense (ReLU, 256)};
+	\node[hidden] at (2\s,-6*\h) (dense256-2) {Dense (ReLU, 256)};
+	\node[hidden] at (2\s,-7.5*\h) (jetmatchoutput) {Dense (Sigmoid, 6)};
+	\node[output] at (2\s,-9*\h) (output) {Output (Jet Match Tags)};
+	
+	%%% ARROWS %%%
+	
+	% JET PRETRAINER
+	\draw[-latex] (jetinput) |- (flattenedjets);
+	\draw[-latex] (flattenedjets) -- (concatjetsother);
+	\draw[-latex] (otherinput) |- (concatjetsother);
+	\draw[-latex] (concatjetsother) -- (dense256-1);
+	\draw[-latex] (dense256-1) -- (dense256-2);
+	\draw[-latex] (dense256-2) -- (jetmatchoutput);
+	\draw[-latex] (jetmatchoutput) -- (output);
+	
+	
+\end{tikzpicture}
