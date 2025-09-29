@@ -95,7 +95,7 @@ if __name__ == "__main__":
             
         # Create the model
         Model = TRecNet_Model()
-        Model.initialize(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["extra_b_mode"],add_jetpretrain, add_bbpretrain, False)
+        Model.initialize(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["b_mode"],add_jetpretrain, add_bbpretrain, False)
         
         # Start the training
         print('Beginning training for '+Model.model_id+'...')
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         
         # Set some things
         frozen_model_id = config["unfreeze"]["frozen_file"].split('/')[-1]
-        extra_b_mode = 'bbbar' if 'bbbar' in frozen_model_id else 'b1b2' if 'b1b2' in frozen_model_id else None
+        b_mode = 'bbbar' if 'bbbar' in frozen_model_id else 'b1b2' if 'b1b2' in frozen_model_id else None
         add_ttbar = True if '+ttbar' in frozen_model_id else False
         add_jetpretrain = True if '+JetPretrain' in frozen_model_id else False
         add_bbpretrain = True if '+bbPretrain' in frozen_model_id else False
@@ -131,7 +131,7 @@ if __name__ == "__main__":
                 
         # Create the model.  # this should be load I feel like, change later!
         Model = TRecNet_Model()
-        Model.initialize(args.version, config["njets"], add_ttbar, extra_b_mode, add_jetpretrain, add_bbpretrain, True)
+        Model.initialize(args.version, config["njets"], add_ttbar, b_mode, add_jetpretrain, add_bbpretrain, True)
         
         # Start the training
         print('Beginning training for '+Model.model_id+'...')
@@ -157,7 +157,7 @@ if __name__ == "__main__":
             
         # Create the model
         Model = TRecNet_Model()
-        Model.initialize(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["extra_b_mode"], add_jetpretrain, add_bbpretrain, False)
+        Model.initialize(args.version, config["njets"], config["create"]["add_ttbar"], config["create"]["b_mode"], add_jetpretrain, add_bbpretrain, False)
         
         print('Beginning hypertuning for '+Model.model_id+'...')
         Trainer = Training(config)

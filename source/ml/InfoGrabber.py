@@ -147,7 +147,7 @@ class InfoGrabber:
         add_ttbar = True if '+ttbar' in model_id else False
         return add_ttbar
     
-    def get_extra_b_mode(self, model_id):
+    def get_b_mode(self, model_id):
         
-        extra_b_mode = 'bbbar' if 'bbbar' in model_id else 'b1b2' if 'b1b2' in model_id else None
-        return extra_b_mode
+        b_mode = 'bbbar' if 'bbbar' in model_id else 'b1b2' if 'b1b2' in model_id else None
+        return b_mode

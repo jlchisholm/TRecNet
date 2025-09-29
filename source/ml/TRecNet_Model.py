@@ -29,7 +29,7 @@ class TRecNet_Model:
                 model_id (str): Full model ID, which includes the model name, number of jets, and unique model number.
                 n_jets (int): Number of jets the model is trained with (default: None).
                 with_ttbar (bool): Whether or not to include ttbar variables.
-                extra_b_mode (str): How extra b's are defined ('bbbar' or 'b1b2').
+                b_mode (str): How b's from ttbar decay are defined ('bbbar' or 'b1b2').
                 add_jetpretrain (bool): Whether or not use a pretrained jet classifier.
                 add_bbpretrain (bool): Whether or not use a pretrained bb classifier.
                 unfreeze_mode (bool): Whether or not we're unfreezing a previously trained model.    
@@ -56,12 +56,12 @@ class TRecNet_Model:
         
         
         
-    def initialize(self, version, n_jets, add_ttbar, extra_b_mode, add_jetpretrain, add_bbpretrain, unfreeze_mode):
+    def initialize(self, version, n_jets, add_ttbar, b_mode, add_jetpretrain, add_bbpretrain, unfreeze_mode):
         
         # Derive the model name
         model_name = version
-        if extra_b_mode!=None:
-            model_name += '_'+extra_b_mode
+        if b_mode!=None:
+            model_name += '_'+b_mode
         if add_ttbar:
             model_name += '+ttbar'
         if add_jetpretrain:
@@ -79,7 +79,7 @@ class TRecNet_Model:
 
         self.mask_value = -2   # Define here so it's consist between model building and jet timestep building
         self.with_ttbar = add_ttbar
-        self.extra_b_mode = extra_b_mode
+        self.b_mode = b_mode
         self.use_JetPretraining = add_jetpretrain
         self.use_bbPretraining = add_bbpretrain
         self.unfreeze = unfreeze_mode
@@ -95,7 +95,7 @@ class TRecNet_Model:
         self.model_id = model_id
         self.n_jets = grabber.get_njets(model_id)
         self.with_ttbar = grabber.get_ttbar_status(model_id)
-        self.extra_b_mode = grabber.get_extra_b_mode(model_id)
+        self.b_mode = grabber.get_b_mode(model_id)
         
         self.xmm_file, self.ymm_file = grabber.get_maxmean_files(model_id)
         
