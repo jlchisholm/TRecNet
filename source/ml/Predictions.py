@@ -100,7 +100,7 @@ class Predictor:
 
         # These are the keys for what we're feeding into the pre-processing, and getting back in the end
         # X and Y variables to be used (NOTE: later have option to feed these in) OR read them in from the info file
-        X_keys, Y_keys = processor.getInputKeys(model.model_v,model.n_jets,model.with_ttbar,model.extra_b_mode)
+        X_keys, Y_keys = processor.getInputKeys(model.model_v,model.n_jets,model.with_ttbar,model.b_mode)
 
         # For val and test, we have truth values, but for data (or systematics) we don't --> treat these modes differently
         if mode=='val' or mode=='test':
