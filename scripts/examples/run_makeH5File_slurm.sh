@@ -9,7 +9,7 @@ source /home/jchishol/scratch_env/bin/activate
 cd /home/jchishol/TRecNet/
 
 # run the code
-python source/prep/MLFilePrep.py makeH5File --input /data/jchishol/ttbb_trecnet_0825/pruned_varAdder_ntuples/ttbb_603192_mc20d_fullsim_pruned.root --save_dir /data/jchishol/ttbb_trecnet_0825/h5_files --tree_type nominal --var_conf config/prep/ttbb_var_names_config.json --jn 10 --extra_b_mode b1b2 --include_jet_truths
+python source/prep/MLFilePrep.py makeH5File --input /data/jchishol/ttbb_trecnet_0825/pruned_varAdder_ntuples/ttbb_603192_mc20d_fullsim_pruned.root --save_dir /data/jchishol/ttbb_trecnet_0825/h5_files --tree_type nominal --var_conf config/prep/ttbb_var_names_config.json --jn 10 --b_mode b1b2 --include_jet_truths
 
 # done
 # do some cleanup, move output files elsewhere if needed

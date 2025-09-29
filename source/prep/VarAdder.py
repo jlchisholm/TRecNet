@@ -66,7 +66,7 @@ class VarAdder:
         # if(self.add_jet_isTruth):
         #     self.dR_cut = settings["jet_isTruth"]["dR_cut"]
         #     self.allow_double_matching = settings["jet_isTruth"]["allow_double_matching"]
-        #     self.extra_b_mode = settings["jet_isTruth"]["extra_b_mode"]
+        #     self.b_mode = settings["jet_isTruth"]["b_mode"]
         
         
         
@@ -267,7 +267,7 @@ class VarAdder:
         
     #     # Do the matching
     #     matcher = JetMatcher()
-    #     isttbarJet, matching_info = matcher.getMatches(tree, keys, self.var_conf, self.dR_cut, self.allow_double_matching, self.extra_b_mode)
+    #     isttbarJet, matching_info = matcher.getMatches(tree, keys, self.var_conf, self.dR_cut, self.allow_double_matching, self.b_mode)
 
     #     # Save to nominal tree
     #     print('Adding jet_isTruth...')
