@@ -26,7 +26,7 @@ tracemalloc.start()
 
 # Dictionary of compatible models for each of the pretrained classifiers
 compatible_models = {"JetClassifier_v1": ["TRecNet_tt_v1", "TRecNet_ttbb_v1", "TRecNet_ttbb_v2", "TRecNet_ttbb_v3", "TRecNet_ttbb_v4", "TRecNet_ttbb_v5"],
-                    "bbClassifier_v1": ["TRecNet_ttbb_v1"]}
+                    "bbClassifier_v1": ["TRecNet_ttbb_v5"]}
 
 
 def pretrained_classifier_check(model_version, config, classifier):

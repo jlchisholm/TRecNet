@@ -228,7 +228,7 @@ class Training:
         file.write("---------------------------------------------------\n")
         file.write("Training Data File: %s \n" % self.train_file)
         file.write("Percentage of Train Data Used for Training: %s \n" % self.split)     
-        file.write("Percentage of Train Data Used for Validation: %s \n" % float(1) - self.split)   
+        file.write("Percentage of Train Data Used for Validation: %s \n" % (1 - self.split))   
         file.write("X Maxmean File: %s \n" % self.xmm_file)
         file.write("Y Maxmean File: %s \n" % self.ymm_file)
         file.write("---------------------------------------------------\n")
