@@ -22,15 +22,15 @@ $ python source/prep/EventRemover.py --input <path/ntuple.root> --save_dir <save
 ```
 **4. Make h5 files:** Make h5 files, by running MLFilePrep.py/makeH5File on the ntuples that you have run through both VarAdder and EventRemover.
 ```console
-$ python source/prep/MLFilePrep.py makeH5File --input <path/ntuple.root> --save_dir <save_directory_path> --tree_type nominal --var_conf config/prep/<var_names_config.json> --jn <num_jets> --extra_b_mode <e.g.b1b2> --include_jet_truths
+$ python source/prep/MLFilePrep.py makeH5File --input <path/ntuple.root> --save_dir <save_directory_path> --tree_type nominal --var_conf config/prep/<var_names_config.json> --jn <num_jets> --b_mode <e.g.b1b2> --include_jet_truths
 ```
 **5. Create train/test h5 files:** Combine all your h5 files together and then split them into one training file and one testing file, using MLFilePrep/makeTrainTestH5Files. For this, you will need to create a text file that lists all of the h5 files you want to use (examples in `file_lists/` directory), and decide on what percentage of events you want to go towards training+validation. This is what you will feed into TRecNet.
 ```console
 $ python source/prep/MLFilePrep.py makeTrainTestH5Files --file_list file_lists/<file_list.txt> --output <path/output_name> --split <percent_for_training>
 ```
-**6. Create max/mean dictionary:** Create the dictionaries of max/mean values, by running MaxMeanMachine.py on your training h5 file. You'll want to make sure `extra_b_mode` is set to the same thing that you used in the previous steps.
+**6. Create max/mean dictionary:** Create the dictionaries of max/mean values, by running MaxMeanMachine.py on your training h5 file. You'll want to make sure `b_mode` is set to the same thing that you used in the previous steps.
 ```console
-$ python source/prep/MaxMeanMachine.py --input <path/training_file.h5>  --save_dir <save_directory_path> --extra_b_mode <e.g.b1b2>
+$ python source/prep/MaxMeanMachine.py --input <path/training_file.h5>  --save_dir <save_directory_path> --b_mode <e.g.b1b2>
 
 ```
 
@@ -94,7 +94,7 @@ $ python source/prep/EventRemover.py --input <path/ntuple.root> --save_dir <save
 ```
 **4. Make h5 files:** Make h5 files, by running MLFilePrep.py/makeH5File on the ntuples that you have run through both VarAdder and EventRemover.
 ```console
-$ python source/prep/MLFilePrep.py makeH5File --input <path/ntuple.root> --save_dir <save_directory_path> --tree_type nominal --var_conf config/prep/<var_names_config.json> --jn <num_jets> --extra_b_mode <e.g.b1b2> --include_jet_truths
+$ python source/prep/MLFilePrep.py makeH5File --input <path/ntuple.root> --save_dir <save_directory_path> --tree_type nominal --var_conf config/prep/<var_names_config.json> --jn <num_jets> --b_mode <e.g.b1b2> --include_jet_truths
 ```
 **5. Combine h5 files:** Combine all your h5 files together into one file, using MLFilePrep/makeTrainTestH5Files. For this, you will need to create a text file that lists all of the h5 files you want to use (examples in `file_lists/` directory). This is what you will feed into TRecNet.
 ```console
