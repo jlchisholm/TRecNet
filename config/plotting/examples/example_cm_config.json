@@ -1,0 +1,57 @@
+{
+    "datasets_to_plot": ["TRecNet","TRecNet+ttbar","TRecNet+ttbar+JetPretrain","KLFitter6","PseudoTop","Chi2"],
+    "even_stats_binning": false,
+    "variables":
+    {
+        "ttbar":
+        {
+            "pt":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            }
+        },
+        "th":
+        {
+            "pt":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            }
+
+        },
+        "tl":
+        {
+            "pt":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            }
+
+        }
+    }
+}

@@ -5,6 +5,7 @@ __pycache__/
 tensorboard_logs/
 env/TRecNet_env/
 image/TRecNetContainer.sif
+config/plotting/my_configs
 scripts/my_scripts/
 image/*.sif
 trained_models/

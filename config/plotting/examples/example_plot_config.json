@@ -1,0 +1,14 @@
+{   
+    "save_loc": "plots/",
+    "dataset_config": "TRecNet/config/plotting/examples/example_dataset_config.json",
+    "TruthReco":
+    {
+        "make_plots": true,
+        "config": "TRecNet/config/plotting/examples/example_truthreco_config.json"
+    },
+    "CM":
+    {
+        "make_plots": true,
+        "config": "TRecNet/config/plotting/examples/example_cm_config.json"
+    }
+}
