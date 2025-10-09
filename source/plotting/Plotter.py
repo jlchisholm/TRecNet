@@ -53,6 +53,8 @@ class Plotter:
                 self.res_config = json.load(open(file_name))
             elif plot_type=='ResVsVar':
                 self.res_vs_var_config = json.load(open(file_name))
+            elif plot_type=='Sys':
+                self.sys_config = json.load(open(file_name))
             
         # Create "datasets"    
         self.datasets = {}
@@ -71,6 +73,24 @@ class Plotter:
                     self.datasets.update({model+'('+cut["tag"]+')': Dataset(model,cut["color_scheme"],reco_method_short=specs["shortname"])})
                 
             
+    def getDatasetsToPlot(self, reco_models_to_plot):
+        """
+        Makes a list of the datasets we'll want to plot. This is different from reco models to plot, as datasets includes separate datasets for trimmed datasets (e.g. LL<-52 vs no cut)
+        
+            Parameters:
+                reco_models_to_plot (list of str): List of reco model names.
+            
+            Return:
+                datasets_to_plot (list of str): List of dataset names.
+            
+        """
+        
+        datasets_to_plot = []
+        for name, dataset in self.datasets.items():  # go through all possible datasets
+            if dataset.reco_method in reco_models_to_plot:
+                datasets_to_plot.append(name)   # save the dataset if it's the right reco model
+                
+        return datasets_to_plot
             
             
     def getCutDF(self,df,cut_on,max,min):
@@ -108,11 +128,12 @@ class Plotter:
         return df_cut
     
     
-    def getDataFrame(self,dataset_name,obs_name,extra_truth_vars=[],extra_reco_vars=[]):
+    def getDataFrame(self,input_type,dataset_name,obs_name,extra_truth_vars=[],extra_reco_vars=[]):
         """
         Get truth and reco dataframes containing the given observable name. Also include any extra specified variables.
         
             Parameters:
+                input_type (str): Type of data to put in the dataframe (i.e. 'nom', 'sysUP', or 'sysDOWN').
                 dataset_name (str): Name of the dataset (e.g. "KLFitter(LL>-52)".)
                 obs_name (str): Name of the observable needed (e.g. "th_pt").
             
@@ -132,11 +153,12 @@ class Plotter:
         reco_vars = extra_reco_vars.append(obs_name)
         
         # Read in data
-        with uproot.open(self.dataset_config["Models"][dataset.reco_method]["nom_input"]) as data_file:
-            truth_df = data_file["parton"].arrays(truth_vars,library="pd")
-            truth_df.add_prefix('truth_')
+        with uproot.open(self.dataset_config["Models"][dataset.reco_method][input_type+"_input"]) as data_file:
             reco_df = data_file["reco"].arrays(reco_vars,library="pd")
             reco_df.add_prefix('reco_')
+            if input_type=='nom': # only truth data for nominal events
+                truth_df = data_file["parton"].arrays(truth_vars,library="pd")
+                truth_df.add_prefix('truth_')
             
         # Concatenate and output dataframe
         df = pd.concat([truth_df,reco_df], axis=1)    
@@ -145,7 +167,7 @@ class Plotter:
             
 
     
-    def getDatasetList(self,par,var,datasets_to_plot,extra_vars=[]):
+    def getDatasetList(self,par,var,datasets_to_plot,extra_vars=[],with_systematics=False):
         """
         Get list of datasets for plots that require multiple datasets.
         
@@ -155,7 +177,8 @@ class Plotter:
                 datasets_to_plot (list of str): List of datasets to include.
                 
             Optional:
-                extra_vars (list of str): List of extra variables that may be needed (e.g. for cuts) (e.g. ['pt']).
+                extra_vars (list of str): List of extra variables that may be needed (e.g. for cuts) (e.g. ['pt']) (default: []).
+                with_systematics (bool): Whether to include systematics in the datasets.
         """
         
         # Set the observable of interest
@@ -176,7 +199,7 @@ class Plotter:
             extra_reco_vars.append(dataset.cut_var)
                     
             # Get the dataframe
-            df = self.getDataFrame(dataset_name,obs_name,extra_truth_vars=extra_truth_vars,extra_reco_vars=extra_reco_vars)
+            df = self.getDataFrame('nom',dataset_name,obs_name,extra_truth_vars=extra_truth_vars,extra_reco_vars=extra_reco_vars)
                     
             # Make cut if necessary
             if dataset.cut_var!=None:
@@ -186,6 +209,16 @@ class Plotter:
             reco_model = self.reco_models[dataset_name]
             reco_model.link_temp_df(df)
             
+            # Also get systematics dataframes if required
+            if with_systematics:
+                up_df = self.getDataFrame('sysUP',dataset_name,obs_name,extra_truth_vars=extra_truth_vars,extra_reco_vars=extra_reco_vars)
+                down_df = self.getDataFrame('sysDOWN',dataset_name,obs_name,extra_truth_vars=extra_truth_vars,extra_reco_vars=extra_reco_vars)
+                if dataset.cut_var!=None:
+                    up_df = self.getCutDF(up_df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
+                    down_df = self.getCutDF(down_df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
+                reco_model.link_temp_sysUP_df(up_df)
+                reco_model.link_temp_sysDOWN_df(down_df)
+
             # Save to list
             datasets.append(reco_model)
             
@@ -198,15 +231,11 @@ class Plotter:
         """
         
         # Get the plotting instructions
-        reco_models_to_plot = self.truthreco_config["reco_models_to_plot"] # BUT WE ALSO NEED CUT VERSIONS!!!
+        reco_models_to_plot = self.truthreco_config["reco_models_to_plot"]
         observables_to_plot = self.truthreco_config["variables"]
         
         # Get list of the datasets we want to plot
-        # This is different from reco models, as datasets includes separate datasets for trimmed datasets (e.g. LL<-52 vs no cut)
-        datasets_to_plot = []
-        for name, dataset in self.datasets.items():
-            if dataset.reco_method in reco_models_to_plot:
-                datasets_to_plot.append(name)
+        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
 
         # Iterate through the observables
         for par, vars in observables_to_plot.items():
@@ -232,7 +261,7 @@ class Plotter:
                     extra_reco_vars = [dataset.cut_var] if dataset.cut_var!=None else []
                     
                     # Get the dataframe
-                    df = self.getDataFrame(dataset_name,obs_name,extra_reco_vars=extra_reco_vars)
+                    df = self.getDataFrame('nom',dataset_name,obs_name,extra_reco_vars=extra_reco_vars)
                     
                     # Make cut if necessary
                     if dataset.cut_var!=None:
@@ -259,11 +288,7 @@ class Plotter:
         even_stats = self.cm_config["even_stats_binning"]
         
         # Get list of the datasets we want to plot
-        # This is different from reco models, as datasets includes separate datasets for trimmed datasets (e.g. LL<-52 vs no cut)
-        datasets_to_plot = []
-        for name, dataset in self.datasets.items():
-            if dataset.reco_method in reco_models_to_plot:
-                datasets_to_plot.append(name)
+        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
             
         # Iterate through the observables
         for par, vars in observables_to_plot.items():
@@ -298,7 +323,7 @@ class Plotter:
                     extra_reco_vars = [dataset.cut_var] if dataset.cut_var!=None else []
                     
                     # Get the dataframe
-                    df = self.getDataFrame(dataset_name,obs_name,extra_reco_vars=extra_reco_vars)
+                    df = self.getDataFrame('nom',dataset_name,obs_name,extra_reco_vars=extra_reco_vars)
                     
                     # Make cut if necessary
                     if dataset.cut_var!=None:
@@ -324,11 +349,7 @@ class Plotter:
         observables_to_plot = self.res_config["variables"]
         
         # Get list of the datasets we want to plot
-        # This is different from reco models, as datasets includes separate datasets for trimmed datasets (e.g. LL<-52 vs no cut)
-        datasets_to_plot = []
-        for name, dataset in self.datasets.items():
-            if dataset.reco_method in reco_models_to_plot:
-                datasets_to_plot.append(name)
+        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
         
         # Iterate through the observables
         for par, vars in observables_to_plot.items():
@@ -392,11 +413,7 @@ class Plotter:
         even_stats = self.cm_config["even_stats_binning"]
         
         # Get list of the datasets we want to plot
-        # This is different from reco models, as datasets includes separate datasets for trimmed datasets (e.g. LL<-52 vs no cut)
-        datasets_to_plot = []
-        for name, dataset in self.datasets.items():
-            if dataset.reco_method in reco_models_to_plot:
-                datasets_to_plot.append(name)
+        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
                 
         # Iterate through the observables
         for par, plot_requests in observables_to_plot.items():
@@ -434,7 +451,49 @@ class Plotter:
         print('ResVsVar plots completed.') 
         
         
-               
+        
+    def makeSysPlots(self):
+        """
+        Makes systematics plots.
+        """
+        
+        # Get the plotting instructions
+        reco_models_to_plot = self.sys_config["reco_models_to_plot"] # BUT WE ALSO NEED CUT VERSIONS!!!
+        observables_to_plot = self.sys_config["variables"]
+        even_stats = self.sys_config["even_stats_binning"]
+        
+        # Get list of the datasets we want to plot
+        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
+        
+        # Iterate through the observables
+        for par, vars in observables_to_plot.items():
+            for var, specs in vars:
+                
+                # Get some important particle observable info
+                obs_name = par+'_'+var
+                particle = PARTICLES[par]
+                observable = particle.get_observable(var)
+                
+                # Get datasets
+                datasets = self.getDatasetList(par,var,datasets_to_plot,with_systematics=True)
+                
+                # Read the specs and get ticks
+                if even_stats:
+                    nbins = specs["even_stats_bins"]["nbins"]
+                    with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
+                        temp_df = pd.DataFrame(np.array(test_file.get(obs_name)),columns=[obs_name])
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],particle,observable,nbins)
+                    stats_tag = '(stats_binning)_'
+                else:
+                    x_min = specs["custom_bins"]["min"]
+                    x_max = specs["custom_bins"]["max"]
+                    step = specs["custom_bins"]["step"]
+                    ticks, tick_labels = Util.get_ticks(observable,x_min,x_max,step)
+                    stats_tag = ''
+                
+                # Make plot!
+                Plots.Sys_Hist(datasets,particle,observable,ticks,tick_labels,save_loc=self.main_dir+par.name+'/Sys/',tag=stats_tag)
+                    
                 
     def makePlots(self):
         """
@@ -449,6 +508,8 @@ class Plotter:
             self.makeResPlots()    
         if 'ResVsVar' in self.plots_to_make:
             self.makeResVsVarPlots()
+        if 'Sys' in self.plots_to_make:
+            self.makeSysPlots()    
         
         
         print('All plots completed.')    

@@ -147,6 +147,13 @@ class Dataset:
     def link_temp_df(self,df):
         
         self.df = df.copy()
+        
+    def link_temp_sysUP_df(self,up_df):
+        
+        self.sysUP_df = up_df.copy()
 
+    def link_temp_sysDOWN_df(self,down_df):
+        
+        self.sysDOWN_df = down_df.copy()
 
 

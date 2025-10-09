@@ -20,5 +20,10 @@
     {
         "make_plots": false,
         "config": "TRecNet/config/plotting/examples/example_res_vs_var_config.json"
+    },
+    "Sys":
+    {
+        "make_plots": false,
+        "config": "TRecNet/config/plotting/examples/example_sys_config.json"
     }
 }

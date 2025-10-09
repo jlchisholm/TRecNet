@@ -1,0 +1,174 @@
+{
+    "reco_models_to_plot": ["TRecNet","TRecNet+ttbar","TRecNet+ttbar+JetPretrain","KLFitter6","PseudoTop","Chi2"],
+    "even_stats_binning": true,
+    "variables":
+    {
+        "ttbar":
+        {
+            "pt":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            },
+            "eta":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            },
+            "phi":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            },
+            "m":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            }
+        },
+        "th":
+        {
+            "pt":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            },
+            "eta":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            },
+            "phi":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            },
+            "m":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            }
+        },
+        "tl":
+        {
+            "pt":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            },
+            "eta":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            },
+            "phi":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            },
+            "m":
+            {
+                "custom_bins":
+                {
+                    "min": 0,
+                    "max": 550,
+                    "step": 30
+                },
+                "even_stats_bins":
+                {
+                    "nbins": 10
+                }
+            }
+        }
+    }
+}
+
+
