@@ -8,7 +8,12 @@
     },
     "CM":
     {
-        "make_plots": true,
+        "make_plots": false,
         "config": "TRecNet/config/plotting/examples/example_cm_config.json"
+    },
+    "Res":
+    {
+        "make_plots": false,
+        "config": "TRecNet/config/plotting/examples/example_res_config.json"
     }
 }

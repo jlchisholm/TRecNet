@@ -30,17 +30,16 @@ from sigfig import round
 from Util import Util
 
 
-PLOT_TYPES = ['TruthReco','CM'] # oi! add to this later 
+PLOT_TYPES = ['TruthReco','CM','Res'] # oi! add to this later 
 
 
 
-def TruthReco_Hist(df,reco_model,particle,observable,x_min,x_max,nbins=30,save_loc='./'):
+def TruthReco_Hist(dataset,particle,observable,x_min,x_max,nbins=30,save_loc='./'):
     """
     Creates and saves a histogram with true and reconstructed data both plotted, for a given dataset, particle, and observable.
 
         Parameters:
-            df (pd.DataFrame): Dataframe containing the necessary columns of data.
-            reco_model (RecoModel object): RecoModel object of the data you want to plot.
+            dataset (Dataset object): Dataset object with the data you want to plot.
             particle (Particle object): Particle object of the particle you want to plot.
             observable (Observable object): Observable object of the observable you want to plot.
             x_min (int or float): Minimum value to plot.
@@ -61,8 +60,8 @@ def TruthReco_Hist(df,reco_model,particle,observable,x_min,x_max,nbins=30,save_l
 
     # Plot histograms of true and reco results on the same histogram
     _, (ax1, ax2) = plt.subplots(nrows=2,sharex=True,gridspec_kw={'height_ratios': [4, 1]})
-    truth_n, _, _ = ax1.hist(df['truth_'+name],bins=nbins,range=(x_min,x_max),histtype='step',label='truth',color='black')
-    reco_n, bins, _ = ax1.hist(df['reco_'+name],bins=nbins,range=(x_min,x_max),histtype='step',label='reco',color=reco_model.color)
+    truth_n, _, _ = ax1.hist(dataset.df['truth_'+name],bins=nbins,range=(x_min,x_max),histtype='step',label='truth',color='black')
+    reco_n, bins, _ = ax1.hist(dataset.df['reco_'+name],bins=nbins,range=(x_min,x_max),histtype='step',label='reco',color=dataset.color)
     
     # Make sure histograms aren't getting cut off
     max_truth = max(truth_n)*1.05
@@ -84,20 +83,19 @@ def TruthReco_Hist(df,reco_model,particle,observable,x_min,x_max,nbins=30,save_l
     ax1.legend()
     
     # Save the figure as a png in save location
-    fig_name = reco_model.reco_method+'('+reco_model.cuts+')_TruthReco_Hist_'+name
+    fig_name = dataset.reco_method+'('+dataset.cut_tag+')_TruthReco_Hist_'+name
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
     print('Saved Figure: '+fig_name)
 
     plt.close()
     
 
-def Confusion_Matrix(df,reco_model,particle,observable,ticks,tick_labels,norm=True,tag='',save_loc='./'):
+def Confusion_Matrix(dataset,particle,observable,ticks,tick_labels,norm=True,tag='',save_loc='./'):
     """ 
     Creates and saves a 2D histogram of true vs reconstructed data, normalized across rows, for a given dataset, particle, and observable.
 
         Parameters:
-            df (pd.DataFrame): Dataframe containing the necessary columns of data.
-            reco_model (RecoModel object): RecoModel object of the data you want to plot.
+            dataset (Dataset object): Dataset object with the data you want to plot.
             particle (Particle object): Particle object of the particle you want to plot.
             observable (Observable object): Observable object of the observable you want to plot.
             ticks
@@ -113,7 +111,7 @@ def Confusion_Matrix(df,reco_model,particle,observable,ticks,tick_labels,norm=Tr
     """
     
     # Make the appropriate color map
-    color_map=colors.LinearSegmentedColormap.from_list('my_cmap', ['white', reco_model.color])
+    color_map=colors.LinearSegmentedColormap.from_list('my_cmap', ['white', dataset.color])
 
     # Define a useful string and some important constants
     name = particle.name+'_'+observable.name
@@ -121,7 +119,7 @@ def Confusion_Matrix(df,reco_model,particle,observable,ticks,tick_labels,norm=Tr
     ran = ticks[::n-1]
 
     # Create 2D array of truth vs reco observable (which can be plotted also)
-    H, _, _, _ = plt.hist2d(np.clip(df['reco_'+name],ticks[0],ticks[-1]),np.clip(df['truth_'+name],ticks[0],ticks[-1]),bins=ticks,range=[ran,ran])
+    H, _, _, _ = plt.hist2d(np.clip(dataset.df['reco_'+name],ticks[0],ticks[-1]),np.clip(dataset.df['truth_'+name],ticks[0],ticks[-1]),bins=ticks,range=[ran,ran])
 
     # Normalize across rows (if desired)
     if norm:
@@ -151,126 +149,28 @@ def Confusion_Matrix(df,reco_model,particle,observable,ticks,tick_labels,norm=Tr
                 plt.text(j+0.5,k+0.5,masked_cm.T[j,k],color='k',fontsize=10,weight="bold",ha="center",va="center")
 
     # Save the figure in save location as a png
-    fig_name = reco_model.reco_method+'('+reco_model.cuts+')_Confusion_Matrix'+tag+'_'+name
+    fig_name = dataset.reco_method+'('+dataset.cut_tag+')_Confusion_Matrix'+tag+'_'+name
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
     print('Saved Figure: '+fig_name)
 
     plt.close()
 
 
-
-
-
-
-
-
-def Sys_Hist(datasets,particle,observable,test_truth_df,save_loc='./',nbins=5,even_stats_binning=False):
-    """
-    Creates and saves a histogram of the systematics for all datasets provided, for a given particle and observable.
-
-        Parameters:
-            datasets (list of Dataset objects): List of dataset objects of the datasets you want to plot.
-            particle (Particle object): Particle object of the particle you want to plot.
-            observable (observable object): Observable object of the observable you want to plot.
-            test_truth_df (pd.DataFrame): Dataframe of all truth data from the test datafile.
-
-        Options:
-            save_loc (str): Directory where you want the histogram saved to (default: current directory).
-            nbins (int): Number of desired bins for the histogram (default: 5).
-            even_stats_binning (bool): Whether or not to have an approximately equal number of events in each bin (default: False). Note if this option is not selected, the observable's normal binning will be used.
-
-        Returns:
-            Saves histogram in <save_loc> as '<res>_<data_type>_<particle>_<observable>.png'.                
-    """
-
-    # Define a useful string
-    name = particle.name+'_'+observable.name
-    
-            # Get the ticks and their labels
-    # We'll also create an extra label for which type of binning is used
-    if even_stats_binning:
-        tk, tkls = Util.get_even_stats_bins(test_truth_df['truth_'+name],particle,observable,nbins=8)
-        stats_tag = '(stats_binning)_'
-    else:
-        tk, tkls = observable.ticks, observable.tick_labels
-        #tk, tkls = observable.ticks[::len(observable.ticks)-1], observable.tick_labels[::len(observable.ticks)-1]
-        stats_tag = '_'
-
-    n = len(tk)
-    ran = tk[::n-1]
-
-    # Set the range (based on observable and particle we're plotting)
-    #ran = observable.ticks[::len(observable.ticks)-1]
-
-    # Create the figure for the systematics histogram
-    plt.figure('Sys')
-
-    # Go through and plot each of the datasets
-    for dataset in datasets:
-
-        # Create a temporary plot to bin the data (set density=True to normalize the counts)
-        plt.figure('Temporary')
-        reco_n, bins, _ = plt.hist(dataset.df['reco_'+name],bins=tk,range=ran,density=True)
-        sysUP_n, _, _ = plt.hist(dataset.sysUP_df['sysUP_'+name],bins=tk,range=ran,density=True)
-        sysDOWN_n, _, _ = plt.hist(dataset.sysDOWN_df['sysDOWN_'+name],bins=tk,range=ran,density=True)
-        plt.close('Temporary')
-
-        # Calculate the up and down fractional uncertainties
-        sysUP_results = np.array([100*(up-nom)/nom for up,nom in zip(sysUP_n,reco_n)])
-        sysDOWN_results = np.array([100*(nom-down)/nom for down,nom in zip(sysDOWN_n,reco_n)])
-
-        # Grab the bin width (not sure if there's somewhere easier to get this, like stored in the observables...)
-        bin_width = np.diff(bins)
-
-        # Switch back to the systematics figure (do I need this?)
-        plt.figure('Sys')
-        #plt.bar(x=bins[:-1],height=sysUP_results,width=np.diff(bins),align='edge',fill=True,linewidth=1,color='r',edgecolor='r',alpha=0.5,zorder=-1,label='up')
-        #plt.bar(x=bins[:-1],height=sysDOWN_results,width=np.diff(bins),align='edge',fill=True,linewidth=1,color='b',edgecolor='b',alpha=0.5,zorder=-1,label='down')
-        plt.hist(bins[:-1], bins, weights=sysUP_results, histtype='step', color=dataset.color, linestyle='dotted')
-        plt.hist(bins[:-1], bins, weights=sysDOWN_results, histtype='step', color=dataset.color, label=dataset.reco_method+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)')
-
-        # Need to sort systematics into which one is on top and which one is on bottom -- if both are on the same side of zero, just use the bigger one
-        #pos_weights = np.array([max(up,down) if max(up,down)>0 else 0 for up, down in zip(sysUP_results,sysDOWN_results)])
-        #neg_weights = np.array([min(up,down) if min(up,down)<0 else 0 for up, down in zip(sysUP_results,sysDOWN_results)])
-
-        # Plot the fractional uncertainties
-        #plt.hist(bins[:-1], bins, weights=pos_weights, histtype='step', color=dataset.color, label=dataset.reco_method+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)')
-        #plt.hist(bins[:-1], bins, weights=neg_weights, histtype='step', color=dataset.color)
-
-
-    # Draw a dashed line at zero
-    x_dash, y_dash = np.linspace(min(ran),max(ran),n),[0]*n
-    plt.plot(x_dash,y_dash,'k--')
-
-    # Set some axis labels
-    plt.xlabel(particle.labels[observable.name])
-    plt.ylabel('Fractional Uncertainty [%]')
-    plt.legend(prop={'size': 6})
-
-    # Save the figure as a png in save location
-    fig_name = 'Systematics_'+stats_tag+dataset.data_type+'_'+name
-    plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
-    print('Saved Figure: '+fig_name)
-
-    plt.close()
-
-
-
-def Res_Hist(datasets,particle,observable,save_loc='./',nbins=30,core_fit='nofit',include_moments=False,pt_low=None,pt_high=None):
+def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,core_fit='nofit',include_moments=False):
     """
     Creates and saves a resolution (or residual) plot all datasets provided, for a given particle and observable.
 
         Parameters:
-            datasets (list of Dataset objects): List of dataset objects of the datasets you want to plot.
+            datasets (list of Dataset objects): RecoModel objects of the data you want to plot.
             particle (Particle object): Particle object of the particle you want to plot.
             observable (Observable object): Observable object of the observable you want to plot.
 
         Options:
             save_loc (str): Directory where you want the histogram saved to (default: current directory).
+            tag (str): Extra tag to add to the plot save name.
             nbins (int): Number of desired bins for the histogram (default: 30).
             core_fit (str): Type of fit you want to use for the datasets (default: 'nofit', other options: 'gaussian' or 'cauchy').
             include_moments (bool): Whether or not to include the mean and standard deviation in the legend.
-            pt_low, pt_high (int): Lower and upper edges for the range of pt you'd like to look at (non-inclusive).
 
         Returns:
             Saves histogram in <save_loc> as '<res>_<data_type>_<particle>_<observable>.png'.
@@ -290,30 +190,9 @@ def Res_Hist(datasets,particle,observable,save_loc='./',nbins=30,core_fit='nofit
     # Fill figure with data
     for dataset in datasets:
         
-        # TEMPORARY: cut out certain datasets
-        #if (dataset.reco_method=='KLFitter6' or dataset.reco_method=='Chi2') and dataset.cuts=='No Cuts':
-        #    continue
-        
         # Get dataframe
         df = dataset.df
 
-        # Creating pt tag for later saving/naming
-        if pt_low!=None and pt_high!=None:
-            pt_tag = '('+str(pt_low)+'<p_T<'+str(pt_high)+')'
-        elif pt_low!=None:
-            pt_tag = '(p_T>'+str(pt_low)+')'
-        elif pt_high!=None:
-            pt_tag = '(p_T<'+str(pt_high)+')'
-        else:
-            pt_tag=''
-
-        # Cut to specified pt range, if desired
-        if pt_low!=None:
-            df = df[df['truth_'+particle.name+'_pt']>pt_low]
-        if pt_high!=None:
-            df = df[df['truth_'+particle.name+'_pt']<pt_high]
-
-    
         # Calculate the resolution (or residuals), and wrap phi if that's what we're dealing with
         res = observable.res
         if res=='Resolution':
@@ -337,7 +216,6 @@ def Res_Hist(datasets,particle,observable,save_loc='./',nbins=30,core_fit='nofit
         else:
             mom_tag = ''
 
-
         # Plot the resolution
         #model_label = dataset.reco_method_short+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)'+mom_tag
         model_label = dataset.reco_method_short+'('+dataset.cuts+')'+mom_tag if dataset.cuts!='No Cuts' else dataset.reco_method_short+mom_tag
@@ -349,7 +227,6 @@ def Res_Hist(datasets,particle,observable,save_loc='./',nbins=30,core_fit='nofit
         num_events[dataset.reco_method_short+'('+dataset.cuts+')'] = len(df['res_'+name])
         num_in_events[dataset.reco_method_short+'('+dataset.cuts+')'] = len(in_events)
         in_dic[dataset.reco_method_short+'('+dataset.cuts+')'] = (len(in_events)/len(df['res_'+name]))*100
-        
 
         # If we want to fit the core distribution and get that mean and standard deviation
         if core_fit.casefold()=='gaussian':
@@ -372,7 +249,7 @@ def Res_Hist(datasets,particle,observable,save_loc='./',nbins=30,core_fit='nofit
     plt.yticks(fontsize=12)
 
     # Save figure in save location
-    fig_name = res+'_'+dataset.data_type+'_'+name+pt_tag
+    fig_name = res+'_'+dataset.data_type+'_'+name+tag
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
     print('Saved Figure: '+fig_name)
 
@@ -380,6 +257,15 @@ def Res_Hist(datasets,particle,observable,save_loc='./',nbins=30,core_fit='nofit
     
     # Save crucial plot info
     Util.save_plot_info(save_loc, fig_name, num_events, num_in_events, in_dic)
+
+
+
+
+
+
+
+
+
 
 
 def Res_vs_Var(datasets,particle,y_var,x_var,x_bins,test_truth_df,save_loc='./',core_fit='nofit', even_stats_binning=False,ignore_first_bin=True):
@@ -526,3 +412,95 @@ def Res_vs_Var(datasets,particle,y_var,x_var,x_bins,test_truth_df,save_loc='./',
     
     # Save crucial plot info
     #Util.save_plot_info(save_loc, fig_name, num_events, num_in_events, in_dic)
+    
+    
+    
+def Sys_Hist(datasets,particle,observable,test_truth_df,save_loc='./',nbins=5,even_stats_binning=False):
+    """
+    Creates and saves a histogram of the systematics for all datasets provided, for a given particle and observable.
+
+        Parameters:
+            datasets (list of Dataset objects): List of dataset objects of the datasets you want to plot.
+            particle (Particle object): Particle object of the particle you want to plot.
+            observable (observable object): Observable object of the observable you want to plot.
+            test_truth_df (pd.DataFrame): Dataframe of all truth data from the test datafile.
+
+        Options:
+            save_loc (str): Directory where you want the histogram saved to (default: current directory).
+            nbins (int): Number of desired bins for the histogram (default: 5).
+            even_stats_binning (bool): Whether or not to have an approximately equal number of events in each bin (default: False). Note if this option is not selected, the observable's normal binning will be used.
+
+        Returns:
+            Saves histogram in <save_loc> as '<res>_<data_type>_<particle>_<observable>.png'.                
+    """
+
+    # Define a useful string
+    name = particle.name+'_'+observable.name
+    
+            # Get the ticks and their labels
+    # We'll also create an extra label for which type of binning is used
+    if even_stats_binning:
+        tk, tkls = Util.get_even_stats_bins(test_truth_df['truth_'+name],particle,observable,nbins=8)
+        stats_tag = '(stats_binning)_'
+    else:
+        tk, tkls = observable.ticks, observable.tick_labels
+        #tk, tkls = observable.ticks[::len(observable.ticks)-1], observable.tick_labels[::len(observable.ticks)-1]
+        stats_tag = '_'
+
+    n = len(tk)
+    ran = tk[::n-1]
+
+    # Set the range (based on observable and particle we're plotting)
+    #ran = observable.ticks[::len(observable.ticks)-1]
+
+    # Create the figure for the systematics histogram
+    plt.figure('Sys')
+
+    # Go through and plot each of the datasets
+    for dataset in datasets:
+
+        # Create a temporary plot to bin the data (set density=True to normalize the counts)
+        plt.figure('Temporary')
+        reco_n, bins, _ = plt.hist(dataset.df['reco_'+name],bins=tk,range=ran,density=True)
+        sysUP_n, _, _ = plt.hist(dataset.sysUP_df['sysUP_'+name],bins=tk,range=ran,density=True)
+        sysDOWN_n, _, _ = plt.hist(dataset.sysDOWN_df['sysDOWN_'+name],bins=tk,range=ran,density=True)
+        plt.close('Temporary')
+
+        # Calculate the up and down fractional uncertainties
+        sysUP_results = np.array([100*(up-nom)/nom for up,nom in zip(sysUP_n,reco_n)])
+        sysDOWN_results = np.array([100*(nom-down)/nom for down,nom in zip(sysDOWN_n,reco_n)])
+
+        # Grab the bin width (not sure if there's somewhere easier to get this, like stored in the observables...)
+        bin_width = np.diff(bins)
+
+        # Switch back to the systematics figure (do I need this?)
+        plt.figure('Sys')
+        #plt.bar(x=bins[:-1],height=sysUP_results,width=np.diff(bins),align='edge',fill=True,linewidth=1,color='r',edgecolor='r',alpha=0.5,zorder=-1,label='up')
+        #plt.bar(x=bins[:-1],height=sysDOWN_results,width=np.diff(bins),align='edge',fill=True,linewidth=1,color='b',edgecolor='b',alpha=0.5,zorder=-1,label='down')
+        plt.hist(bins[:-1], bins, weights=sysUP_results, histtype='step', color=dataset.color, linestyle='dotted')
+        plt.hist(bins[:-1], bins, weights=sysDOWN_results, histtype='step', color=dataset.color, label=dataset.reco_method+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)')
+
+        # Need to sort systematics into which one is on top and which one is on bottom -- if both are on the same side of zero, just use the bigger one
+        #pos_weights = np.array([max(up,down) if max(up,down)>0 else 0 for up, down in zip(sysUP_results,sysDOWN_results)])
+        #neg_weights = np.array([min(up,down) if min(up,down)<0 else 0 for up, down in zip(sysUP_results,sysDOWN_results)])
+
+        # Plot the fractional uncertainties
+        #plt.hist(bins[:-1], bins, weights=pos_weights, histtype='step', color=dataset.color, label=dataset.reco_method+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)')
+        #plt.hist(bins[:-1], bins, weights=neg_weights, histtype='step', color=dataset.color)
+
+
+    # Draw a dashed line at zero
+    x_dash, y_dash = np.linspace(min(ran),max(ran),n),[0]*n
+    plt.plot(x_dash,y_dash,'k--')
+
+    # Set some axis labels
+    plt.xlabel(particle.labels[observable.name])
+    plt.ylabel('Fractional Uncertainty [%]')
+    plt.legend(prop={'size': 6})
+
+    # Save the figure as a png in save location
+    fig_name = 'Systematics_'+stats_tag+dataset.data_type+'_'+name
+    plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
+    print('Saved Figure: '+fig_name)
+
+    plt.close()

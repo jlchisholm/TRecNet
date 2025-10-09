@@ -1,0 +1,144 @@
+{
+    "reco_models_to_plot": ["TRecNet","TRecNet+ttbar","TRecNet+ttbar+JetPretrain","KLFitter6","PseudoTop","Chi2"],
+    "variables":
+    {
+        "ttbar":
+        {
+            "pt":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {},
+                    {"pt_high":100},
+                    {"pt_low":250, "pt_high":500},
+                    {"pt_low":500}
+                ]
+            },
+            "eta":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "phi":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "m":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            }
+        },
+        "th":
+        {
+            "pt":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {},
+                    {"pt_high":100},
+                    {"pt_low":250, "pt_high":500},
+                    {"pt_low":500}
+                ]
+            },
+            "eta":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "phi":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "m":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            }
+        },
+        "tl":
+        {
+            "pt":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {},
+                    {"pt_high":100},
+                    {"pt_low":250, "pt_high":500},
+                    {"pt_low":500}
+                ]
+            },
+            "eta":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "phi":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "m":
+            {
+                "core_fit": "nofit",
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            }
+        }
+    }
+}

@@ -108,9 +108,4 @@ if __name__ == "__main__":
     plotter = Plotter(main_dir,plotting_config['dataset_config'],plot_configs)
     plotter.makePlots()
     
-    
-    
-    
-
-    
     print('Plotting complete :)')

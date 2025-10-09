@@ -1,5 +1,5 @@
 {
-    "datasets_to_plot": ["TRecNet","TRecNet+ttbar","TRecNet+ttbar+JetPretrain","KLFitter6","PseudoTop","Chi2"],
+    "reco_models_to_plot": ["TRecNet","TRecNet+ttbar","TRecNet+ttbar+JetPretrain","KLFitter6","PseudoTop","Chi2"],
     "even_stats_binning": false,
     "variables":
     {

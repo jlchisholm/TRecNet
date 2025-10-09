@@ -93,12 +93,12 @@ class Particle:
         
 
 
-class RecoModel:
+class Dataset:
     """ 
     Dataset object class.
     """
 
-    def __init__(self, reco_method, color, cuts='No Cuts', perc_events=100, reco_method_short=''):
+    def __init__(self, reco_method, color, cut_tag='No Cuts', cut_var=None, cut_min=0, cut_max=0, perc_events=100, reco_method_short=''):
         """
         Initializes a dataset object.
 
@@ -107,7 +107,10 @@ class RecoModel:
                 color (str): Color identifier for the plots.
             
             Options:
-                cuts (str): Specify the cuts that were made on this dataset (default: 'No Cuts').
+                cut_tag (str): Specify the cuts that were made on this dataset (default: 'No Cuts').
+                cut_var
+                cut_min
+                cut_max
                 perc_events (float or double or int): Percentage of the total number of events in this dataset (default: 100).
                 reco_method_short (str): Shorthand name for the reconstruction method, to be used in plot legends (default: <reco_method>).
             
@@ -122,19 +125,28 @@ class RecoModel:
 
         self.reco_method = reco_method
         self.color = color
+        self.cut_tag = cut_tag
+        self.cut_var = cut_var
+        self.cut_min = cut_min
+        self.cut_max = cut_max
         self.perc_events = perc_events
         self.reco_method_short = reco_method if reco_method_short=='' else reco_method_short
     
-        if cuts == 'LL>-52':
-            self.cuts = r'$\ln\mathcal{L}$>-52'
-        elif cuts == 'chi2<50':
-            self.cuts = r'$\chi^2$<50'
+        if cut_tag == 'LL>-52':
+            self.cut_label = r'$\ln\mathcal{L}$>-52'
+        elif cut_tag == 'chi2<50':
+            self.cut_label = r'$\chi^2$<50'
         else:
-            self.cuts = cuts
+            self.cut_label = cut_tag
             
-        if self.perc_events==100 and self.cuts!='No Cuts': 
+        if self.perc_events==100 and self.cut_tag!='No Cuts': 
             print('WARNING: Do you really have 100\% of events if you are making cuts? Exiting program.')
             sys.exit()
+            
+            
+    def link_temp_df(self,df):
+        
+        self.df = df.copy()
 
 
 
