@@ -12,25 +12,12 @@
 ##########################################################################
 
 # Import useful packages
-import uproot
-import h5py
+import os
 import json
-import pandas as pd
-import awkward as ak
-import numpy as np
-import vector
-import itertools
-import tk as tkinter
-import matplotlib
-matplotlib.use('Agg')  # need for not displaying plots when running batch jobs
-#matplotlib.use('GTK3Agg')   # need this one if you want plots displayed
-from source.plotting.Plot import *
-import os, sys
 from argparse import ArgumentParser
 from ParticleObservables import PARTICLES
-from Plotter import Plotter
 from Plots import PLOT_TYPES
-
+from Plotter import Plotter
 
 
 def createDirectories(main_dir, plots_to_make):

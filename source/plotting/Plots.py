@@ -27,10 +27,10 @@ from matplotlib import colors
 from scipy.stats import norm
 from scipy.stats import cauchy
 from sigfig import round
-from Util import Util
+import Util
 
 
-PLOT_TYPES = ['TruthReco','CM','Res'] # oi! add to this later 
+PLOT_TYPES = ['TruthReco','CM','Res','ResVsVar'] # oi! add to this later 
 
 
 
@@ -193,18 +193,8 @@ def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,core_fit
         # Get dataframe
         df = dataset.df
 
-        # Calculate the resolution (or residuals), and wrap phi if that's what we're dealing with
-        res = observable.res
-        if res=='Resolution':
-            if observable.name=='phi':
-                df['res_'+name] = Util.wrap_phi((df['reco_'+name] - df['truth_'+name]))/df['truth_'+name]
-            else:
-                df['res_'+name] = (df['reco_'+name] - df['truth_'+name])/df['truth_'+name]
-        else:
-            if observable.name=='phi':
-                df['res_'+name] = Util.wrap_phi(df['reco_'+name] - df['truth_'+name])
-            else:
-                df['res_'+name] = df['reco_'+name] - df['truth_'+name]
+        # Calculate the resolution (or residuals)
+        df = Util.calculate_res(particle,observable,df)
 
         # Calculate mean and standard deviation of the resolution
         if include_moments==True:
@@ -243,13 +233,13 @@ def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,core_fit
     # Add some labels
     plt.legend(prop={'size': 9})
     #plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left", prop={'size': 10},borderaxespad=0)
-    plt.xlabel(particle.labels_nounits[observable.name]+' '+res, fontsize=14)
+    plt.xlabel(particle.labels_nounits[observable.name]+' '+observable.res, fontsize=14)
     plt.ylabel('Events (Normalized)', fontsize=14)
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
 
     # Save figure in save location
-    fig_name = res+'_'+dataset.data_type+'_'+name+tag
+    fig_name = observable.res+'_'+name+tag
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
     print('Saved Figure: '+fig_name)
 
@@ -259,16 +249,7 @@ def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,core_fit
     Util.save_plot_info(save_loc, fig_name, num_events, num_in_events, in_dic)
 
 
-
-
-
-
-
-
-
-
-
-def Res_vs_Var(datasets,particle,y_var,x_var,x_bins,test_truth_df,save_loc='./',core_fit='nofit', even_stats_binning=False,ignore_first_bin=True):
+def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag='',core_fit='nofit'):
     """
     Creates and saves a plot of resolution (or residual) for a given observable against another (or the same) given observable, for all datasets provided, for a given particle.
 
@@ -277,141 +258,80 @@ def Res_vs_Var(datasets,particle,y_var,x_var,x_bins,test_truth_df,save_loc='./',
             particle (Particle object): Particle object of the particle you want to plot.
             y_var (Observable object): Observable whose resolution (or residuals) will be plotted on the y-axis.
             x_var (Observable object): Observable whose parton level values will be plotted on the x-axis.
-            x_bins (list of three floats/ints): x_bins[0] is the bottom edge of the first bin, x_bins[1] is the (max) upper edge of the last bin, and x_bins[2] is the width of the bins.
-            test_truth_df (pd.DataFrame): Dataframe of all truth data from the test datafile.
+            ticks
+            tick_labels
 
         Options:
             save_loc (str): Directory where you want the histogram saved to (default: current directory).
+            tag (str): Extra tag to add to the plot save name.
             core_fit (str): Type of fit you want to use for the width calculations (default: 'nofit', other options: 'gaussian' or 'cauchy').
-            even_stats_binning (bool): Whether or not to have an approximately equal number of events in each bin (default: False). Note if this option is not selected, the observable's normal binning will be used.
-            ***ignore_first_bin (bool)
 
         Returns:
-            Saves histogram in <save_loc> as '<y_var>_<y_res>_vs_<x_var>_<data_type>_<particle>.png'.
+            Saves histogram in <save_loc> as '<y_obs>_<y_res>_vs_<x_obs>_<data_type>_<particle>.png'.
     """
-
-    # Get the resolution vs residual specification for the variable on the y-axis
-    y_res = y_var.res
     
-    # Get the ticks and their labels
-    # We'll also create an extra label for which type of binning is used
-    if even_stats_binning:
-        tk, tkls = Util.get_even_stats_bins(test_truth_df['truth_'+particle.name+'_'+x_var.name],particle,x_var,nbins=8)
-        tk = np.array(tk)
-        stats_tag = '(stats_binning)_'
-    else:
-        tk = np.arange(x_bins[0],x_bins[1],x_bins[2])
-        stats_tag = ''
+    # Useful to define
+    yfocus = particle.name+'_'+y_obs.name
+    y_res = y_obs.res
     
+    # Create a scatter plot to be filled
+    plt.figure(y_obs.name+' '+y_res+' vs '+x_obs.name)
     
-
     for dataset in datasets:
         
-        # TEMPORARY: cut out KLF (without cuts) for these datasets
-        if (dataset.reco_method=='KLFitter6' or dataset.reco_method=='Chi2') and dataset.cuts=='No Cuts':
-            continue
-        
-        
-
         # Get dataframe
         df = dataset.df
-
-        # Useful to define
-        yfocus = particle.name+'_'+y_var.name
-
-        # Calculate the resolution (or residuals), and wrap phi if that's what we're dealing with
-        if y_res.casefold()=='resolution':
-            if y_var.name=='phi':
-                df['res_'+yfocus] = Util.wrap_phi((df['reco_'+yfocus] - df['truth_'+yfocus]))/df['truth_'+yfocus]
-            else:
-                df['res_'+yfocus] = (df['reco_'+yfocus] - df['truth_'+yfocus])/df['truth_'+yfocus]
-        else:
-            if y_var.name=='phi':
-                df['res_'+yfocus] = Util.wrap_phi((df['reco_'+yfocus] - df['truth_'+yfocus]))
-            else:
-                df['res_'+yfocus] = df['reco_'+yfocus] - df['truth_'+yfocus]
-            
-        # Create a scatter plot to be filled
-        plt.figure(y_var.name+' '+y_res+' vs '+x_var.name)
-
+        
+        # Calculate the resolution (or residuals)
+        df = Util.calculate_res(particle,y_obs,df)
+        
+        # Get data points for histogram (going through each bin here)
         points = []   # Array to hold var vs fwhm values
-        for i, bottom_edge in enumerate(tk[:-1]):
+        for i, bottom_edge in enumerate(ticks[:-1]):
 
             # Set some helpful observables
-            top_edge = tk[i+1]
+            top_edge = ticks[i+1]
             middle = bottom_edge + (top_edge - bottom_edge)/2
 
             # Look at resolution at a particular value of var
-            cut_temp = df[df['truth_'+particle.name+'_'+x_var.name]>=bottom_edge]      # Should I fold in edges of first and last?
-            cut_temp = cut_temp[cut_temp['truth_'+particle.name+'_'+x_var.name]<top_edge]
+            cut_temp = df[df['truth_'+particle.name+'_'+x_obs.name]>=bottom_edge]      # Should I fold in edges of first and last?
+            cut_temp = cut_temp[cut_temp['truth_'+particle.name+'_'+x_obs.name]<top_edge]
 
             # Get standard deviations
             if core_fit=='gaussian':
-                #_, sigma = norm.fit(cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1])
-                sigma = cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1].std()
+                _, sigma = norm.fit(cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1])
+                #sigma = cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1].std()
             elif core_fit=='cauchy':
                 _, sigma = cauchy.fit(cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1])
             else:
                 sigma = cut_temp['res_'+yfocus].std()
                 
-            
             # Add point to list
             points.append([middle,sigma])
 
-
-        # Set y-axis to a log scale if looking at pt (much higher at low pt)
-        #if y_var.name=='pt' or y_var.name=='m' or y_var:
-        #    plt.yscale('log')
-        
-        # Set the things to plot
-        if even_stats_binning:
-            xpoints = np.array(range(len(points)))+0.5
-            ypoints = np.array(points)[:,1]
-            xerror = np.full(len(points),0.5)
-        else:
-            xpoints = np.array(points)[:,0]
-            ypoints = np.array(points)[:,1]
-            xerror = np.full(len(points),x_bins[2]/2)    
-            
-        # Put data in the scatterplot 
-        # TEMPORARY: ignore first bin if asked to
-        if ignore_first_bin:
-            xpoints = xpoints[1:]
-            ypoints = ypoints[1:]
-            xerror = xerror[1:]
-            zoom_tag = '_zoom'
-        else:
-            zoom_tag=''
-            
+        # Plot the data
+        xpoints = np.array(range(len(points)))+0.5
+        ypoints = np.array(points)[:,1]
+        xerror = np.full(len(points),0.5)   
         #model_label = dataset.reco_method_short+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)'
         model_label = dataset.reco_method_short+'('+dataset.cuts+')' if dataset.cuts!='No Cuts' else dataset.reco_method_short
         plt.errorbar(xpoints, ypoints,xerr=xerror,label=model_label,color=dataset.color, fmt='o')
 
 
     # Add some labels
-    plt.xlabel('Parton-level '+particle.labels[x_var.name], fontsize=14)
-    ytag = r'$\sigma_{\mathrm{core}}$' if core_fit=='gaussian' else r'$\sigma_{\mathrm{total}}$'
-    plt.ylabel(ytag+' of '+particle.labels_nounits[y_var.name]+' '+y_res, fontsize=14)
+    plt.xlabel('Parton-level '+particle.labels[x_obs.name], fontsize=14)
+    y_sigma_str = r'$\sigma_{\mathrm{core}}$' if core_fit=='gaussian' else r'$\sigma_{\mathrm{total}}$'
+    plt.ylabel(y_sigma_str+' of '+particle.labels_nounits[y_obs.name]+' '+y_res, fontsize=14)
     plt.legend(prop={'size': 12})
-    if even_stats_binning: 
-        plt.xticks(np.arange(len(tk)),tkls,fontsize=12)
-    else:
-        plt.xticks(fontsize=12)
+    plt.xticks(np.arange(len(ticks)),tick_labels,fontsize=12)
     plt.yticks(fontsize=12)
-    #if even_stats_binning: plt.xlim(middle+10)
-    
-    # TEMPORARY:
-    #plt.ylim(0,2)
 
     # Save figure in save location
-    fig_name = y_var.name+'_'+y_res+'_vs_'+x_var.name+'_'+stats_tag+dataset.data_type+'_'+particle.name+zoom_tag
+    fig_name = y_obs.name+'_'+y_res+'_vs_'+x_obs.name+'_'+tag+'_'+particle.name
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
     print('Saved Figure: '+fig_name)
     
     plt.close()
-    
-    # Save crucial plot info
-    #Util.save_plot_info(save_loc, fig_name, num_events, num_in_events, in_dic)
     
     
     
@@ -499,7 +419,7 @@ def Sys_Hist(datasets,particle,observable,test_truth_df,save_loc='./',nbins=5,ev
     plt.legend(prop={'size': 6})
 
     # Save the figure as a png in save location
-    fig_name = 'Systematics_'+stats_tag+dataset.data_type+'_'+name
+    fig_name = 'Systematics_'+stats_tag+'_'+name
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
     print('Saved Figure: '+fig_name)
 

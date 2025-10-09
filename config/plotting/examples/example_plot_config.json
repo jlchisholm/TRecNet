@@ -15,5 +15,10 @@
     {
         "make_plots": false,
         "config": "TRecNet/config/plotting/examples/example_res_config.json"
+    },
+    "ResVsVar":
+    {
+        "make_plots": false,
+        "config": "TRecNet/config/plotting/examples/example_res_vs_var_config.json"
     }
 }

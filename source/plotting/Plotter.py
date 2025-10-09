@@ -11,22 +11,14 @@
 
 # Import useful packages
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')  # need for not displaying plots when running batch jobs
-from matplotlib import pyplot as plt
-from matplotlib import colors
-#from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, plot_confusion_matrix
-from scipy.stats import norm
-from scipy.stats import cauchy
-from sigfig import round
-from Util import Util
-import json
-import Plots
-import uproot
 import pandas as pd
+import uproot
+import h5py
+import json
+import Util
 from ParticleObservables import PARTICLES
 from DataStructures import Dataset
-import h5py
+import Plots
 
 
 class Plotter:
@@ -59,6 +51,8 @@ class Plotter:
                 self.cm_config = json.load(open(file_name))
             elif plot_type=='Res':
                 self.res_config = json.load(open(file_name))
+            elif plot_type=='ResVsVar':
+                self.res_vs_var_config = json.load(open(file_name))
             
         # Create "datasets"    
         self.datasets = {}
@@ -133,16 +127,15 @@ class Plotter:
         # Get the reco model object
         dataset = self.datasets[dataset_name] 
         
-        # Read in truth data for the observable of interest and any extra variables
+        # Set the variables
         truth_vars = extra_truth_vars.append(obs_name)
-        with uproot.open(self.dataset_config["Truth"]["test_file"]) as truth_file:
-            truth_df = truth_file["parton"].arrays(truth_vars,library="pd")
-            truth_df.add_prefix('truth_')
-            
-        # Read in reco data for the observable of interest and any extra variables
         reco_vars = extra_reco_vars.append(obs_name)
-        with uproot.open(self.dataset_config["Models"][dataset.reco_method]["nom_input"]) as reco_file:
-            reco_df = reco_file["reco"].arrays(reco_vars,library="pd")
+        
+        # Read in data
+        with uproot.open(self.dataset_config["Models"][dataset.reco_method]["nom_input"]) as data_file:
+            truth_df = data_file["parton"].arrays(truth_vars,library="pd")
+            truth_df.add_prefix('truth_')
+            reco_df = data_file["reco"].arrays(reco_vars,library="pd")
             reco_df.add_prefix('reco_')
             
         # Concatenate and output dataframe
@@ -284,15 +277,16 @@ class Plotter:
                 # Read the specs and get ticks
                 if even_stats:
                     nbins = specs["even_stats_bins"]["nbins"]
-                    # NEED TO FIND A WAY TO GET EVEN STATS BINNING
-                    ticks, tick_labels = Util.get_even_stats_ticks(truth_df['truth_'+obs_name],particle,observable,nbins)
-                    tag = '(stats_binning)_'
+                    with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
+                        temp_df = pd.DataFrame(np.array(test_file.get(obs_name)),columns=[obs_name])
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],particle,observable,nbins)
+                    stats_tag = '(stats_binning)_'
                 else:
                     x_min = specs["custom_bins"]["min"]
                     x_max = specs["custom_bins"]["max"]
                     step = specs["custom_bins"]["step"]
-                    ticks, tick_labels = observable.get_ticks(x_min,x_max,step)
-                    tag = ''
+                    ticks, tick_labels = Util.get_ticks(observable,x_min,x_max,step)
+                    stats_tag = ''
                 
                 # Iterate through each dataset
                 for dataset_name in datasets_to_plot:
@@ -315,7 +309,7 @@ class Plotter:
                     reco_model.link_temp_df(df)
                     
                     # Make the plot
-                    Plots.Confusion_Matrix(df,reco_model,particle,observable,ticks,tick_labels,tag=tag,save_loc=self.main_dir+'/'+par+'/CM/')
+                    Plots.Confusion_Matrix(df,reco_model,particle,observable,ticks,tick_labels,tag=stats_tag,save_loc=self.main_dir+'/'+par+'/CM/')
                     
         print('CM plots completed.')  
         
@@ -326,8 +320,8 @@ class Plotter:
         """
         
         # Get the plotting instructions
-        reco_models_to_plot = self.truthreco_config["reco_models_to_plot"]
-        observables_to_plot = self.truthreco_config["variables"]
+        reco_models_to_plot = self.res_config["reco_models_to_plot"]
+        observables_to_plot = self.res_config["variables"]
         
         # Get list of the datasets we want to plot
         # This is different from reco models, as datasets includes separate datasets for trimmed datasets (e.g. LL<-52 vs no cut)
@@ -386,6 +380,60 @@ class Plotter:
         print('Res plots completed.')  
         
         
+        
+    def makeResVsVarPlots(self):
+        """
+        Make residual/resolution vs. variable plots.
+        """
+        
+        # Get the plotting instructions
+        reco_models_to_plot = self.res_vs_var_config["reco_models_to_plot"]
+        observables_to_plot = self.res_vs_var_config["variables"]
+        even_stats = self.cm_config["even_stats_binning"]
+        
+        # Get list of the datasets we want to plot
+        # This is different from reco models, as datasets includes separate datasets for trimmed datasets (e.g. LL<-52 vs no cut)
+        datasets_to_plot = []
+        for name, dataset in self.datasets.items():
+            if dataset.reco_method in reco_models_to_plot:
+                datasets_to_plot.append(name)
+                
+        # Iterate through the observables
+        for par, plot_requests in observables_to_plot.items():
+            for plot_specs in plot_requests:
+                
+                # Get some important particle observable info
+                particle = PARTICLES[par]
+                x_var = plot_specs["x_var"]
+                y_var = plot_specs["y_var"]
+                core_fit = plot_specs["core_fit"]
+                x_observable = particle.get_observable(x_var)
+                y_observable = particle.get_observable(y_var)
+                x_obs_name = par+'_'+x_var
+                
+                # Get datasets
+                datasets = self.getDatasetList(par,x_var,datasets_to_plot,extra_vars=[y_var])
+                
+                # Read the specs and get ticks
+                if even_stats:
+                    nbins = plot_specs["n_even_stats_bins"]
+                    with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
+                        temp_df = pd.DataFrame(np.array(test_file.get(x_obs_name)),columns=[x_obs_name])
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[x_obs_name],particle,x_observable,nbins)
+                    stats_tag = '(stats_binning)_'
+                else:
+                    x_min = plot_specs["custom_bins"][0]
+                    x_max = plot_specs["custom_bins"][1]
+                    step = plot_specs["custom_bins"][2]
+                    ticks, tick_labels = Util.get_ticks(x_observable,x_min,x_max,step)
+                    stats_tag = ''
+
+                # Make plot!
+                Plots.Res_vs_Var(datasets,particle,y_observable,x_observable,save_loc=self.main_dir+par+'/Res/',tag=stats_tag,core_fit=core_fit)
+                
+        print('ResVsVar plots completed.') 
+        
+        
                
                 
     def makePlots(self):
@@ -399,9 +447,11 @@ class Plotter:
             self.makeCMPlots()
         if 'Res' in self.plots_to_make:
             self.makeResPlots()    
+        if 'ResVsVar' in self.plots_to_make:
+            self.makeResVsVarPlots()
         
         
-        print('Making plots ...')    
+        print('All plots completed.')    
     
         
         

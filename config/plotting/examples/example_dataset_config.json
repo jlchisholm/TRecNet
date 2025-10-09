@@ -1,7 +1,7 @@
 {
-    "Truth":
+    "Test_Data":
     {
-        "test_file": "insert test file name here"
+        "nom_input": "insert test file name here"
     },
     "Models":
     {
