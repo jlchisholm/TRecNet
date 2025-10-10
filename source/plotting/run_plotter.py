@@ -79,14 +79,15 @@ if __name__ == "__main__":
     plotting_config = json.load(open(f_plotting_config))
     
     # Extract config file names for the plots we want to make
+    config_dir = plotting_config['config_files_location']
     plot_configs = {}
     for plot_type in PLOT_TYPES:
         if plotting_config[plot_type]['make_plots']:
-            plot_configs.update({plot_type:plotting_config[plot_type]['config']})
+            plot_configs.update({plot_type:config_dir+plotting_config[plot_type]['config']})
             
     # Creates save directories for plots if they don't already exist
     main_dir = plotting_config['save_loc']
-    createDirectories(main_dir, PARTICLES, plot_configs.keys())
+    createDirectories(main_dir, plot_configs.keys())
             
     # Save all the config files
     save_configs(main_dir, plotting_config['dataset_config'],*plot_configs.values())

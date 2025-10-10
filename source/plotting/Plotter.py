@@ -64,11 +64,11 @@ class Plotter:
                 # Find the precentage of events in this cut
                 if cut["cut_on"]!=None:
                     with uproot.open(specs['nom_input']) as dataset_file:
-                        cut_var = specs["cut_on"]
-                        total_df = pd.DataFrame(dataset_file["reco"][cut_var]) 
-                        cut_df = self.getCutDF(total_df,cut_var,specs["max"],specs["min"])
+                        cut_var = cut["cut_on"]
+                        total_df = pd.DataFrame(dataset_file["reco"][cut_var],columns=[cut_var]) 
+                        cut_df = self.getCutDF(total_df,cut_var,cut["max"],cut["min"])
                         perc_events = int(100*len(cut_df)/len(total_df))
-                        self.datasets.update({model+'('+cut["tag"]+')': Dataset(model,cut["color_scheme"],cut["tag"],cut_var,specs["max"],specs["min"],perc_events,specs["shortname"])})
+                        self.datasets.update({model+'('+cut["tag"]+')': Dataset(model,cut["color_scheme"],cut["tag"],cut_var,cut["max"],cut["min"],perc_events,specs["shortname"])})
                 else:
                     self.datasets.update({model+'('+cut["tag"]+')': Dataset(model,cut["color_scheme"],reco_method_short=specs["shortname"])})
                 
@@ -149,16 +149,18 @@ class Plotter:
         dataset = self.datasets[dataset_name] 
         
         # Set the variables
-        truth_vars = extra_truth_vars.append(obs_name)
-        reco_vars = extra_reco_vars.append(obs_name)
+        truth_vars = [obs_name] + extra_truth_vars
+        reco_vars = [obs_name] + extra_reco_vars
         
         # Read in data
         with uproot.open(self.dataset_config["Models"][dataset.reco_method][input_type+"_input"]) as data_file:
             reco_df = data_file["reco"].arrays(reco_vars,library="pd")
-            reco_df.add_prefix('reco_')
+            reco_df = reco_df.add_prefix('reco_')
             if input_type=='nom': # only truth data for nominal events
                 truth_df = data_file["parton"].arrays(truth_vars,library="pd")
-                truth_df.add_prefix('truth_')
+                truth_df = truth_df.add_prefix('truth_')
+                
+                ### FIX FOR KLFITTER AND OTHERS (OR RATHER FIX THOSE FILES TO MATCH THIS)
             
         # Concatenate and output dataframe
         df = pd.concat([truth_df,reco_df], axis=1)    
@@ -205,9 +207,8 @@ class Plotter:
             if dataset.cut_var!=None:
                 df = self.getCutDF(df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
 
-            # Get reco model object and link data
-            reco_model = self.reco_models[dataset_name]
-            reco_model.link_temp_df(df)
+            # Link data to the dataset
+            dataset.link_temp_df(df)
             
             # Also get systematics dataframes if required
             if with_systematics:
@@ -216,11 +217,11 @@ class Plotter:
                 if dataset.cut_var!=None:
                     up_df = self.getCutDF(up_df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
                     down_df = self.getCutDF(down_df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
-                reco_model.link_temp_sysUP_df(up_df)
-                reco_model.link_temp_sysDOWN_df(down_df)
+                dataset.link_temp_sysUP_df(up_df)
+                dataset.link_temp_sysDOWN_df(down_df)
 
             # Save to list
-            datasets.append(reco_model)
+            datasets.append(dataset)
             
             return datasets
                  
@@ -239,7 +240,7 @@ class Plotter:
 
         # Iterate through the observables
         for par, vars in observables_to_plot.items():
-            for var, specs in vars:
+            for var, specs in vars.items():
                 
                 # Get some important particle observable info
                 obs_name = par+'_'+var
@@ -267,12 +268,11 @@ class Plotter:
                     if dataset.cut_var!=None:
                         df = self.getCutDF(df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
 
-                    # Get reco model object and link data
-                    reco_model = self.reco_models[dataset_name]
-                    reco_model.link_temp_df(df)
+                    # Link data to the dataset
+                    dataset.link_temp_df(df)
             
                     # Make the plot
-                    Plots.TruthReco_Hist(reco_model,particle,observable,x_min,x_max,nbins,self.main_dir+'/'+par+'/TruthReco/')
+                    Plots.TruthReco_Hist(dataset,particle,observable,x_min,x_max,nbins,self.main_dir+'/'+par+'/TruthReco/')
 
         print('TruthReco plots completed.')  
         
@@ -292,7 +292,7 @@ class Plotter:
             
         # Iterate through the observables
         for par, vars in observables_to_plot.items():
-            for var, specs in vars:
+            for var, specs in vars.items():
                 
                 # Get some important particle observable info
                 obs_name = par+'_'+var
@@ -329,12 +329,11 @@ class Plotter:
                     if dataset.cut_var!=None:
                         df = self.getCutDF(df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
 
-                    # Get reco model object and link data
-                    reco_model = self.reco_models[dataset_name]
-                    reco_model.link_temp_df(df)
+                    # Link data to the dataset
+                    dataset.link_temp_df(df)
                     
                     # Make the plot
-                    Plots.Confusion_Matrix(df,reco_model,particle,observable,ticks,tick_labels,tag=stats_tag,save_loc=self.main_dir+'/'+par+'/CM/')
+                    Plots.Confusion_Matrix(dataset,particle,observable,ticks,tick_labels,tag=stats_tag,save_loc=self.main_dir+'/'+par+'/CM/')
                     
         print('CM plots completed.')  
         
@@ -353,7 +352,7 @@ class Plotter:
         
         # Iterate through the observables
         for par, vars in observables_to_plot.items():
-            for var, specs in vars:
+            for var, specs in vars.items():
                 
                 # Get some important particle observable info
                 particle = PARTICLES[par]
@@ -446,7 +445,7 @@ class Plotter:
                     stats_tag = ''
 
                 # Make plot!
-                Plots.Res_vs_Var(datasets,particle,y_observable,x_observable,save_loc=self.main_dir+par+'/Res/',tag=stats_tag,core_fit=core_fit)
+                Plots.Res_vs_Var(datasets,particle,y_observable,x_observable,ticks,tick_labels,save_loc=self.main_dir+par+'/Res/',tag=stats_tag,core_fit=core_fit)
                 
         print('ResVsVar plots completed.') 
         
@@ -467,7 +466,7 @@ class Plotter:
         
         # Iterate through the observables
         for par, vars in observables_to_plot.items():
-            for var, specs in vars:
+            for var, specs in vars.items():
                 
                 # Get some important particle observable info
                 obs_name = par+'_'+var
