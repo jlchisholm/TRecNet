@@ -2,7 +2,7 @@
 #                                                                        #
 #  run_plotter.py                                                        #
 #  Author: Jenna Chisholm                                                #
-#  Updated: Oct.2/25                                                     #
+#  Updated: Oct.10/25                                                    #
 #                                                                        #
 #  Runs plotting software and creates results plots based on config      #
 #  settings.                                                             # 
@@ -12,7 +12,7 @@
 ##########################################################################
 
 # Import useful packages
-import os
+import os, sys
 import json
 from argparse import ArgumentParser
 from ParticleObservables import PARTICLES
@@ -84,16 +84,21 @@ if __name__ == "__main__":
     for plot_type in PLOT_TYPES:
         if plotting_config[plot_type]['make_plots']:
             plot_configs.update({plot_type:config_dir+plotting_config[plot_type]['config']})
+    
+    # Exit if no plots to make
+    if plot_configs=={}:
+        print('ERROR: No plots to make!')
+        sys.exit()
             
     # Creates save directories for plots if they don't already exist
     main_dir = plotting_config['save_loc']
     createDirectories(main_dir, plot_configs.keys())
             
     # Save all the config files
-    save_configs(main_dir, plotting_config['dataset_config'],*plot_configs.values())
+    save_configs(main_dir,config_dir+plotting_config['dataset_config'],*plot_configs.values())
     
     # Make the plots
-    plotter = Plotter(main_dir,plotting_config['dataset_config'],plot_configs)
+    plotter = Plotter(main_dir,config_dir+plotting_config['dataset_config'],plot_configs)
     plotter.makePlots()
     
     print('Plotting complete :)')

@@ -2,7 +2,7 @@
 #                                                                    #
 #  Data.py                                                           #
 #  Author: Jenna Chisholm                                            #
-#  Updated: Oct.2/25                                                 #
+#  Updated: Oct.10/25                                                 #
 #                                                                    #
 #  Defines classes for observables, particles, and datasets, which   #
 #  are used in the plotting software for TRecNet.                    #
@@ -143,6 +143,9 @@ class Dataset:
             print('WARNING: Do you really have 100\% of events if you are making cuts? Exiting program.')
             sys.exit()
             
+    def copy(self):
+        
+        return Dataset(self.reco_method, self.color, self.cut_tag, self.cut_var, self.cut_min, self.cut_max, self.perc_events, self.reco_method_short)
             
     def link_temp_df(self,df):
         

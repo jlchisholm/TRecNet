@@ -2,7 +2,7 @@
 #                                                                    #
 #  Plots.py                                                           #
 #  Author: Jenna Chisholm                                            #
-#  Updated: Oct.8/25                                                 #
+#  Updated: Oct.10/25                                                 #
 #                                                                    #
 #  Defines a plotting class with functions for plotting truth vs.    #
 #  reco histograms, confusion matrices, systematics histograms,      #
@@ -70,9 +70,9 @@ def TruthReco_Hist(dataset,particle,observable,x_min,x_max,nbins=30,save_loc='./
 
     # Plot the ratio of the two histograms underneath (with a dashed line at 1)
     x_dash,y_dash = np.linspace(x_min,x_max,100),[1]*100
-    ax2.plot(x_dash,y_dash,'r--')
+    ax2.plot(x_dash,y_dash,'k--')
     bin_width = np.diff(bins)
-    ax2.plot(bins[:-1]+bin_width/2, truth_n/reco_n,'ko')  # Using bin width so points are plotted aligned with middle of the bin
+    ax2.plot(bins[:-1]+bin_width/2, truth_n/reco_n,'o',color=dataset.color)  # Using bin width so points are plotted aligned with middle of the bin
     ax2.set(ylim=(0, 2))
     #ax2.set_yscale('log')
 
@@ -207,16 +207,16 @@ def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,core_fit
             mom_tag = ''
 
         # Plot the resolution
-        #model_label = dataset.reco_method_short+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)'+mom_tag
-        model_label = dataset.reco_method_short+'('+dataset.cuts+')'+mom_tag if dataset.cuts!='No Cuts' else dataset.reco_method_short+mom_tag
+        #model_label = dataset.reco_method_short+': '+dataset.cut_tag+' ('+str(dataset.perc_events)+'%)'+mom_tag
+        model_label = dataset.reco_method_short+'('+dataset.cut_tag+')'+mom_tag if dataset.cut_tag!='No Cuts' else dataset.reco_method_short+mom_tag
         plt.hist(df['res_'+name],bins=nbins,range=(-1,1),histtype='step',label=model_label,density=True,color=dataset.color)
         
         # Get percentage of dataset's events in the plot
         in_events = df['res_'+name][df['res_'+name]>-1]
         in_events = df['res_'+name][df['res_'+name]<1]
-        num_events[dataset.reco_method_short+'('+dataset.cuts+')'] = len(df['res_'+name])
-        num_in_events[dataset.reco_method_short+'('+dataset.cuts+')'] = len(in_events)
-        in_dic[dataset.reco_method_short+'('+dataset.cuts+')'] = (len(in_events)/len(df['res_'+name]))*100
+        num_events[dataset.reco_method_short+'('+dataset.cut_tag+')'] = len(df['res_'+name])
+        num_in_events[dataset.reco_method_short+'('+dataset.cut_tag+')'] = len(in_events)
+        in_dic[dataset.reco_method_short+'('+dataset.cut_tag+')'] = (len(in_events)/len(df['res_'+name]))*100
 
         # If we want to fit the core distribution and get that mean and standard deviation
         if core_fit.casefold()=='gaussian':
@@ -313,8 +313,8 @@ def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag
         xpoints = np.array(range(len(points)))+0.5
         ypoints = np.array(points)[:,1]
         xerror = np.full(len(points),0.5)   
-        #model_label = dataset.reco_method_short+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)'
-        model_label = dataset.reco_method_short+'('+dataset.cuts+')' if dataset.cuts!='No Cuts' else dataset.reco_method_short
+        #model_label = dataset.reco_method_short+': '+dataset.cut_tag+' ('+str(dataset.perc_events)+'%)'
+        model_label = dataset.reco_method_short+'('+dataset.cut_tag+')' if dataset.cut_tag!='No Cuts' else dataset.reco_method_short
         plt.errorbar(xpoints, ypoints,xerr=xerror,label=model_label,color=dataset.color, fmt='o')
 
 
@@ -382,14 +382,14 @@ def Sys_Hist(datasets,particle,observable,ticks,tick_labels,save_loc='./',tag=''
         # Switch back to the systematics figure (do I need this?)
         plt.figure('Sys')
         plt.hist(bins[:-1], bins, weights=sysUP_results, histtype='step', color=dataset.color, linestyle='dotted')
-        plt.hist(bins[:-1], bins, weights=sysDOWN_results, histtype='step', color=dataset.color, label=dataset.reco_method+': '+dataset.cuts)
+        plt.hist(bins[:-1], bins, weights=sysDOWN_results, histtype='step', color=dataset.color, label=dataset.reco_method+': '+dataset.cut_tag)
 
         # Need to sort systematics into which one is on top and which one is on bottom -- if both are on the same side of zero, just use the bigger one
         #pos_weights = np.array([max(up,down) if max(up,down)>0 else 0 for up, down in zip(sysUP_results,sysDOWN_results)])
         #neg_weights = np.array([min(up,down) if min(up,down)<0 else 0 for up, down in zip(sysUP_results,sysDOWN_results)])
 
         # Plot the fractional uncertainties
-        #plt.hist(bins[:-1], bins, weights=pos_weights, histtype='step', color=dataset.color, label=dataset.reco_method+': '+dataset.cuts+' ('+str(dataset.perc_events)+'%)')
+        #plt.hist(bins[:-1], bins, weights=pos_weights, histtype='step', color=dataset.color, label=dataset.reco_method+': '+dataset.cut_tag+' ('+str(dataset.perc_events)+'%)')
         #plt.hist(bins[:-1], bins, weights=neg_weights, histtype='step', color=dataset.color)
 
 

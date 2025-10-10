@@ -2,7 +2,7 @@
 #                                                                    #
 #  Plotter.py                                                        #
 #  Author: Jenna Chisholm                                            #
-#  Updated: Oct.2/25                                                 #
+#  Updated: Oct.10/25                                                 #
 #                                                                    #
 #  Makes plots.                                                      #
 #                                                                    #
@@ -198,7 +198,8 @@ class Plotter:
             extra_reco_vars = [par+'_'+cut_var for cut_var in extra_vars]
             
             # Get the cut variable name for the dataset, if there is one
-            extra_reco_vars.append(dataset.cut_var)
+            if dataset.cut_var!=None:
+                extra_reco_vars.append(dataset.cut_var) 
                     
             # Get the dataframe
             df = self.getDataFrame('nom',dataset_name,obs_name,extra_truth_vars=extra_truth_vars,extra_reco_vars=extra_reco_vars)
@@ -223,7 +224,7 @@ class Plotter:
             # Save to list
             datasets.append(dataset)
             
-            return datasets
+        return datasets
                  
                
     def makeTruthRecoPlots(self):
@@ -304,8 +305,8 @@ class Plotter:
                     nbins = specs["even_stats_bins"]["nbins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(obs_name)),columns=[obs_name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],particle,observable,nbins)
-                    stats_tag = '(stats_binning)_'
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],observable,nbins)
+                    stats_tag = '(stats_binning)'
                 else:
                     x_min = specs["custom_bins"]["min"]
                     x_max = specs["custom_bins"]["max"]
@@ -358,8 +359,8 @@ class Plotter:
                 particle = PARTICLES[par]
                 observable = particle.get_observable(var)
                 
-                # Get datasets (adding pt as an extra variable if we're going to cut on it)
-                if len(specs["pt_cuts"])==1 and specs["pt_cuts"][0]=={}:
+                # Get datasets (adding pt as an extra variable if we're going to cut on it but don't already have it)
+                if (len(specs["pt_cuts"])==1 and specs["pt_cuts"][0]=={}) or var=='pt':
                     datasets = self.getDatasetList(par,var,datasets_to_plot)
                 else:
                     datasets = self.getDatasetList(par,var,datasets_to_plot,extra_vars=['pt'])
@@ -374,13 +375,13 @@ class Plotter:
                         # Cut to specified pt range, if desired
                         cut_df = dataset.df.copy()
                         if pt_cut!={}:
-                            if pt_cut["pt_low"]!=None:
+                            if "pt_low" in pt_cut.keys():
                                 cut_df = cut_df[cut_df['truth_'+par+'_pt']>pt_cut["pt_low"]]
-                            if pt_cut["pt_high"]!=None:
+                            if "pt_high" in pt_cut.keys():
                                 cut_df = cut_df[cut_df['truth_'+par+'_pt']<pt_cut["pt_high"]]
                                 
                         # Save new cut dataset
-                        cut_dataset = dataset
+                        cut_dataset = dataset.copy()
                         cut_dataset.link_temp_df(cut_df)
                         cut_datasets.append(cut_dataset)
                         
@@ -436,7 +437,7 @@ class Plotter:
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(x_obs_name)),columns=[x_obs_name])
                     ticks, tick_labels = Util.get_even_stats_ticks(temp_df[x_obs_name],particle,x_observable,nbins)
-                    stats_tag = '(stats_binning)_'
+                    stats_tag = '(stats_binning)'
                 else:
                     x_min = plot_specs["custom_bins"][0]
                     x_max = plot_specs["custom_bins"][1]
@@ -482,7 +483,7 @@ class Plotter:
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(obs_name)),columns=[obs_name])
                     ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],particle,observable,nbins)
-                    stats_tag = '(stats_binning)_'
+                    stats_tag = '(stats_binning)'
                 else:
                     x_min = specs["custom_bins"]["min"]
                     x_max = specs["custom_bins"]["max"]
