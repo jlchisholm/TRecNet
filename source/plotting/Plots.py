@@ -1,8 +1,8 @@
 ######################################################################
 #                                                                    #
-#  Plots.py                                                           #
+#  Plots.py                                                          #
 #  Author: Jenna Chisholm                                            #
-#  Updated: Oct.10/25                                                 #
+#  Updated: Oct.10/25                                                #
 #                                                                    #
 #  Defines a plotting class with functions for plotting truth vs.    #
 #  reco histograms, confusion matrices, systematics histograms,      #
@@ -327,7 +327,8 @@ def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag
     plt.yticks(fontsize=12)
 
     # Save figure in save location
-    fig_name = y_obs.name+'_'+y_res+'_vs_'+x_obs.name+'_'+tag+'_'+particle.name
+    tag = tag+'_' if tag!='' else tag
+    fig_name = y_obs.name+'_'+y_res+'_vs_'+x_obs.name+'_'+tag+particle.name
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
     print('Saved Figure: '+fig_name)
     

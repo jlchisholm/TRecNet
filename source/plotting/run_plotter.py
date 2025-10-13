@@ -20,7 +20,7 @@ from Plots import PLOT_TYPES
 from Plotter import Plotter
 
 
-def createDirectories(main_dir, plots_to_make):
+def createPlotDirectories(main_dir, plots_to_make):
     """
     Creates directories to store the plots in, if they do not already exist.
 
@@ -44,7 +44,7 @@ def createDirectories(main_dir, plots_to_make):
             if not os.path.exists(main_dir+par_dir+plot_dir):
                 os.mkdir(main_dir+par_dir+plot_dir)
                      
-    print('Directories established.')
+    print('Plot directories established.')
 
 
 def save_configs(dir,*configs):
@@ -92,7 +92,7 @@ if __name__ == "__main__":
             
     # Creates save directories for plots if they don't already exist
     main_dir = plotting_config['save_loc']
-    createDirectories(main_dir, plot_configs.keys())
+    createPlotDirectories(main_dir, plot_configs.keys())
             
     # Save all the config files
     save_configs(main_dir,config_dir+plotting_config['dataset_config'],*plot_configs.values())

@@ -148,9 +148,9 @@ class Plotter:
         # Get the reco model object
         dataset = self.datasets[dataset_name] 
         
-        # Set the variables
-        truth_vars = [obs_name] + extra_truth_vars
-        reco_vars = [obs_name] + extra_reco_vars
+        # Set the variables (making sure we don't have observable name in there multiple times)
+        truth_vars = [obs_name] + extra_truth_vars if obs_name not in extra_truth_vars else extra_truth_vars
+        reco_vars = [obs_name] + extra_reco_vars if obs_name not in extra_reco_vars else extra_reco_vars
         
         # Read in data
         with uproot.open(self.dataset_config["Models"][dataset.reco_method][input_type+"_input"]) as data_file:
@@ -410,7 +410,7 @@ class Plotter:
         # Get the plotting instructions
         reco_models_to_plot = self.res_vs_var_config["reco_models_to_plot"]
         observables_to_plot = self.res_vs_var_config["variables"]
-        even_stats = self.cm_config["even_stats_binning"]
+        even_stats = self.res_vs_var_config["even_stats_binning"]
         
         # Get list of the datasets we want to plot
         datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
@@ -429,14 +429,15 @@ class Plotter:
                 x_obs_name = par+'_'+x_var
                 
                 # Get datasets
-                datasets = self.getDatasetList(par,x_var,datasets_to_plot,extra_vars=[y_var])
+                extra_vars = [y_var] if y_var!=x_var else []
+                datasets = self.getDatasetList(par,x_var,datasets_to_plot,extra_vars=extra_vars)
                 
                 # Read the specs and get ticks
                 if even_stats:
                     nbins = plot_specs["n_even_stats_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(x_obs_name)),columns=[x_obs_name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[x_obs_name],particle,x_observable,nbins)
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[x_obs_name],x_observable,nbins)
                     stats_tag = '(stats_binning)'
                 else:
                     x_min = plot_specs["custom_bins"][0]
@@ -446,7 +447,7 @@ class Plotter:
                     stats_tag = ''
 
                 # Make plot!
-                Plots.Res_vs_Var(datasets,particle,y_observable,x_observable,ticks,tick_labels,save_loc=self.main_dir+par+'/Res/',tag=stats_tag,core_fit=core_fit)
+                Plots.Res_vs_Var(datasets,particle,y_observable,x_observable,ticks,tick_labels,save_loc=self.main_dir+par+'/ResVsVar/',tag=stats_tag,core_fit=core_fit)
                 
         print('ResVsVar plots completed.') 
         
