@@ -46,7 +46,7 @@ class Plotter:
         # Load config files for each plot type
         for plot_type, file_name in plot_configs.items():
             if plot_type=='TruthReco':
-                self.truthreco_config = json.load(open(file_name)) # oi! add more later
+                self.truthreco_config = json.load(open(file_name))
             elif plot_type=='CM':
                 self.cm_config = json.load(open(file_name))
             elif plot_type=='Res':
@@ -152,18 +152,20 @@ class Plotter:
         truth_vars = [obs_name] + extra_truth_vars if obs_name not in extra_truth_vars else extra_truth_vars
         reco_vars = [obs_name] + extra_reco_vars if obs_name not in extra_reco_vars else extra_reco_vars
         
-        # Read in data
+        # Read in data to pandas dataframe
         with uproot.open(self.dataset_config["Models"][dataset.reco_method][input_type+"_input"]) as data_file:
-            reco_df = data_file["reco"].arrays(reco_vars,library="pd")
-            reco_df = reco_df.add_prefix('reco_')
-            if input_type=='nom': # only truth data for nominal events
-                truth_df = data_file["parton"].arrays(truth_vars,library="pd")
-                truth_df = truth_df.add_prefix('truth_')
-                
-                ### FIX FOR KLFITTER AND OTHERS (OR RATHER FIX THOSE FILES TO MATCH THIS)
             
-        # Concatenate and output dataframe
-        df = pd.concat([truth_df,reco_df], axis=1)    
+            if input_type=="nom":  # nominal data
+                reco_df = data_file["reco"].arrays(reco_vars,library="pd")
+                reco_df = reco_df.add_prefix('reco_')
+                truth_df = data_file["parton"].arrays(truth_vars,library="pd") # only truth data for nominal events
+                truth_df = truth_df.add_prefix('truth_')
+                df = pd.concat([truth_df,reco_df], axis=1)  
+            else:   # systematics data
+                df = data_file[input_type].arrays(reco_vars,library="pd")
+                df = df.add_prefix('reco_')
+                
+                ### FIX FOR KLFITTER AND OTHERS (OR RATHER FIX THOSE FILES TO MATCH THIS) 
         
         return df
             
@@ -483,7 +485,7 @@ class Plotter:
                     nbins = specs["even_stats_bins"]["nbins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(obs_name)),columns=[obs_name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],particle,observable,nbins)
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],observable,nbins)
                     stats_tag = '(stats_binning)'
                 else:
                     x_min = specs["custom_bins"]["min"]
@@ -493,7 +495,7 @@ class Plotter:
                     stats_tag = ''
                 
                 # Make plot!
-                Plots.Sys_Hist(datasets,particle,observable,ticks,tick_labels,save_loc=self.main_dir+par.name+'/Sys/',tag=stats_tag)
+                Plots.Sys_Hist(datasets,particle,observable,ticks,tick_labels,save_loc=self.main_dir+par+'/Sys/',tag=stats_tag)
                     
                 
     def makePlots(self):

@@ -75,13 +75,13 @@ def get_even_stats_ticks(df_col,observable,nbins=8):
         _, ticks = pd.qcut(df_col,q=nbins,retbins=True)
 
     # Round the ticks to nearest two decimal places (if necessary), else round to nearest tenth
-    two_dec_round = ['eta','phi','y','yboost','chi','deta','dphi']
+    two_dec_round = ['eta','phi','y','yboost','chi','deta','dphi','m']
     #tens_round = ['E','pout','pt','px','py','Ht','m']
     ticks = np.round(ticks, 2) if observable.name in two_dec_round else np.round(ticks,-1) 
 
     # Create labels for the ticks
     tick_labels = [str(x) if observable.name in two_dec_round else str(int(x)) for x in ticks]
-    tick_labels[0] = '-'+r'$\pi$' if observable.name=='phi' else '-'+r'$\infty$' if observable.name in ['eta','y','pout','px','py','yboost'] else 0
+    tick_labels[0] = '-'+r'$\pi$' if observable.name=='phi' else '-'+r'$\infty$' if observable.name in ['eta','y','pout','px','py','yboost'] else '0'
     tick_labels[-1] = r'$\pi$' if observable.name=='phi' else r'$\infty$'
 
     return ticks, tick_labels
