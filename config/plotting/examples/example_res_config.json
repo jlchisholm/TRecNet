@@ -6,7 +6,6 @@
         {
             "pt":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 
@@ -19,7 +18,6 @@
             },
             "eta":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 
@@ -29,7 +27,6 @@
             },
             "phi":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 
@@ -39,7 +36,6 @@
             },
             "m":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 
@@ -52,7 +48,6 @@
         {
             "pt":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 
@@ -65,7 +60,6 @@
             },
             "eta":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 
@@ -75,7 +69,6 @@
             },
             "phi":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 
@@ -85,7 +78,6 @@
             },
             "m":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 
@@ -98,7 +90,6 @@
         {
             "pt":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 
@@ -111,7 +102,6 @@
             },
             "eta":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 
@@ -121,7 +111,6 @@
             },
             "phi":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 
@@ -131,7 +120,6 @@
             },
             "m":
             {
-                "core_fit": "nofit",
                 "include_moments": true,
                 "nbins": 30,
                 "pt_cuts": 

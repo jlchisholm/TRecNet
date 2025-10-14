@@ -156,7 +156,7 @@ def Confusion_Matrix(dataset,particle,observable,ticks,tick_labels,norm=True,tag
     plt.close()
 
 
-def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,core_fit='nofit',include_moments=False):
+def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,include_moments=False):
     """
     Creates and saves a resolution (or residual) plot all datasets provided, for a given particle and observable.
 
@@ -169,7 +169,6 @@ def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,core_fit
             save_loc (str): Directory where you want the histogram saved to (default: current directory).
             tag (str): Extra tag to add to the plot save name.
             nbins (int): Number of desired bins for the histogram (default: 30).
-            core_fit (str): Type of fit you want to use for the datasets (default: 'nofit', other options: 'gaussian' or 'cauchy').
             include_moments (bool): Whether or not to include the mean and standard deviation in the legend.
 
         Returns:
@@ -217,18 +216,6 @@ def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,core_fit
         num_events[dataset.reco_method_short+'('+dataset.cut_tag+')'] = len(df['res_'+name])
         num_in_events[dataset.reco_method_short+'('+dataset.cut_tag+')'] = len(in_events)
         in_dic[dataset.reco_method_short+'('+dataset.cut_tag+')'] = (len(in_events)/len(df['res_'+name]))*100
-
-        # If we want to fit the core distribution and get that mean and standard deviation
-        if core_fit.casefold()=='gaussian':
-            fit_mean, fit_std = norm.fit(df['res_'+name][df['res_'+name]>-1][df['res_'+name]<1])
-            x = np.linspace(-1,1,200)
-            mom_tag = '\n$\mu=$'+str(round(fit_mean,sigfigs=2))+', $\sigma=$'+str(round(fit_std,sigfigs=2)) if include_moments==True else ''
-            plt.plot(x,norm.pdf(x,fit_mean,fit_std),label='Gaussian Fit'+mom_tag,color=dataset.color)
-        elif core_fit.casefold()=='cauchy':
-            fit_mean, fit_std = cauchy.fit(df['res_'+name][df['res_'+name]>-1][df['res_'+name]<1])
-            x = np.linspace(-1,1,200)
-            mom_tag = '\n$\mu=$'+str(round(fit_mean,sigfigs=2))+', $\sigma=$'+str(round(fit_std,sigfigs=2)) if include_moments==True else ''
-            plt.plot(x,cauchy.pdf(x,fit_mean,fit_std),label='Cauchy Fit'+mom_tag,color=dataset.color)
 
     # Add some labels
     plt.legend(prop={'size': 9})

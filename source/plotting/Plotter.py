@@ -398,7 +398,7 @@ class Plotter:
                         pt_tag = '('+str(pt_cut["pt_low"])+'<p_T<'+str(pt_cut["pt_high"])+')'
 
                     # Now plot all these datasets together!
-                    Plots.Res_Hist(cut_datasets,particle,observable,save_loc=self.main_dir+'/'+par+'/Res/',tag=pt_tag,nbins=specs["nbins"],core_fit=specs["core_fit"],include_moments=specs["include_moments"])
+                    Plots.Res_Hist(cut_datasets,particle,observable,save_loc=self.main_dir+'/'+par+'/Res/',tag=pt_tag,nbins=specs["nbins"],include_moments=specs["include_moments"])
                 
         print('Res plots completed.')  
         
