@@ -279,9 +279,11 @@ def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag
             top_edge = ticks[i+1]
             middle = bottom_edge + (top_edge - bottom_edge)/2
 
-            # Look at resolution at a particular value of var
-            cut_temp = df[df['truth_'+particle.name+'_'+x_obs.name]>=bottom_edge]      # Should I fold in edges of first and last?
-            cut_temp = cut_temp[cut_temp['truth_'+particle.name+'_'+x_obs.name]<top_edge]
+            # Look at resolution at a particular value of var (remember to fold in the first and last bins!)
+            if i!=0: # only cut out lower events if not the first bin
+                cut_temp = df[df['truth_'+particle.name+'_'+x_obs.name]>=bottom_edge]
+            if i!=(len(ticks[:-1])-1): # only cut out upper events if not the last bin
+                cut_temp = cut_temp[cut_temp['truth_'+particle.name+'_'+x_obs.name]<top_edge]
 
             # Get standard deviation and append point to list
             sigma = cut_temp['res_'+yfocus].std()
