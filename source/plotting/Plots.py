@@ -236,7 +236,7 @@ def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,include_
     Util.save_plot_info(save_loc, fig_name, num_events, num_in_events, in_dic)
 
 
-def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag='',core_fit='nofit'):
+def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag=''):
     """
     Creates and saves a plot of resolution (or residual) for a given observable against another (or the same) given observable, for all datasets provided, for a given particle.
 
@@ -251,8 +251,7 @@ def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag
         Options:
             save_loc (str): Directory where you want the histogram saved to (default: current directory).
             tag (str): Extra tag to add to the plot save name.
-            core_fit (str): Type of fit you want to use for the width calculations (default: 'nofit', other options: 'gaussian' or 'cauchy').
-
+            
         Returns:
             Saves histogram in <save_loc> as '<y_obs>_<y_res>_vs_<x_obs>_<data_type>_<particle>.png'.
     """
@@ -284,16 +283,8 @@ def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag
             cut_temp = df[df['truth_'+particle.name+'_'+x_obs.name]>=bottom_edge]      # Should I fold in edges of first and last?
             cut_temp = cut_temp[cut_temp['truth_'+particle.name+'_'+x_obs.name]<top_edge]
 
-            # Get standard deviations
-            if core_fit=='gaussian':
-                _, sigma = norm.fit(cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1])
-                #sigma = cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1].std()
-            elif core_fit=='cauchy':
-                _, sigma = cauchy.fit(cut_temp['res_'+yfocus][cut_temp['res_'+yfocus]>-1][cut_temp['res_'+yfocus]<1])
-            else:
-                sigma = cut_temp['res_'+yfocus].std()
-                
-            # Add point to list
+            # Get standard deviation and append point to list
+            sigma = cut_temp['res_'+yfocus].std()
             points.append([middle,sigma])
 
         # Plot the data
@@ -306,7 +297,7 @@ def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag
 
     # Add some labels
     plt.xlabel('Parton-level '+particle.labels[x_obs.name], fontsize=14)
-    y_sigma_str = r'$\sigma_{\mathrm{core}}$' if core_fit=='gaussian' else r'$\sigma_{\mathrm{total}}$'
+    y_sigma_str = r'$\sigma_{\mathrm{total}}$'
     plt.ylabel(y_sigma_str+' of '+particle.labels_nounits[y_obs.name]+' '+y_res, fontsize=14)
     plt.legend(prop={'size': 12})
     plt.xticks(np.arange(len(ticks)),tick_labels,fontsize=12)

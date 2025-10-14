@@ -425,7 +425,6 @@ class Plotter:
                 particle = PARTICLES[par]
                 x_var = plot_specs["x_var"]
                 y_var = plot_specs["y_var"]
-                core_fit = plot_specs["core_fit"]
                 x_observable = particle.get_observable(x_var)
                 y_observable = particle.get_observable(y_var)
                 x_obs_name = par+'_'+x_var
@@ -449,7 +448,7 @@ class Plotter:
                     stats_tag = ''
 
                 # Make plot!
-                Plots.Res_vs_Var(datasets,particle,y_observable,x_observable,ticks,tick_labels,save_loc=self.main_dir+par+'/ResVsVar/',tag=stats_tag,core_fit=core_fit)
+                Plots.Res_vs_Var(datasets,particle,y_observable,x_observable,ticks,tick_labels,save_loc=self.main_dir+par+'/ResVsVar/',tag=stats_tag)
                 
         print('ResVsVar plots completed.') 
         
