@@ -27,7 +27,7 @@ YBOOST = Observable("yboost","y_{boost}","","Residuals",["y_boost"])
 YSTAR = Observable("ystar","y_{star}","","Residuals",["y_star"])
 CHI = Observable("chi","\\chi","","Resolution",["chi_tt"])
 
-# Particles (remove observables?)
+# Particles
 TH = Particle("th","t,had",[PT,PX,PY,ETA,Y,PHI,M,E,POUT],["thad","topHad","top_had"])
 TL = Particle("tl","t,lep",[PT,PX,PY,ETA,Y,PHI,M,E,POUT],["tlep","topLep","top_lep"])
 TTBAR = Particle("ttbar","t\\overline{t}",[PT,PX,PY,ETA,Y,PHI,M,E,DPHI,DETA,HT,YBOOST,YSTAR,CHI]) # no alterative names

@@ -87,7 +87,7 @@ def getKeys(reco_method,model_keys):
     return truth_names, reco_names
 
 
-def createDF(reco_method,filename,truth_keys,reco_keys): 
+def createDF(reco_method,filename,truth_keys,reco_keys,test_eventnumbers=[]): 
     """
     Imports data from given file and creates a dataframe.
     
@@ -96,6 +96,9 @@ def createDF(reco_method,filename,truth_keys,reco_keys):
             filename (str): Name of file (including path).
             truth_keys (list of list of str): Combos of the new truth name and the truth name for this model.
             reco_keys (list of list of str): Combos of the new reco name and the reco name for this model.
+            
+        Optional:
+            test_eventnumbers (np.array): List of event numbers that are in the test data set (default: []).
             
         Returns:
             df_nom (pd.DataFrame): Dataframe with nominal data.
@@ -116,10 +119,11 @@ def createDF(reco_method,filename,truth_keys,reco_keys):
     # Also split the datafile the same way we did when making the train/test h5 files
     #split_point = int(np.round(len(tree_nom['eventNumber'])*0.85))
     #tree_nom = tree_nom[split_point:]
-
-    # Only take events with the same event numbers as the test data (do this in the main method)
-    #sel = np.isin(tree_nom['eventNumber'],eventnumbers)
-    #tree_nom = tree_nom[sel]
+    
+    # Only take events with the same event numbers as the test data (if desired)
+    if len(test_eventnumbers)>0:
+        sel = np.isin(tree_nom['eventNumber'],test_eventnumbers)
+        tree_nom = tree_nom[sel]
 
     # Create dataframe(s)!
     df_nom_truth = ak.to_dataframe({new_name:tree_nom[old_name] for (new_name,old_name) in truth_keys})
@@ -127,9 +131,11 @@ def createDF(reco_method,filename,truth_keys,reco_keys):
     df_up = ak.to_dataframe({new_name:tree_up[old_name] for (new_name,old_name) in reco_keys})
     df_down = ak.to_dataframe({new_name:tree_down[old_name] for (new_name,old_name) in reco_keys})
 
-    # df_nom['eventNumber'] = tree_nom['eventNumber']
-    # df_up['eventNumber'] = tree_up['eventNumber']
-    # df_down['eventNumber'] = tree_down['eventNumber']
+    # Get event numbers
+    df_nom_truth['eventNumber'] = tree_nom['eventNumber']
+    df_nom_reco['eventNumber'] = tree_nom['eventNumber']
+    df_up['eventNumber'] = tree_up['eventNumber']
+    df_down['eventNumber'] = tree_down['eventNumber']
 
     # Include number of jets, so we can look at how they might compare
     df_nom_reco['jet_n'] = tree_nom['jet_n']
@@ -163,40 +169,70 @@ def createDF(reco_method,filename,truth_keys,reco_keys):
             df.replace([np.inf,-np.inf],np.nan,inplace=True)
             df.dropna(inplace=True)
 
-    print('Appended file '+filename+' to '+reco_method+' dataframe.')	
     return df_nom_truth, df_nom_reco, df_up, df_down
 
 
-def appendData(df_nom_truth,df_nom_reco,df_up,df_down,reco_method,filename,truth_keys,reco_keys):
+def appendData(df_nom_truth,df_nom_reco,df_up,df_down,reco_method,filename,truth_keys,reco_keys,test_eventnumbers=[]):
     """
     Appends data from the file to the existing data frames.
     
         Parameters:
+            df_nom_truth (pd.DataFrame): Dataframe with nominal truth data.
+            df_nom_reco (pd.DataFrame): Dataframe with nominal reco data.
+            df_up (pd.DataFrame): Dataframe of systematic up data.
+            df_down (pd.DataFrame): Dataframe of systematic down data.
+            reco_method (str): Name of the reconstruction method (options: 'KLFitter', 'Chi2', or 'PseudoTop').
+            filename (str): Name of file (including path).
+            truth_keys (list of list of str): Combos of the new truth name and the truth name for this model.
+            reco_keys (list of list of str): Combos of the new reco name and the reco name for this model.
+            
+        Optional:
+            test_eventnumbers (np.array): List of event numbers that are in the test data set (default: []).
         
         Returns:
+            df_nom_truth (pd.DataFrame): Dataframe with nominal truth data.
+            df_nom_reco (pd.DataFrame): Dataframe with nominal reco data.
+            df_up (pd.DataFrame): Dataframe of systematic up data.
+            df_down (pd.DataFrame): Dataframe of systematic down data.
     """
 
     # Get the data from the new file
-    df_nom_truth_addon, df_nom_reco_addon, df_up_addon, df_down_addon = createDF(reco_method,filename,truth_keys,reco_keys)
+    if len(test_eventnumbers)>0:
+        df_nom_truth_addon, df_nom_reco_addon, df_up_addon, df_down_addon = createDF(reco_method,filename,truth_keys,reco_keys,test_eventnumbers)
+    else:
+        df_nom_truth_addon, df_nom_reco_addon, df_up_addon, df_down_addon = createDF(reco_method,filename,truth_keys,reco_keys)
         
     # Append data to the main data frame
     df_nom_truth = pd.concat([df_nom_truth,df_nom_truth_addon],axis=0,ignore_index=True)
     df_nom_reco = pd.concat([df_nom_reco,df_nom_reco_addon],axis=0,ignore_index=True)
     df_up = pd.concat([df_up,df_up_addon],axis=0,ignore_index=True)
     df_down = pd.concat([df_down,df_down_addon],axis=0,ignore_index=True)
+    
+    print('Appended file: '+filename.split('/')[-1])
 
     return df_nom_truth,df_nom_reco,df_up,df_down
 
 
 
-def makeResultsFile(reco_method,filenames,save_dir):
+def makeResultsFile(reco_method,filenames,save_dir,test_file_name=None):
     """
     Creates one results file from a list of filenames for a given reco method.
     
         Parameters:
-        
-        Returns: 
+            reco_method (str): Name of the reconstruction method (options: 'KLFitter', 'Chi2', or 'PseudoTop').
+            filenames (list of str): List of file names (including path).
+            save_dir (str): Path for directory where file will be saved.
+            
+        Optional:
+            test_file_name (str): Name (including path) of the test data file that was used.
     """
+    
+    # Get the event numbers, if desired
+    if test_file_name!=None:
+        with h5py.File(test_file_name,'r') as test_file:
+            test_eventnumbers = np.array(test_file.get('eventNumber'))
+    else:
+        test_eventnumbers = []
     
     # Find the keys first for the reco method
     with uproot.open(filenames[0]) as root_file:
@@ -204,19 +240,28 @@ def makeResultsFile(reco_method,filenames,save_dir):
     truth_keys, reco_keys = getKeys(reco_method,keys)
     
     # Create the data frames
-    nom_truth_df, nom_reco_df, sysUP_df, sysDOWN_df = createDF(reco_method,filenames[0],truth_keys,reco_keys)
+    nom_truth_df, nom_reco_df, sysUP_df, sysDOWN_df = createDF(reco_method,filenames[0],truth_keys,reco_keys,test_eventnumbers)
     
     # Append data from the other files
     for filename in filenames[1:]:
-        nom_truth_df, nom_reco_df, sysUP_df, sysDOWN_df = appendData(nom_truth_df, nom_reco_df, sysUP_df, sysDOWN_df,reco_method,filename,truth_keys,reco_keys)
+        nom_truth_df, nom_reco_df, sysUP_df, sysDOWN_df = appendData(nom_truth_df, nom_reco_df, sysUP_df, sysDOWN_df,reco_method,filename,truth_keys,reco_keys,test_eventnumbers)
+
+    # File naming
+    if test_file_name!=None:
+        new_file_name = reco_method+'_FullDataResults.root'
+    else:
+        new_file_name = reco_method+'_TestDataResults.root'
 
     # Save to root file
-    f_results = uproot.recreate(save_dir+'/'+reco_method+'_ResultsRemade.root')
+    f_results = uproot.recreate(save_dir+'/'+new_file_name)
     f_results["parton"] = nom_truth_df
     f_results["reco"] = nom_reco_df
     f_results["sysUP"] = sysUP_df
     f_results["sysDOWN"] = sysDOWN_df
-    print('Saved results to :'+save_dir+'/'+reco_method+'_ResultsRemade.root')
+    print('Saved results to :'+save_dir+'/'+new_file_name)
+    
+    # Close new file
+    f_results.close()
     
     
 
@@ -233,10 +278,11 @@ if __name__ == "__main__":
     parser.add_argument('--reco_method',help='Reconstruction method name.',required=True,choices=['KLFitter6','KLFitter4','PseudoTop','Chi2'])
     parser.add_argument('--file_list',help='Txt file of file paths.',required=True,type=argparse.FileType('r'))
     parser.add_argument('--save_dir',help='Path for directory where file will be saved.',required=True)
+    parser.add_argument('--test_file_name',help='Name (including path) of the test data file.',default=None)
 
     # Parse the arguments and proceed with stuff
     args = parser.parse_args()
     filelist = [file.strip() for file in args.file_list]
-    makeResultsFile(args.reco_method,filelist,args.save_dir)
+    makeResultsFile(args.reco_method,filelist,args.save_dir,args.test_file_name)
 
     print('Done :)')

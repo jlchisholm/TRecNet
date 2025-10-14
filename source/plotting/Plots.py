@@ -127,7 +127,6 @@ def Confusion_Matrix(dataset,particle,observable,ticks,tick_labels,folded_bins=T
     if norm:
         H = np.divide(H,np.sum(H,axis=0),where=np.sum(H,axis=0)!=0)  # This should ensure we're not dividing by zero
         H = H*100
-        #H = (H/np.sum(H,axis=0))*100  # Old way
     
     # Round to integers (and transpose, so it's where we need it for plotting later)
     cm = np.rint(H).T.astype(int)
