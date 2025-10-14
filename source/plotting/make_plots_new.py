@@ -13,7 +13,7 @@ matplotlib.use('Agg')  # need for not displaying plots when running batch jobs
 #matplotlib.use('GTK3Agg')   # need this one if you want plots displayed
 from matplotlib import pyplot as plt
 from matplotlib import colors
-from Plotter import *
+from source.plotting.Plot import *
 import os, sys
 from argparse import ArgumentParser
 
@@ -228,56 +228,10 @@ def scaleData(df,truth_units,reco_units,par_specs):
     return df
 
 
-def unpackObservables(obs_specs):
-    """
-    Unpacks the observable definitions from the given dictionary (likely from a JSON file).
-
-        Parameters:
-            obs_specs (dict): Observable specifications, including name of the observables, alternative names, labels, units, and starting point, stopping point, and step size for the bins.
-
-        Returns:
-            observables (list of observable objects): Observables
-    """
-
-    # Create a list to store the observables in
-    observables = []
-
-    # For each observable specified ...
-    for obs in obs_specs:
-
-        # Get the ticks for the bins
-        ticks = np.arange(obs['start'],obs['stop'],obs['step'])
-
-        # Create the observable object and append it to the list
-        observables.append(Observable(obs['name'],obs['label'],ticks,unit=obs['unit'],res=obs['res'],alt_names=obs['alt_names']))
-    
-    return observables
 
 
-def unpackParticles(par_specs):
-    """
-    Unpacks the particle definitions from the given dictionary (likely from a JSON file).
 
-        Parameters:
-            par_specs (dict): Particle specifications, including name of the particles, alternative names, labels, and observables
 
-        Returns:
-            particles (list of particle objects): Particles
-    """
-
-    # Create a list to store the particles in
-    particles = []
-
-    # For each particle specified ...
-    for par, specs in par_specs.items():
-
-        # Get the observables for that particle
-        observables = unpackObservables(specs['observables'])
-
-        # Create the particle object and append it to the list
-        particles.append(Particle(par,specs['label'],observables,alt_names=specs['alt_names']))
-
-    return particles
 
 
 def getCutDF(df,cut_on,max,min):
@@ -394,29 +348,7 @@ def makeAllDatasets(par_specs,model_specs,models_to_load,sys_to_load,datatype,ev
     return datasets
 
 
-def createDirectories(main_dir, plotting_info):
-    """
-    Creates directories to store the plots in, if they do not already exist.
 
-        Parameters: 
-            main_dir (str): Name (including path) of the primary directory you want to save the plots in.
-
-        Returns:
-            Creates all the <main_dir>, with directories 'th/', 'tl/', and 'ttbar/' within, and directories 'TruthReco/', 'Sys/', 'CM/', and 'Res/' within each of the three aforementioned directories.
-    """
-    if not os.path.exists(main_dir):
-        os.mkdir(main_dir)
-    for par_dir in ['th/','tl/','ttbar/']:
-        if not os.path.exists(main_dir+par_dir):
-            os.mkdir(main_dir+par_dir) 
-    for plot_dir in ['TruthReco/','Sys/','CM/','Res/']:
-        for par_dir in ['th/','tl/','ttbar/']:
-            if not os.path.exists(main_dir+par_dir+plot_dir):
-                os.mkdir(main_dir+par_dir+plot_dir)
-    
-    # Also just save the configurations used to make these plots
-    with open(main_dir+"plot_info.json","w") as outfile:
-        json.dump(plotting_info, outfile, indent=4)
                 
     
 
@@ -640,21 +572,6 @@ def makePlots(loaded_models, plotting_instr, particles, main_dir, test_truth_df)
 # ------------- MAIN CODE ------------- #
 
 
-# Get JSON file name of plotting info from command line and load the file
-parser = ArgumentParser()
-parser.add_argument('--plotting_info', help='JSON file name (including path) that contains the plotting specifications you wish to use.', type=str, required=True)
-args = parser.parse_args()
-f_plotting_info = args.plotting_info
-plotting_info = json.load(open(f_plotting_info))
-
-# Create directories for plots if they don't already exist
-main_dir = plotting_info['save_loc']
-createDirectories(main_dir, plotting_info)
-
-# Get the model specifications, plotting specifications, and observable specifications from the JSON file
-model_specs = plotting_info['model_specs']
-plot_specs = plotting_info['plot_specs']
-par_specs = plotting_info['par_specs']
 
 # Get the total number of test events and the list of test events
 f_test = h5py.File(plotting_info['test_filename'],'r')
@@ -668,8 +585,10 @@ test_truth_df = test_truth_df.add_prefix('truth_')
 test_truth_df['eventNumber'] = test_truth_df['truth_eventNumber']
 test_truth_df = appendCalculations(test_truth_df,'truth_test')
 
-# Make particle definitions from the info in the JSON file
-particles = unpackParticles(par_specs)
+
+
+
+
 
 # Get plotting instructions for the things we actually want to plot
 plotting_instr = {}
