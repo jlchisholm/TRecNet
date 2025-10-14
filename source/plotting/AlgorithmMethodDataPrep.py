@@ -208,7 +208,7 @@ def appendData(df_nom_truth,df_nom_reco,df_up,df_down,reco_method,filename,truth
     df_up = pd.concat([df_up,df_up_addon],axis=0,ignore_index=True)
     df_down = pd.concat([df_down,df_down_addon],axis=0,ignore_index=True)
     
-    print('Appended file: '+filename.split('/')[-1])
+    print('Appended file: '+filename)
 
     return df_nom_truth,df_nom_reco,df_up,df_down
 
@@ -248,9 +248,9 @@ def makeResultsFile(reco_method,filenames,save_dir,test_file_name=None):
 
     # File naming
     if test_file_name!=None:
-        new_file_name = reco_method+'_FullDataResults.root'
-    else:
         new_file_name = reco_method+'_TestDataResults.root'
+    else:
+        new_file_name = reco_method+'_FullDataResults.root'
 
     # Save to root file
     f_results = uproot.recreate(save_dir+'/'+new_file_name)
