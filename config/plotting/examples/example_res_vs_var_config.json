@@ -6,19 +6,19 @@
         "th": 
         [
             {"y_var":"pt","x_var":"pt","custom_bins":[0,600,30],"n_even_stats_bins":10},
-            {"y_var":"m","x_var":"pt","custom_bins":[60,600,30],"n_even_stats_bins":10},
+            {"y_var":"m","x_var":"pt","custom_bins":[0,600,30],"n_even_stats_bins":10},
             {"y_var":"eta","x_var":"pt","custom_bins":[0,600,30],"n_even_stats_bins":10}
         ],
         "tl": 
         [
             {"y_var":"pt","x_var":"pt","custom_bins":[0,600,30],"n_even_stats_bins":10},
-            {"y_var":"m","x_var":"pt","custom_bins":[60,600,30],"n_even_stats_bins":10},
+            {"y_var":"m","x_var":"pt","custom_bins":[0,600,30],"n_even_stats_bins":10},
             {"y_var":"eta","x_var":"pt","custom_bins":[0,600,30],"n_even_stats_bins":10}
         ],
         "ttbar": 
         [
             {"y_var":"pt","x_var":"pt","custom_bins":[0,600,30],"n_even_stats_bins":10},
-            {"y_var":"m","x_var":"pt","custom_bins":[60,600,30],"n_even_stats_bins":10},
+            {"y_var":"m","x_var":"pt","custom_bins":[0,600,30],"n_even_stats_bins":10},
             {"y_var":"eta","x_var":"pt","custom_bins":[0,600,30],"n_even_stats_bins":10}
         ]
     }

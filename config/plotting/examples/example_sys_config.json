@@ -11,7 +11,7 @@
                 {
                     "min": 0,
                     "max": 550,
-                    "step": 30
+                    "step": 50
                 },
                 "even_stats_bins":
                 {
@@ -22,9 +22,9 @@
             {
                 "custom_bins":
                 {
-                    "min": 0,
-                    "max": 550,
-                    "step": 30
+                    "min": -6,
+                    "max": 7.5,
+                    "step": 1.5
                 },
                 "even_stats_bins":
                 {
@@ -35,9 +35,9 @@
             {
                 "custom_bins":
                 {
-                    "min": 0,
-                    "max": 550,
-                    "step": 30
+                    "min": -3,
+                    "max": 3.75,
+                    "step": 0.75
                 },
                 "even_stats_bins":
                 {
@@ -48,9 +48,9 @@
             {
                 "custom_bins":
                 {
-                    "min": 0,
-                    "max": 550,
-                    "step": 30
+                    "min": 300,
+                    "max": 850,
+                    "step": 50
                 },
                 "even_stats_bins":
                 {
@@ -66,7 +66,7 @@
                 {
                     "min": 0,
                     "max": 550,
-                    "step": 30
+                    "step": 50
                 },
                 "even_stats_bins":
                 {
@@ -77,9 +77,9 @@
             {
                 "custom_bins":
                 {
-                    "min": 0,
-                    "max": 550,
-                    "step": 30
+                    "min": -6,
+                    "max": 7.5,
+                    "step": 1.5
                 },
                 "even_stats_bins":
                 {
@@ -90,9 +90,9 @@
             {
                 "custom_bins":
                 {
-                    "min": 0,
-                    "max": 550,
-                    "step": 30
+                    "min": -3,
+                    "max": 3.75,
+                    "step": 0.75
                 },
                 "even_stats_bins":
                 {
@@ -103,9 +103,9 @@
             {
                 "custom_bins":
                 {
-                    "min": 0,
-                    "max": 550,
-                    "step": 30
+                    "min": 100,
+                    "max": 250,
+                    "step": 15
                 },
                 "even_stats_bins":
                 {
@@ -121,7 +121,7 @@
                 {
                     "min": 0,
                     "max": 550,
-                    "step": 30
+                    "step": 50
                 },
                 "even_stats_bins":
                 {
@@ -132,9 +132,9 @@
             {
                 "custom_bins":
                 {
-                    "min": 0,
-                    "max": 550,
-                    "step": 30
+                    "min": -6,
+                    "max": 7.5,
+                    "step": 1.5
                 },
                 "even_stats_bins":
                 {
@@ -145,9 +145,9 @@
             {
                 "custom_bins":
                 {
-                    "min": 0,
-                    "max": 550,
-                    "step": 30
+                    "min": -3,
+                    "max": 3.75,
+                    "step": 0.75
                 },
                 "even_stats_bins":
                 {
@@ -158,9 +158,9 @@
             {
                 "custom_bins":
                 {
-                    "min": 0,
-                    "max": 550,
-                    "step": 30
+                    "min": 100,
+                    "max": 250,
+                    "step": 15
                 },
                 "even_stats_bins":
                 {
