@@ -11,10 +11,12 @@
                 {
                     "min": 0,
                     "max": 550,
-                    "step": 50
+                    "step": 50,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             },
@@ -24,10 +26,12 @@
                 {
                     "min": -6,
                     "max": 7.5,
-                    "step": 1.5
+                    "step": 1.5,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             },
@@ -37,10 +41,12 @@
                 {
                     "min": -3,
                     "max": 3.75,
-                    "step": 0.75
+                    "step": 0.75,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             },
@@ -50,10 +56,12 @@
                 {
                     "min": 300,
                     "max": 850,
-                    "step": 50
+                    "step": 50,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             }
@@ -66,10 +74,12 @@
                 {
                     "min": 0,
                     "max": 550,
-                    "step": 50
+                    "step": 50,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             },
@@ -79,10 +89,12 @@
                 {
                     "min": -6,
                     "max": 7.5,
-                    "step": 1.5
+                    "step": 1.5,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             },
@@ -92,10 +104,12 @@
                 {
                     "min": -3,
                     "max": 3.75,
-                    "step": 0.75
+                    "step": 0.75,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             },
@@ -105,10 +119,12 @@
                 {
                     "min": 100,
                     "max": 250,
-                    "step": 15
+                    "step": 15,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             }
@@ -121,10 +137,12 @@
                 {
                     "min": 0,
                     "max": 550,
-                    "step": 50
+                    "step": 50,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             },
@@ -134,10 +152,12 @@
                 {
                     "min": -6,
                     "max": 7.5,
-                    "step": 1.5
+                    "step": 1.5,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             },
@@ -147,10 +167,12 @@
                 {
                     "min": -3,
                     "max": 3.75,
-                    "step": 0.75
+                    "step": 0.75,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             },
@@ -160,10 +182,12 @@
                 {
                     "min": 100,
                     "max": 250,
-                    "step": 15
+                    "step": 15,
+                    "folded_bins":true
                 },
                 "even_stats_bins":
                 {
+                    "folded_bins": true,
                     "nbins": 10
                 }
             }

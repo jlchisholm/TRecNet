@@ -21,6 +21,17 @@ def wrap_phi(var):
     return var
 
 def calculate_res(particle, observable, df):
+    """
+    Calculates the resolution or residuals for a given particle and observable.
+    
+        Parameters:
+            particle (Particle object): Particle of interest.
+            observable (Observable object): Observable of interest.
+            df (pd.DataFrame): Dataframe to append the data to.
+            
+        Returns:
+            df (pd.DataFrame): Original dataframe with the resolution or residuals appended.
+    """
     
     name = particle.name+'_'+observable.name
     res = observable.res
@@ -38,23 +49,39 @@ def calculate_res(particle, observable, df):
             
     return df
 
-def get_ticks(observable, start, stop, step):
+def get_ticks(observable, start, stop, step, folded_bins):
+    """
+    Creates ticks and tick labels for bins.
+    
+        Parameters:
+            start (int or float or double): Low edge of first bin.
+            stop (int or float or double): High edge of last bin.
+            step (int or float or double): Bin size.
+            folded_bins (bool): Whether or not to use folded bin labels (e.g. have the last tick label for pt be infinity).
+        
+        Returns:
+            ticks (list of numbers): List of low edges for bins.
+            tick_labels (list of str): List of labels for each of the bin ticks.
+    """
     
     ticks = np.arange(start,stop,step)
     tick_labels = [str(x) for x in ticks]
-    tick_labels[0] = '-'+r'$\infty$' if observable.name in ['eta','y','yboost','ystar'] else tick_labels[0]
-    tick_labels[-1] = r'$\infty$' if observable.name!='phi' else tick_labels[-1]
+    
+    if folded_bins:
+        tick_labels[0] = '-'+r'$\infty$' if observable.name in ['eta','y','yboost','ystar'] else tick_labels[0]
+        tick_labels[-1] = r'$\infty$' if observable.name!='phi' else tick_labels[-1]
     
     return ticks, tick_labels
 
 
-def get_even_stats_ticks(df_col,observable,nbins=8):
+def get_even_stats_ticks(df_col,observable,folded_bins,nbins=8):
     """
     Figures out bin width such that each bin has approximately the same number of events.
     
         Parameters:
             df_col (pd.DataFrame column): Data for one particular observable for one particular particle.
             observable (Observable object): Observable for which you want even binning.
+            folded_bins (bool): Whether or not to use folded bin labels (e.g. have the last tick label for pt be infinity).
             
         Options:
             nbins (int): Number of desired bins for the histogram (default: 30).
@@ -81,8 +108,9 @@ def get_even_stats_ticks(df_col,observable,nbins=8):
 
     # Create labels for the ticks
     tick_labels = [str(x) if observable.name in two_dec_round else str(int(x)) for x in ticks]
-    tick_labels[0] = '-'+r'$\pi$' if observable.name=='phi' else '-'+r'$\infty$' if observable.name in ['eta','y','pout','px','py','yboost'] else '0'
-    tick_labels[-1] = r'$\pi$' if observable.name=='phi' else r'$\infty$'
+    if folded_bins:
+        tick_labels[0] = '-'+r'$\pi$' if observable.name=='phi' else '-'+r'$\infty$' if observable.name in ['eta','y','pout','px','py','yboost'] else '0'
+        tick_labels[-1] = r'$\pi$' if observable.name=='phi' else r'$\infty$'
 
     return ticks, tick_labels
 
@@ -92,11 +120,11 @@ def save_plot_info(dir, fig_name, num_events, num_in, in_percent):
     Writes some info about the plots to a file.
     
         Parameters:
-            dir
-            fig_name
-            num_events
-            num_in
-            in_percent
+            dir (str): Directory to save plot info in.
+            fig_name (str): Name for figure.
+            num_events (dictionary): Dictionary of total number of events in datasets.
+            num_in (dictionary): Dictionary of total number of events in datasets, in the plotted range.
+            in_percent (dictionary): Dictionary of percentage of events in datasets, in the plotted range.
     """
     
     file = open(dir+'/Plot_Info.txt', "a+")
@@ -111,8 +139,6 @@ def save_plot_info(dir, fig_name, num_events, num_in, in_percent):
     file.write("Percentage of the dataset's events inside the plotted range: \n")
     pprint(in_percent,stream=file)
     file.close()
-    
-    #df.to_string()
     
 
     

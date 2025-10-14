@@ -24,8 +24,6 @@ matplotlib.use('Agg')  # need for not displaying plots when running batch jobs
 from matplotlib import pyplot as plt
 from matplotlib import colors
 #from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, plot_confusion_matrix
-from scipy.stats import norm
-from scipy.stats import cauchy
 from sigfig import round
 import Util
 
@@ -90,7 +88,7 @@ def TruthReco_Hist(dataset,particle,observable,x_min,x_max,nbins=30,save_loc='./
     plt.close()
     
 
-def Confusion_Matrix(dataset,particle,observable,ticks,tick_labels,norm=True,tag='',save_loc='./'):
+def Confusion_Matrix(dataset,particle,observable,ticks,tick_labels,folded_bins=True,norm=True,tag='',save_loc='./'):
     """ 
     Creates and saves a 2D histogram of true vs reconstructed data, normalized across rows, for a given dataset, particle, and observable.
 
@@ -102,6 +100,7 @@ def Confusion_Matrix(dataset,particle,observable,ticks,tick_labels,norm=True,tag
             tick_labels (list of str): List of labels for the ticks.  
         
         Options:
+            folded_bins (bool): Whether or not to use folded bins (e.g. have the last tick label for pt be infinity) (default: True).
             norm (bool): Whether or not to normalize the confusion matrix across rows (default: True).
             tag (str): Extra tag to add to the plot save name.
             save_loc (str): Directory where you want the histogram saved to (default: current directory).
@@ -119,7 +118,10 @@ def Confusion_Matrix(dataset,particle,observable,ticks,tick_labels,norm=True,tag
     ran = ticks[::n-1]
 
     # Create 2D array of truth vs reco observable (which can be plotted also)
-    H, _, _, _ = plt.hist2d(np.clip(dataset.df['reco_'+name],ticks[0],ticks[-1]),np.clip(dataset.df['truth_'+name],ticks[0],ticks[-1]),bins=ticks,range=[ran,ran])
+    if folded_bins:
+        H, _, _, _ = plt.hist2d(np.clip(dataset.df['reco_'+name],ticks[0],ticks[-1]),np.clip(dataset.df['truth_'+name],ticks[0],ticks[-1]),bins=ticks,range=[ran,ran])
+    else:
+        H, _, _, _ = plt.hist2d(dataset.df['reco_'+name],ticks[0],ticks[-1],dataset.df['truth_'+name],ticks[0],ticks[-1],bins=ticks,range=[ran,ran])
 
     # Normalize across rows (if desired)
     if norm:
@@ -236,7 +238,7 @@ def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,include_
     Util.save_plot_info(save_loc, fig_name, num_events, num_in_events, in_dic)
 
 
-def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag=''):
+def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,folded_bins=True,save_loc='./',tag=''):
     """
     Creates and saves a plot of resolution (or residual) for a given observable against another (or the same) given observable, for all datasets provided, for a given particle.
 
@@ -249,6 +251,7 @@ def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag
             tick_labels (list of str): List of labels for the ticks.
 
         Options:
+            folded_bins (bool): Whether or not to use folded bins (e.g. have the last tick label for pt be infinity) (default: True).
             save_loc (str): Directory where you want the histogram saved to (default: current directory).
             tag (str): Extra tag to add to the plot save name.
             
@@ -279,10 +282,14 @@ def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag
             top_edge = ticks[i+1]
             middle = bottom_edge + (top_edge - bottom_edge)/2
 
-            # Look at resolution at a particular value of var (remember to fold in the first and last bins!)
-            if i!=0: # only cut out lower events if not the first bin
+            # Look at resolution at a particular value of var
+            if folded_bins:
+                if i!=0: # only cut out lower events if not the first bin
+                    cut_temp = df[df['truth_'+particle.name+'_'+x_obs.name]>=bottom_edge]
+                if i!=(len(ticks[:-1])-1): # only cut out upper events if not the last bin
+                    cut_temp = cut_temp[cut_temp['truth_'+particle.name+'_'+x_obs.name]<top_edge]
+            else:
                 cut_temp = df[df['truth_'+particle.name+'_'+x_obs.name]>=bottom_edge]
-            if i!=(len(ticks[:-1])-1): # only cut out upper events if not the last bin
                 cut_temp = cut_temp[cut_temp['truth_'+particle.name+'_'+x_obs.name]<top_edge]
 
             # Get standard deviation and append point to list
@@ -315,7 +322,7 @@ def Res_vs_Var(datasets,particle,y_obs,x_obs,ticks,tick_labels,save_loc='./',tag
     
     
     
-def Sys_Hist(datasets,particle,observable,ticks,tick_labels,save_loc='./',tag=''):
+def Sys_Hist(datasets,particle,observable,ticks,tick_labels,folded_bins=True,save_loc='./',tag=''):
     """
     Creates and saves a histogram of the systematics for all datasets provided, for a given particle and observable.
 
@@ -327,8 +334,9 @@ def Sys_Hist(datasets,particle,observable,ticks,tick_labels,save_loc='./',tag=''
             tick_labels (list of str): List of labels for the ticks.  
 
         Options:
+            folded_bins (bool): Whether or not to use folded bins (e.g. have the last tick label for pt be infinity) (default: True).
             save_loc (str): Directory where you want the histogram saved to (default: current directory).
-            tag (str): Extra tag to add to the plot save name.
+            tag (str): Extra tag to add to the plot save name (default: '').
 
         Returns:
             Saves histogram in <save_loc> as '<res>_<data_type>_<particle>_<observable>.png'.                
@@ -344,9 +352,14 @@ def Sys_Hist(datasets,particle,observable,ticks,tick_labels,save_loc='./',tag=''
 
         # Create a temporary plot to bin the data (set density=True to normalize the counts)
         plt.figure('Temporary')
-        reco_n, bins, _ = plt.hist(np.clip(dataset.df['reco_'+name],ticks[0],ticks[-1]),bins=ticks,range=ran,density=True)
-        sysUP_n, _, _ = plt.hist(np.clip(dataset.sysUP_df['reco_'+name],ticks[0],ticks[-1]),bins=ticks,range=ran,density=True)
-        sysDOWN_n, _, _ = plt.hist(np.clip(dataset.sysDOWN_df['reco_'+name],ticks[0],ticks[-1]),bins=ticks,range=ran,density=True)
+        if folded_bins:
+            reco_n, bins, _ = plt.hist(np.clip(dataset.df['reco_'+name],ticks[0],ticks[-1]),bins=ticks,range=ran,density=True)
+            sysUP_n, _, _ = plt.hist(np.clip(dataset.sysUP_df['reco_'+name],ticks[0],ticks[-1]),bins=ticks,range=ran,density=True)
+            sysDOWN_n, _, _ = plt.hist(np.clip(dataset.sysDOWN_df['reco_'+name],ticks[0],ticks[-1]),bins=ticks,range=ran,density=True)
+        else:
+            reco_n, bins, _ = plt.hist(dataset.df['reco_'+name],bins=ticks,range=ran,density=True)
+            sysUP_n, _, _ = plt.hist(dataset.sysUP_df['reco_'+name],bins=ticks,range=ran,density=True)
+            sysDOWN_n, _, _ = plt.hist(dataset.sysDOWN_df['reco_'+name],bins=ticks,range=ran,density=True)
         plt.close('Temporary')
 
         # Calculate the up and down fractional uncertainties

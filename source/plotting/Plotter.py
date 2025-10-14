@@ -2,7 +2,7 @@
 #                                                                    #
 #  Plotter.py                                                        #
 #  Author: Jenna Chisholm                                            #
-#  Updated: Oct.10/25                                                 #
+#  Updated: Oct.10/25                                                #
 #                                                                    #
 #  Makes plots.                                                      #
 #                                                                    #
@@ -305,15 +305,17 @@ class Plotter:
                 # Read the specs and get ticks
                 if even_stats:
                     nbins = specs["even_stats_bins"]["nbins"]
+                    folded_bins = specs["even_stats_bins"]["folded_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(obs_name)),columns=[obs_name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],observable,nbins)
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
                     x_min = specs["custom_bins"]["min"]
                     x_max = specs["custom_bins"]["max"]
                     step = specs["custom_bins"]["step"]
-                    ticks, tick_labels = Util.get_ticks(observable,x_min,x_max,step)
+                    folded_bins = specs["custom_bins"]["folded_bins"]
+                    ticks, tick_labels = Util.get_ticks(observable,x_min,x_max,step,folded_bins)
                     stats_tag = ''
                 
                 # Iterate through each dataset
@@ -336,7 +338,7 @@ class Plotter:
                     dataset.link_temp_df(df)
                     
                     # Make the plot
-                    Plots.Confusion_Matrix(dataset,particle,observable,ticks,tick_labels,tag=stats_tag,save_loc=self.main_dir+'/'+par+'/CM/')
+                    Plots.Confusion_Matrix(dataset,particle,observable,ticks,tick_labels,folded_bins=folded_bins,tag=stats_tag,save_loc=self.main_dir+'/'+par+'/CM/')
                     
         print('CM plots completed.')  
         
@@ -425,6 +427,7 @@ class Plotter:
                 particle = PARTICLES[par]
                 x_var = plot_specs["x_var"]
                 y_var = plot_specs["y_var"]
+                folded_bins = plot_specs["folded_bins"]
                 x_observable = particle.get_observable(x_var)
                 y_observable = particle.get_observable(y_var)
                 x_obs_name = par+'_'+x_var
@@ -438,17 +441,17 @@ class Plotter:
                     nbins = plot_specs["n_even_stats_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(x_obs_name)),columns=[x_obs_name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[x_obs_name],x_observable,nbins)
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[x_obs_name],x_observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
                     x_min = plot_specs["custom_bins"][0]
                     x_max = plot_specs["custom_bins"][1]
                     step = plot_specs["custom_bins"][2]
-                    ticks, tick_labels = Util.get_ticks(x_observable,x_min,x_max,step)
+                    ticks, tick_labels = Util.get_ticks(x_observable,x_min,x_max,step,folded_bins)
                     stats_tag = ''
 
                 # Make plot!
-                Plots.Res_vs_Var(datasets,particle,y_observable,x_observable,ticks,tick_labels,save_loc=self.main_dir+par+'/ResVsVar/',tag=stats_tag)
+                Plots.Res_vs_Var(datasets,particle,y_observable,x_observable,ticks,tick_labels,folded_bins=folded_bins,save_loc=self.main_dir+par+'/ResVsVar/',tag=stats_tag)
                 
         print('ResVsVar plots completed.') 
         
@@ -482,19 +485,21 @@ class Plotter:
                 # Read the specs and get ticks
                 if even_stats:
                     nbins = specs["even_stats_bins"]["nbins"]
+                    folded_bins = specs["even_stats_bins"]["folded_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(obs_name)),columns=[obs_name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],observable,nbins)
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
                     x_min = specs["custom_bins"]["min"]
                     x_max = specs["custom_bins"]["max"]
                     step = specs["custom_bins"]["step"]
-                    ticks, tick_labels = Util.get_ticks(observable,x_min,x_max,step)
+                    folded_bins = specs["custom_bins"]["folded_bins"]
+                    ticks, tick_labels = Util.get_ticks(observable,x_min,x_max,step,folded_bins)
                     stats_tag = ''
                 
                 # Make plot!
-                Plots.Sys_Hist(datasets,particle,observable,ticks,tick_labels,save_loc=self.main_dir+par+'/Sys/',tag=stats_tag)
+                Plots.Sys_Hist(datasets,particle,observable,ticks,tick_labels,folded_bins=folded_bins,save_loc=self.main_dir+par+'/Sys/',tag=stats_tag)
                     
                 
     def makePlots(self):
