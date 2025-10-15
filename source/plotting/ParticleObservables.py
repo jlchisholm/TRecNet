@@ -10,7 +10,7 @@
 
 from DataStructures import Observable,Particle
    
-# Observables (remove ticks as an option here? put that in plotting I think, also units?)
+# Observables (with desired units)
 PT = Observable("pt","p_T","GeV","Resolution")
 PX = Observable("px","p_x","GeV","Resolution")
 PY = Observable("py","p_y","GeV","Resolution")

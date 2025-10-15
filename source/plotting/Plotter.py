@@ -10,6 +10,7 @@
 
 
 # Import useful packages
+import sys
 import numpy as np
 import pandas as pd
 import uproot
@@ -17,7 +18,7 @@ import h5py
 import json
 import Util
 from ParticleObservables import PARTICLES
-from DataStructures import Dataset
+from DataStructures import Dataset, Variable
 import Plots
 
 
@@ -43,37 +44,44 @@ class Plotter:
         self.plots_to_make = plot_configs.keys()
         self.dataset_config = json.load(open(f_dataset_config))
         
-        # Load config files for each plot type
+        # Load config files for each plot type, and save the names of the reco models needed
+        self.reco_models_to_plot = {}
         for plot_type, file_name in plot_configs.items():
             if plot_type=='TrainValLoss':
                 self.train_val_loss_config = json.load(open(file_name))
+                self.reco_models_to_plot[plot_type] = self.train_val_loss_config["TRecNet_models_to_plot"]
             elif plot_type=='TruthReco':
                 self.truthreco_config = json.load(open(file_name))
+                self.reco_models_to_plot[plot_type] = self.truthreco_config["reco_models_to_plot"]
             elif plot_type=='CM':
                 self.cm_config = json.load(open(file_name))
+                self.reco_models_to_plot[plot_type] = self.cm_config["reco_models_to_plot"]
             elif plot_type=='Res':
                 self.res_config = json.load(open(file_name))
+                self.reco_models_to_plot[plot_type] = self.res_config["reco_models_to_plot"]
             elif plot_type=='ResVsVar':
                 self.res_vs_var_config = json.load(open(file_name))
+                self.reco_models_to_plot[plot_type] = self.res_vs_var_config["reco_models_to_plot"]
             elif plot_type=='Sys':
                 self.sys_config = json.load(open(file_name))
+                self.reco_models_to_plot[plot_type] = self.sys_config["reco_models_to_plot"]
             
         # Create "datasets"    
         self.datasets = {}
         for model, specs in self.dataset_config['Models'].items():
-            for cut in specs["cuts"]: # separate dataset objects for separate cuts
-                
-                # Find the precentage of events in this cut
-                if cut["cut_on"]!=None:
-                    with uproot.open(specs['nom_input']) as dataset_file:
-                        cut_var = cut["cut_on"]
-                        total_df = pd.DataFrame(dataset_file["reco"][cut_var],columns=[cut_var]) 
-                        cut_df = self.getCutDF(total_df,cut_var,cut["max"],cut["min"])
-                        perc_events = int(100*len(cut_df)/len(total_df))
+            if model in sum(self.reco_models_to_plot.values(),[]): # only make datasets for the models we're going to need
+                for cut in specs["cuts"]: # separate dataset objects for separate cuts
+                    
+                    if cut["cut_on"]!=None:
+                        with uproot.open(specs['nom_input']) as dataset_file: # Find the precentage of events in this cut (may remove this...)
+                            cut_var = cut["cut_on"]
+                            total_df = pd.DataFrame(dataset_file["reco"][cut_var],columns=[cut_var]) 
+                            cut_df = self.getCutDF(total_df,cut_var,cut["max"],cut["min"])
+                            perc_events = int(100*len(cut_df)/len(total_df))
                         self.datasets.update({model+'('+cut["tag"]+')': Dataset(model,cut["color_scheme"],cut["tag"],cut_var,cut["max"],cut["min"],perc_events,specs["shortname"])})
-                else:
-                    self.datasets.update({model+'('+cut["tag"]+')': Dataset(model,cut["color_scheme"],reco_method_short=specs["shortname"])})
-                
+                    else:
+                        self.datasets.update({model+'('+cut["tag"]+')': Dataset(model,cut["color_scheme"],reco_method_short=specs["shortname"])})        
+            
             
     def getDatasetsToPlot(self, reco_models_to_plot):
         """
@@ -129,18 +137,84 @@ class Plotter:
         return df_cut
     
     
-    def getDataFrame(self,input_type,dataset_name,obs_name,extra_truth_vars=[],extra_reco_vars=[]):
+    def checkUnits(self,df,var_name,obs_units):
+        """
+        Checks if the values for a particular observable are of the same order as specified in the Observable definition. If not, values are converted to the specified magnitude. Only applies to energy-related (not angular) observables.
+        
+            Parameters:
+                df (pd.DataFrame): Dataframe.
+                var_name (str): Name of the desired variable (e.g. 'th_pt').
+                obs_units (str): Units for the observable of interest.
+                
+            Returns:
+                df (pd.DataFrame): Dataframe with corrected units.
+        """
+                
+        # Only need to check units of energy-related variables (i.e. not angular variables)
+        if obs_units != "":
+            
+            TeV_order_range = [-1,-2] # 0.1s, 0.01s
+            GeV_order_range = [1,2] # 10s, 100s
+            MeV_order_range = [4,5] # 10 000s, 100 000s
+            keV_order_range = [7,8] # 10 000 000s, 100 000 000s
+            
+            # Calculate the order of each value and the modes
+            order_df = np.floor(np.log10(df))
+            mode_df = order_df.mode()
+            
+            # Go through truth (if available) and reco
+            column_names = ['truth_'+var_name, 'reco_'+var_name] if 'truth_'+var_name in df.keys() else ['reco_'+var_name]
+            for col_name in column_names:
+            
+                # Modify units as asked
+                if obs_units == "GeV":
+                    if mode_df[col_name][0] in TeV_order_range:
+                        df[col_name] = df[col_name]*1000
+                        print('CAUTION: '+col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                    elif mode_df[col_name][0] in GeV_order_range:
+                        pass
+                    elif mode_df[col_name][0] in MeV_order_range:
+                        df[col_name] = df[col_name]/1000
+                        print('CAUTION: '+col_name+' is estimated to be in units of MeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                    elif mode_df[col_name][0] in keV_order_range:
+                        df[col_name] = df[col_name]/(1000000)
+                        print('CAUTION: '+col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                    else:
+                        print('WARNING: '+col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
+                        sys.exit()
+
+                elif obs_units == "MeV":
+                    if mode_df[col_name][0] in TeV_order_range:
+                        df[col_name] = df[col_name]*1000000
+                        print('CAUTION: '+col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                    elif mode_df[col_name][0] in GeV_order_range:
+                        df[col_name] = df[col_name]*1000
+                        print('CAUTION: '+col_name+' is estimated to be in units of GeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                    elif mode_df[col_name][0] in MeV_order_range:
+                        pass
+                    elif mode_df[col_name][0] in keV_order_range:
+                        df[col_name] = df[col_name]/(1000)
+                        print('CAUTION: '+col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                    else:
+                        print('WARNING: '+col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
+                        sys.exit()
+     
+        return df
+    
+    
+    def getDataFrame(self,input_type,dataset_name,variable,extra_truth_vars=[],extra_reco_vars=[],cut_obs=None):
         """
         Get truth and reco dataframes containing the given observable name. Also include any extra specified variables.
         
             Parameters:
                 input_type (str): Type of data to put in the dataframe (i.e. 'nom', 'sysUP', or 'sysDOWN').
-                dataset_name (str): Name of the dataset (e.g. "KLFitter(LL>-52)".)
-                obs_name (str): Name of the observable needed (e.g. "th_pt").
+                dataset_name (str): Name of the dataset (e.g. 'KLFitter(LL>-52)').
+                variable (Variable object): Variable of interest.
             
             Optional:
-                extra_truth_vars (list of str): List of any additional truth variables that will be needed.
-                extra_reco_vars (list of str): List of any additional reco variables that will be needed.
+                extra_truth_vars (list of Variable objects): List of any additional truth variables that will be needed.
+                extra_reco_vars (list of Variable objects): List of any additional reco variables that will be needed.
+                cut_obs (str): Name of the observable this dataset will be cut on (e.g. 'logLikelihood').
             
             Return:
                 df (pd.DataFrame): Dataframe containing truth and reco values for the given observable. Also includes any extra truth and reco variables that were specified.
@@ -150,47 +224,56 @@ class Plotter:
         dataset = self.datasets[dataset_name] 
         
         # Set the variables (making sure we don't have observable name in there multiple times)
-        truth_vars = [obs_name] + extra_truth_vars if obs_name not in extra_truth_vars else extra_truth_vars
-        reco_vars = [obs_name] + extra_reco_vars if obs_name not in extra_reco_vars else extra_reco_vars
+        truth_vars = [variable] + extra_truth_vars if variable not in extra_truth_vars else extra_truth_vars
+        reco_vars = [variable] + extra_reco_vars if variable not in extra_reco_vars else extra_reco_vars
         
         # Read in data to pandas dataframe
         with uproot.open(self.dataset_config["Models"][dataset.reco_method][input_type+"_input"]) as data_file:
             
-            if input_type=="nom":  # nominal data
-                reco_df = data_file["reco"].arrays(reco_vars,library="pd")
-                reco_df = reco_df.add_prefix('reco_')
-                truth_df = data_file["parton"].arrays(truth_vars,library="pd") # only truth data for nominal events
-                truth_df = truth_df.add_prefix('truth_')
-                df = pd.concat([truth_df,reco_df], axis=1)  
-            else:   # systematics data
-                df = data_file[input_type].arrays(reco_vars,library="pd")
-                df = df.add_prefix('reco_')
+            # Nominal data
+            if input_type=="nom":
                 
-                ### FIX FOR KLFITTER AND OTHERS (OR RATHER FIX THOSE FILES TO MATCH THIS) 
+                # Get truth data
+                truth_df = data_file["parton"].arrays([v.name for v in truth_vars],library="pd") # only truth data for nominal events
+                truth_df = truth_df.add_prefix('truth_')
+                
+                # Get reco data (including cut variable if necessary)
+                reco_df = data_file["reco"].arrays([v.name for v in reco_vars],library="pd")
+                reco_df = reco_df.add_prefix('reco_')
+                if cut_obs!=None: reco_df[cut_obs] = data_file["reco"].arrays([cut_obs],library="pd")
+                
+                # Make dataframe and ensure the units are correct
+                df = pd.concat([truth_df,reco_df], axis=1)
+                for var in list(set(truth_vars + reco_vars)):
+                    self.checkUnits(df,var.name,var.units)
+                
+            # Systematics data
+            else:
+                df = data_file[input_type].arrays([v.name for v in reco_vars],library="pd")
+                df = df.add_prefix('reco_') 
+                if cut_obs!=None: df[cut_obs] = data_file[input_type].arrays([cut_obs],library="pd")
+                for var in list(set(df,var.name,var.units)):
+                    self.checkUnits(df,variable.name,variable.units)
         
         return df
             
 
     
-    def getDatasetList(self,par,var,datasets_to_plot,extra_vars=[],with_systematics=False):
+    def getDatasetList(self,variable,datasets_to_plot,extra_vars=[],with_systematics=False):
         """
         Get list of datasets for plots that require multiple datasets.
         
             Parameters:
-                par (str): Name of the particle (e.g.'th').
-                var (str): Name of the variable (e.g.'eta').
+                variable (Variable object): Variable of interest.
                 datasets_to_plot (list of str): List of datasets to include.
                 
             Optional:
-                extra_vars (list of str): List of extra variables that may be needed (e.g. for cuts) (e.g. ['pt']) (default: []).
+                extra_vars (list of Variable objects): List of extra variables that may be needed (e.g. for cuts) (default: []).
                 with_systematics (bool): Whether to include systematics in the datasets.
                 
             Returns:
                 datasets (list of Dataset objects): List of datasets.
         """
-        
-        # Set the observable of interest
-        obs_name = par+'_'+var
         
         # Iterate through each dataset (and save to list)
         datasets = []
@@ -198,29 +281,21 @@ class Plotter:
             
             # Get the dataset object
             dataset = self.datasets[dataset_name] 
-            
-            # Add any extra variables we may want to cut on
-            extra_truth_vars = [par+'_'+cut_var for cut_var in extra_vars]
-            extra_reco_vars = [par+'_'+cut_var for cut_var in extra_vars]
-            
-            # Get the cut variable name for the dataset, if there is one
-            if dataset.cut_var!=None:
-                extra_reco_vars.append(dataset.cut_var) 
                     
-            # Get the dataframe
-            df = self.getDataFrame('nom',dataset_name,obs_name,extra_truth_vars=extra_truth_vars,extra_reco_vars=extra_reco_vars)
-                    
-            # Make cut if necessary
+            # Get the dataframe and make cut if necessary
             if dataset.cut_var!=None:
+                df = self.getDataFrame('nom',dataset_name,variable,extra_truth_vars=extra_vars,extra_reco_vars=extra_vars,cut_obs=dataset.cut_var)
                 df = self.getCutDF(df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
+            else:
+                df = self.getDataFrame('nom',dataset_name,variable,extra_truth_vars=extra_vars,extra_reco_vars=extra_vars)
 
             # Link data to the dataset
             dataset.link_temp_df(df)
             
             # Also get systematics dataframes if required
             if with_systematics:
-                up_df = self.getDataFrame('sysUP',dataset_name,obs_name,extra_truth_vars=extra_truth_vars,extra_reco_vars=extra_reco_vars)
-                down_df = self.getDataFrame('sysDOWN',dataset_name,obs_name,extra_truth_vars=extra_truth_vars,extra_reco_vars=extra_reco_vars)
+                up_df = self.getDataFrame('sysUP',dataset_name,variable,extra_truth_vars=extra_vars,extra_reco_vars=extra_vars)
+                down_df = self.getDataFrame('sysDOWN',dataset_name,variable,extra_truth_vars=extra_vars,extra_reco_vars=extra_vars)
                 if dataset.cut_var!=None:
                     up_df = self.getCutDF(up_df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
                     down_df = self.getCutDF(down_df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
@@ -239,12 +314,11 @@ class Plotter:
         """
         
         # Get the plotting instructions
-        reco_models_to_plot = self.train_val_loss_config["TRecNet_models_to_plot"]
         loss_metric = self.train_val_loss_config["loss_metric"]
         extra_metrics = self.train_val_loss_config["extra_metrics"]
         
         # Get list of the datasets we want to plot
-        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
+        datasets_to_plot = self.getDatasetsToPlot(self.reco_models_to_plot['TrainValLoss'])
         
         # Iterate through each dataset (and save to list)
         datasets = []
@@ -271,20 +345,17 @@ class Plotter:
         """
         
         # Get the plotting instructions
-        reco_models_to_plot = self.truthreco_config["reco_models_to_plot"]
         observables_to_plot = self.truthreco_config["variables"]
         
         # Get list of the datasets we want to plot
-        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
+        datasets_to_plot = self.getDatasetsToPlot(self.reco_models_to_plot['TruthReco'])
 
         # Iterate through the observables
-        for par, vars in observables_to_plot.items():
-            for var, specs in vars.items():
+        for par, obs in observables_to_plot.items():
+            for ob, specs in obs.items():
                 
-                # Get some important particle observable info
-                obs_name = par+'_'+var
-                particle = PARTICLES[par]
-                observable = particle.get_observable(var)
+                # Construct the variable of interest
+                variable = Variable(PARTICLES[par],PARTICLES[par].get_observable(ob))
                 
                 # Read the specs
                 x_min = specs["min"]
@@ -297,21 +368,18 @@ class Plotter:
                     # Get the dataset object
                     dataset = self.datasets[dataset_name] 
                     
-                    # Get the cut variable name for the dataset, if there is one
-                    extra_reco_vars = [dataset.cut_var] if dataset.cut_var!=None else []
-                    
-                    # Get the dataframe
-                    df = self.getDataFrame('nom',dataset_name,obs_name,extra_reco_vars=extra_reco_vars)
-                    
-                    # Make cut if necessary
+                    # Get dataframe and make cut if necessary
                     if dataset.cut_var!=None:
+                        df = self.getDataFrame('nom',dataset_name,variable,cut_obs=dataset.cut_var)
                         df = self.getCutDF(df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
+                    else:
+                        df = self.getDataFrame('nom',dataset_name,variable)
 
                     # Link data to the dataset
                     dataset.link_temp_df(df)
             
                     # Make the plot
-                    Plots.TruthReco_Hist(dataset,particle,observable,x_min,x_max,nbins,self.main_dir+'/'+par+'/TruthReco/')
+                    Plots.TruthReco_Hist(dataset,variable,x_min,x_max,nbins,self.main_dir+'/'+par+'/TruthReco/')
 
         print('TruthReco plots completed.')  
         
@@ -322,36 +390,33 @@ class Plotter:
         """
         
         # Get the plotting instructions
-        reco_models_to_plot = self.cm_config["reco_models_to_plot"]
         observables_to_plot = self.cm_config["variables"]
         even_stats = self.cm_config["even_stats_binning"]
         
         # Get list of the datasets we want to plot
-        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
+        datasets_to_plot = self.getDatasetsToPlot(self.reco_models_to_plot['CM'])
             
         # Iterate through the observables
-        for par, vars in observables_to_plot.items():
-            for var, specs in vars.items():
+        for par, obs in observables_to_plot.items():
+            for ob, specs in obs.items():
                 
-                # Get some important particle observable info
-                obs_name = par+'_'+var
-                particle = PARTICLES[par]
-                observable = particle.get_observable(var)
+                # Construct the variable of interest
+                variable = Variable(PARTICLES[par],PARTICLES[par].get_observable(ob))
                 
                 # Read the specs and get ticks
                 if even_stats:
                     nbins = specs["even_stats_bins"]["nbins"]
                     folded_bins = specs["even_stats_bins"]["folded_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
-                        temp_df = pd.DataFrame(np.array(test_file.get(obs_name)),columns=[obs_name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],observable,folded_bins,nbins)
+                        temp_df = pd.DataFrame(np.array(test_file.get(variable.name)),columns=[variable.name])
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[variable.name],variable.observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
                     x_min = specs["custom_bins"]["min"]
                     x_max = specs["custom_bins"]["max"]
                     step = specs["custom_bins"]["step"]
                     folded_bins = specs["custom_bins"]["folded_bins"]
-                    ticks, tick_labels = Util.get_ticks(observable,x_min,x_max,step,folded_bins)
+                    ticks, tick_labels = Util.get_ticks(variable.observable,x_min,x_max,step,folded_bins)
                     stats_tag = ''
                 
                 # Iterate through each dataset
@@ -359,22 +424,19 @@ class Plotter:
                     
                     # Get the dataset object
                     dataset = self.datasets[dataset_name] 
-                    
-                    # Get the cut variable name for the dataset, if there is one
-                    extra_reco_vars = [dataset.cut_var] if dataset.cut_var!=None else []
-                    
-                    # Get the dataframe
-                    df = self.getDataFrame('nom',dataset_name,obs_name,extra_reco_vars=extra_reco_vars)
-                    
-                    # Make cut if necessary
+                        
+                    # Get dataframe and make cut if necessary
                     if dataset.cut_var!=None:
+                        df = self.getDataFrame('nom',dataset_name,variable.name,variable.units,cut_obs=dataset.cut_var)
                         df = self.getCutDF(df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
+                    else:
+                        df = self.getDataFrame('nom',dataset_name,variable.name,variable.units)
 
                     # Link data to the dataset
                     dataset.link_temp_df(df)
                     
                     # Make the plot
-                    Plots.Confusion_Matrix(dataset,particle,observable,ticks,tick_labels,folded_bins=folded_bins,tag=stats_tag,save_loc=self.main_dir+'/'+par+'/CM/')
+                    Plots.Confusion_Matrix(dataset,variable,ticks,tick_labels,folded_bins=folded_bins,tag=stats_tag,save_loc=self.main_dir+'/'+par+'/CM/')
                     
         print('CM plots completed.')  
         
@@ -385,25 +447,24 @@ class Plotter:
         """
         
         # Get the plotting instructions
-        reco_models_to_plot = self.res_config["reco_models_to_plot"]
         observables_to_plot = self.res_config["variables"]
         
         # Get list of the datasets we want to plot
-        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
+        datasets_to_plot = self.getDatasetsToPlot(self.reco_models_to_plot['Res'])
         
         # Iterate through the observables
-        for par, vars in observables_to_plot.items():
-            for var, specs in vars.items():
+        for par, obs in observables_to_plot.items():
+            for ob, specs in obs.items():
                 
-                # Get some important particle observable info
-                particle = PARTICLES[par]
-                observable = particle.get_observable(var)
+                # Construct the variable of interest
+                variable = Variable(PARTICLES[par],PARTICLES[par].get_observable(ob))
                 
                 # Get datasets (adding pt as an extra variable if we're going to cut on it but don't already have it)
-                if (len(specs["pt_cuts"])==1 and specs["pt_cuts"][0]=={}) or var=='pt':
-                    datasets = self.getDatasetList(par,var,datasets_to_plot)
+                if (len(specs["pt_cuts"])==1 and specs["pt_cuts"][0]=={}) or variable.observable.name=='pt':
+                    datasets = self.getDatasetList(variable,datasets_to_plot)
                 else:
-                    datasets = self.getDatasetList(par,var,datasets_to_plot,extra_vars=['pt'])
+                    pt_var = Variable(PARTICLES[par],PARTICLES[par].get_observable('pt'))
+                    datasets = self.getDatasetList(variable,datasets_to_plot,extra_vars=[pt_var])
                 
                 # Iterate through each of the pt cuts
                 for pt_cut in specs["pt_cuts"]:
@@ -436,7 +497,7 @@ class Plotter:
                         pt_tag = '('+str(pt_cut["pt_low"])+'<p_T<'+str(pt_cut["pt_high"])+')'
 
                     # Now plot all these datasets together!
-                    Plots.Res_Hist(cut_datasets,particle,observable,save_loc=self.main_dir+'/'+par+'/Res/',tag=pt_tag,nbins=specs["nbins"],include_moments=specs["include_moments"])
+                    Plots.Res_Hist(cut_datasets,variable,save_loc=self.main_dir+'/'+par+'/Res/',tag=pt_tag,nbins=specs["nbins"],include_moments=specs["include_moments"])
                 
         print('Res plots completed.')  
         
@@ -448,12 +509,11 @@ class Plotter:
         """
         
         # Get the plotting instructions
-        reco_models_to_plot = self.res_vs_var_config["reco_models_to_plot"]
         observables_to_plot = self.res_vs_var_config["variables"]
         even_stats = self.res_vs_var_config["even_stats_binning"]
         
         # Get list of the datasets we want to plot
-        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
+        datasets_to_plot = self.getDatasetsToPlot(self.reco_models_to_plot['ResVsVar'])
                 
         # Iterate through the observables
         for par, plot_requests in observables_to_plot.items():
@@ -461,33 +521,34 @@ class Plotter:
                 
                 # Get some important particle observable info
                 particle = PARTICLES[par]
-                x_var = plot_specs["x_var"]
-                y_var = plot_specs["y_var"]
+                x_ob = plot_specs["x_var"]
+                y_ob = plot_specs["y_var"]
                 folded_bins = plot_specs["folded_bins"]
-                x_observable = particle.get_observable(x_var)
-                y_observable = particle.get_observable(y_var)
-                x_obs_name = par+'_'+x_var
+                
+                # Construct the variables of interest
+                x_variable = Variable(PARTICLES[par],PARTICLES[par].get_observable(x_ob))
+                y_variable = Variable(PARTICLES[par],PARTICLES[par].get_observable(y_ob))
                 
                 # Get datasets
-                extra_vars = [y_var] if y_var!=x_var else []
-                datasets = self.getDatasetList(par,x_var,datasets_to_plot,extra_vars=extra_vars)
+                extra_vars = [y_variable] if y_ob!=x_ob else []
+                datasets = self.getDatasetList(par,x_variable,datasets_to_plot,extra_vars=extra_vars)
                 
                 # Read the specs and get ticks
                 if even_stats:
                     nbins = plot_specs["n_even_stats_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
-                        temp_df = pd.DataFrame(np.array(test_file.get(x_obs_name)),columns=[x_obs_name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[x_obs_name],x_observable,folded_bins,nbins)
+                        temp_df = pd.DataFrame(np.array(test_file.get(x_variable.name)),columns=[x_variable.name])
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[x_variable.name],x_variable.observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
                     x_min = plot_specs["custom_bins"][0]
                     x_max = plot_specs["custom_bins"][1]
                     step = plot_specs["custom_bins"][2]
-                    ticks, tick_labels = Util.get_ticks(x_observable,x_min,x_max,step,folded_bins)
+                    ticks, tick_labels = Util.get_ticks(x_variable.observable,x_min,x_max,step,folded_bins)
                     stats_tag = ''
 
                 # Make plot!
-                Plots.Res_vs_Var(datasets,particle,y_observable,x_observable,ticks,tick_labels,folded_bins=folded_bins,save_loc=self.main_dir+par+'/ResVsVar/',tag=stats_tag)
+                Plots.Res_vs_Var(datasets,y_variable,x_variable,ticks,tick_labels,folded_bins=folded_bins,save_loc=self.main_dir+par+'/ResVsVar/',tag=stats_tag)
                 
         print('ResVsVar plots completed.') 
         
@@ -499,43 +560,40 @@ class Plotter:
         """
         
         # Get the plotting instructions
-        reco_models_to_plot = self.sys_config["reco_models_to_plot"] # BUT WE ALSO NEED CUT VERSIONS!!!
         observables_to_plot = self.sys_config["variables"]
         even_stats = self.sys_config["even_stats_binning"]
         
         # Get list of the datasets we want to plot
-        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
+        datasets_to_plot = self.getDatasetsToPlot(self.reco_models_to_plot['Sys'])
         
         # Iterate through the observables
-        for par, vars in observables_to_plot.items():
-            for var, specs in vars.items():
+        for par, obs in observables_to_plot.items():
+            for ob, specs in obs.items():
                 
-                # Get some important particle observable info
-                obs_name = par+'_'+var
-                particle = PARTICLES[par]
-                observable = particle.get_observable(var)
+                # Construct the variable of interest
+                variable = Variable(PARTICLES[par],PARTICLES[par].get_observable(ob))
                 
                 # Get datasets
-                datasets = self.getDatasetList(par,var,datasets_to_plot,with_systematics=True)
+                datasets = self.getDatasetList(variable,datasets_to_plot,with_systematics=True)
                 
                 # Read the specs and get ticks
                 if even_stats:
                     nbins = specs["even_stats_bins"]["nbins"]
                     folded_bins = specs["even_stats_bins"]["folded_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
-                        temp_df = pd.DataFrame(np.array(test_file.get(obs_name)),columns=[obs_name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[obs_name],observable,folded_bins,nbins)
+                        temp_df = pd.DataFrame(np.array(test_file.get(variable.name)),columns=[variable.name])
+                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[variable.name],variable.observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
                     x_min = specs["custom_bins"]["min"]
                     x_max = specs["custom_bins"]["max"]
                     step = specs["custom_bins"]["step"]
                     folded_bins = specs["custom_bins"]["folded_bins"]
-                    ticks, tick_labels = Util.get_ticks(observable,x_min,x_max,step,folded_bins)
+                    ticks, tick_labels = Util.get_ticks(variable.observable,x_min,x_max,step,folded_bins)
                     stats_tag = ''
                 
                 # Make plot!
-                Plots.Sys_Hist(datasets,particle,observable,ticks,tick_labels,folded_bins=folded_bins,save_loc=self.main_dir+par+'/Sys/',tag=stats_tag)
+                Plots.Sys_Hist(datasets,variable,ticks,tick_labels,folded_bins=folded_bins,save_loc=self.main_dir+par+'/Sys/',tag=stats_tag)
                     
                 
     def makePlots(self):

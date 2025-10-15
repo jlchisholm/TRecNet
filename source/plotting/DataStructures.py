@@ -18,43 +18,42 @@ import pandas as pd
 
 class Observable:
     """
-    Observable object class (for plotting purposes).
+    Observable object class (for plotting purposes). It is a component of a variable object, and also linked to particle objects.
     """
 
-    def __init__(self, name, label,  unit='', res='Resolution', alt_names=[]):
+    def __init__(self, name, label,  units='', res='Resolution', alt_names=[]):
         """
         Initializes a observable object.
 
             Parameters:
                 name (str): Name of the observable (e.g.'pt')
                 label (str): Label for the observable (note: this may be different than the name if you want to, for example, use Latex formatting).
-                ticks (np.array): Numpy array of where you want the axes ticks placed.
 
             Options:
-                unit (str): Units for the observable, for axis title purposes (e.g.'[GeV]', default:'').
+                units (str): Units for the observable, for axis title purposes (e.g.'GeV', default:'').
                 res (str): Specifies whether this observable should use 'Resolution' or 'Residuals' (default:'Resolution').
                 alt_names (list of str): Alternate names for the observable (default: []).
 
             Attributes:
                 name (str): Name of the observable (e.g.'pt')
                 label (str): Label for the observable (note: this may be different than the name if you want to, for example, use Latex formatting).
-                ticks (np.array): Numpy array of where you want the axes ticks placed.
-                unit (str): Units for the observable, for axis title purposes (e.g.'[GeV]', default:'').
+                units (str): Units for the observable (e.g.'GeV', default:'').
+                units_label (str): Units for the observable, for axis title purposes (e.g.'[GeV]', default:'').
+                res (str): Specifies whether this observable should use 'Resolution' or 'Residuals' (default:'Resolution').
                 alt_names (list of str): Alternate names for the observable (default: []).
-                tick_labels (list): Labels for the ticks (note: these are specially specified, since sometimes one might want an infinity symbol or such)
-
         """
 
         self.name = name
         self.label = label
-        self.unit = unit if unit=='' else '['+unit+']'
+        self.units = units
+        self.units_label = units if units=='' else '['+units+']'
         self.res = res.capitalize()
         self.alt_names = alt_names
 
 
 class Particle:
     """ 
-    Particle object class (for plotting purposes).
+    Particle object class (for plotting purposes). It is a component of a variable object.
     """
     
     def __init__(self, name, label, observables, alt_names=[]):
@@ -71,25 +70,53 @@ class Particle:
 
             Attributes:
                 name (str): Name of the particle (e.g.'th').
+                label (str): Label for the particle (note: this may be different than the name if you want to, for example, use Latex formatting).
                 observables (list of observable objects): List of observable objects that one could plot for this particle.
-                labels (dictionary of strings): Dictionary of the axis labels for each observable for this particle.
-                labels_nounits (dictionary of strings): Dictionary of the axis labels for each observable for this particle WITHOUT units.
                 alt_names (list of str): Alternate names for the particle (default: []).
         """
 
         self.name = name
+        self.label = label
         self.observables = {observable.name: observable for observable in observables}
         self.alt_names = alt_names
-
-        var_names = [var.name for var in observables]
-        labels = ['$'+var.label+'^{'+label+'}$ '+var.unit for var in observables]
-        labels_nounits = ['$'+var.label+'^{'+label+'}$' for var in observables]
-        self.labels = dict(zip(var_names,labels))
-        self.labels_nounits = dict(zip(var_names,labels_nounits))
         
     def get_observable(self,name):
         
         return self.observables[name]
+    
+    
+class Variable:
+    """
+    Variable object class (for plotting purposes). While the Particle object contains Observable objects that it can be linked to, the Variable object is a specific particle-observable combo.
+    """
+    
+    def __init__(self, particle, observable):
+        """
+        Initializes a variable object. This is what will be plotted.
+
+            Parameters:
+                particle (Particle object): Particle of the variable.
+                observable (Observable object): Observable of the variable.
+                
+            Attributes:
+                name (str): Name of the variable (e.g.'th_pt').
+                particle (Particle object): Particle of the variable.
+                observable (Observable object): Observable of the variable.
+                res (str): Specifies whether this observable should use 'Resolution' or 'Residuals' (default:'Resolution').
+                units (str): Units for the observable, for axis title purposes (e.g.'GeV', default:'').
+                label (str): Axis label for the variable.
+                label_nounits (str): Axis label for the variable WITHOUT units.
+        """
+        
+        self.name = particle.name + '_' + observable.name
+        self.particle = particle
+        self.observable = observable
+        
+        self.res = observable.res
+        self.units = observable.units
+        self.label = '$'+observable.label+'^{'+particle.label+'}$ '+observable.units_label
+        self.label_nounits = '$'+observable.label+'^{'+particle.label+'}$ '
+        
         
 
 

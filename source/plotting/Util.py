@@ -20,32 +20,28 @@ def wrap_phi(var):
     var = var - 2*np.pi*(var > np.pi)
     return var
 
-def calculate_res(particle, observable, df):
+def calculate_res(variable, df):
     """
-    Calculates the resolution or residuals for a given particle and observable.
+    Calculates the resolution or residuals for a given variable.
     
         Parameters:
-            particle (Particle object): Particle of interest.
-            observable (Observable object): Observable of interest.
+            variable (Variable object): Variable of interest.
             df (pd.DataFrame): Dataframe to append the data to.
             
         Returns:
             df (pd.DataFrame): Original dataframe with the resolution or residuals appended.
     """
     
-    name = particle.name+'_'+observable.name
-    res = observable.res
-    
-    if res=='Resolution':
-        if observable.name=='phi':
-            df['res_'+name] = wrap_phi((df['reco_'+name] - df['truth_'+name]))/df['truth_'+name]
+    if variable.res=='Resolution':
+        if variable.observable.name=='phi':
+            df['res_'+variable.name] = wrap_phi((df['reco_'+variable.name] - df['truth_'+variable.name]))/df['truth_'+variable.name]
         else:
-            df['res_'+name] = (df['reco_'+name] - df['truth_'+name])/df['truth_'+name]
+            df['res_'+variable.name] = (df['reco_'+variable.name] - df['truth_'+variable.name])/df['truth_'+variable.name]
     else:
-        if observable.name=='phi':
-            df['res_'+name] = wrap_phi(df['reco_'+name] - df['truth_'+name])
+        if variable.observable.name=='phi':
+            df['res_'+variable.name] = wrap_phi(df['reco_'+variable.name] - df['truth_'+variable.name])
         else:
-            df['res_'+name] = df['reco_'+name] - df['truth_'+name]
+            df['res_'+variable.name] = df['reco_'+variable.name] - df['truth_'+variable.name]
             
     return df
 
