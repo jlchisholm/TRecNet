@@ -41,13 +41,17 @@ def createPlotDirectories(main_dir, plots_to_make):
         if not os.path.exists(main_dir+par_dir):
             os.mkdir(main_dir+par_dir) 
         for plot_dir in [plot_type+'/' for plot_type in plots_to_make]: # directory for each plot type
-            if not os.path.exists(main_dir+par_dir+plot_dir):
+            if not os.path.exists(main_dir+par_dir+plot_dir) and plot_dir!='TrainValLoss/':
                 os.mkdir(main_dir+par_dir+plot_dir)
+    
+    # Do train val loss plots separately
+    if not os.path.exists(main_dir+'TrainValLoss/'):
+        os.mkdir(main_dir+'TrainValLoss/')
                      
     print('Plot directories established.')
 
 
-def save_configs(dir,*configs):
+def saveConfigs(dir,*configs):
     """
     Saves any number of JSON config files to the given directory.
     
@@ -95,7 +99,7 @@ if __name__ == "__main__":
     createPlotDirectories(main_dir, plot_configs.keys())
             
     # Save all the config files
-    save_configs(main_dir,config_dir+plotting_config['dataset_config'],*plot_configs.values())
+    saveConfigs(main_dir,config_dir+plotting_config['dataset_config'],*plot_configs.values())
     
     # Make the plots
     plotter = Plotter(main_dir,config_dir+plotting_config['dataset_config'],plot_configs)

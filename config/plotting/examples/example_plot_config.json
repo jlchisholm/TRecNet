@@ -2,6 +2,11 @@
     "save_loc": "example_plots/",
     "config_files_location":"/home/jchishol/TRecNet/config/plotting/examples/",
     "dataset_config": "example_dataset_config.json",
+    "TrainValLoss":
+    {
+        "make_plots": true,
+        "config": "example_train_val_loss_config.json"
+    },
     "TruthReco":
     {
         "make_plots": true,

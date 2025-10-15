@@ -45,7 +45,9 @@ class Plotter:
         
         # Load config files for each plot type
         for plot_type, file_name in plot_configs.items():
-            if plot_type=='TruthReco':
+            if plot_type=='TrainValLoss':
+                self.train_val_loss_config = json.load(open(file_name))
+            elif plot_type=='TruthReco':
                 self.truthreco_config = json.load(open(file_name))
             elif plot_type=='CM':
                 self.cm_config = json.load(open(file_name))
@@ -82,7 +84,6 @@ class Plotter:
             
             Return:
                 datasets_to_plot (list of str): List of dataset names.
-            
         """
         
         datasets_to_plot = []
@@ -107,15 +108,15 @@ class Plotter:
                 df_cut (pd.DataFrame): Dataframe with the implemented cuts, or the original dataframe if no cuts are desired.
         """
 
-        # Keep data with quantity > min
+        # Keep data with metric > min
         if max==None and min!=None:
             df_cut = df[df[cut_on]>min]
 
-        # Keep data with quantity < max
+        # Keep data with metric < max
         elif max!=None and min==None:
             df_cut = df[df[cut_on]<max]
 
-        # Keep data with min < quantity < max
+        # Keep data with min < metric < max
         elif max!=None and min!=None:
             df_cut = df[df[cut_on]>min]
             df_cut = df_cut[df_cut[cut_on]<max]
@@ -183,6 +184,9 @@ class Plotter:
             Optional:
                 extra_vars (list of str): List of extra variables that may be needed (e.g. for cuts) (e.g. ['pt']) (default: []).
                 with_systematics (bool): Whether to include systematics in the datasets.
+                
+            Returns:
+                datasets (list of Dataset objects): List of datasets.
         """
         
         # Set the observable of interest
@@ -227,6 +231,38 @@ class Plotter:
             datasets.append(dataset)
             
         return datasets
+    
+    
+    def makeTrainValLossPlots(self):
+        """
+        Make training/validation loss plots.
+        """
+        
+        # Get the plotting instructions
+        reco_models_to_plot = self.train_val_loss_config["TRecNet_models_to_plot"]
+        loss_metric = self.train_val_loss_config["loss_metric"]
+        extra_metrics = self.train_val_loss_config["extra_metrics"]
+        
+        # Get list of the datasets we want to plot
+        datasets_to_plot = self.getDatasetsToPlot(reco_models_to_plot)
+        
+        # Iterate through each dataset (and save to list)
+        datasets = []
+        for dataset_name in datasets_to_plot:
+            
+            # Get the dataset object
+            dataset = self.datasets[dataset_name] 
+            
+            # Open the training history and link it to the dataset
+            train_history = np.load(self.dataset_config['Models'][dataset.reco_method]["train_history"],allow_pickle=True).item()
+            dataset.link_train_history(train_history)
+
+            # Save to list
+            datasets.append(dataset)
+            
+        # Make the plot!
+        Plots.TrainValLoss_Plot(datasets,loss_metric,self.main_dir+'/TrainValLoss/',extra_metrics)
+        print('TrainValLoss plots completed.')  
                  
                
     def makeTruthRecoPlots(self):
@@ -507,6 +543,8 @@ class Plotter:
         Makes all desired plots.
         """
         
+        if 'TrainValLoss' in self.plots_to_make:
+            self.makeTrainValLossPlots()
         if 'TruthReco' in self.plots_to_make:
             self.makeTruthRecoPlots()
         if 'CM' in self.plots_to_make:

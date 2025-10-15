@@ -9,6 +9,7 @@
         {
             "shortname": "TRN",
             "model_id": "TRecNet_6jets_20230525_111504",
+            "train_history": "/home/jchishol/TRecNet/models/TRecNet/TRecNet_6jets_20230525_111504/TRecNet_6jets_20230525_111504_TrainHistory.npy",
             "nom_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet_6jets_20230525_111504_nominal_Results.root",
             "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet_6jets_20230525_111504_sysUP_Results.root",
             "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet_6jets_20230525_111504_sysDOWN_Results.root",
@@ -27,6 +28,7 @@
         {
             "shortname": "TRN+ttbar",
             "model_id": "TRecNet+ttbar_6jets_20230525_214703",
+            "train_history": "/home/jchishol/TRecNet/models/TRecNet+ttbar/TRecNet+ttbar_6jets_20230525_214703/TRecNet+ttbar_6jets_20230525_214703_TrainHistory.npy",
             "nom_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar_6jets_20230525_214703_nominal_Results.root",
             "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar_6jets_20230525_214703_sysUP_Results.root",
             "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar_6jets_20230525_214703_sysDOWN_Results.root",
@@ -45,6 +47,7 @@
         {
             "shortname": "TRN+ttbar+JP",
             "model_id": "TRecNet+ttbar+JetPretrain_6jets_20230531_133250",
+            "train_history": "/home/jchishol/TRecNet/models/TRecNet+ttbar+JetPretrain/TRecNet+ttbar+JetPretrain_6jets_20230531_133250/TRecNet+ttbar+JetPretrain_6jets_20230531_133250_TrainHistory.npy",
             "nom_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrain_6jets_20230531_133250_nominal_Results.root",
             "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrain_6jets_20230531_133250_sysUP_Results.root",
             "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrain_6jets_20230531_133250_sysDOWN_Results.root",
@@ -63,6 +66,7 @@
         {
             "shortname": "TRN+ttbar+JPU",
             "model_id": "TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445",
+            "train_history": "/home/jchishol/TRecNet/models/TRecNet+ttbar+JetPretrainUnfrozen/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445_TrainHistory.npy",
             "nom_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445_nominal_Results.root",
             "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445_sysUP_Results.root",
             "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445_sysDOWN_Results.root",

@@ -158,5 +158,9 @@ class Dataset:
     def link_temp_sysDOWN_df(self,down_df):
         
         self.sysDOWN_df = down_df.copy()
+        
+    def link_train_history(self,train_history):
+        
+        self.train_history = train_history
 
 

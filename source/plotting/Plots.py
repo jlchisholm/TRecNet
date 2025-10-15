@@ -4,11 +4,12 @@
 #  Author: Jenna Chisholm                                            #
 #  Updated: Oct.10/25                                                #
 #                                                                    #
-#  Defines a plotting class with functions for plotting truth vs.    #
-#  reco histograms, confusion matrices, systematics histograms,      #
-#  resolution histograms, and plots of resolution as a function of   #
-#  a specified variable. Intended for visualizing and comparing the  #
-#  results of different ttbar reconstruction methods.                # 
+#  Defines a plotting class with functions for plotting training and #
+#  validation loss, truth vs. reco histograms, confusion matrices,   #
+#  systematics histograms, resolution/residual histograms, and plots #
+#  of resolution/residual as a function of a specified variable.     #
+#  Intended for visualizing and comparing the results of different   #
+#  ttbar reconstruction methods.                                     # 
 #                                                                    #
 #  Thoughts for improvements: Include systematics, allow pt cuts     #
 #  for truth vs reco and confusion matrices, maybe better color      #
@@ -28,8 +29,57 @@ from sigfig import round
 import Util
 
 
-PLOT_TYPES = ['TruthReco','CM','Res','ResVsVar','Sys']
+PLOT_TYPES = ['TrainValLoss','TruthReco','CM','Res','ResVsVar','Sys']
 
+
+def TrainValLoss_Plot(datasets, loss_metric, save_loc='./', extra_metrics=[]):
+    """
+    Creates and saves a plot of the training and validation loss for the given datasets over epochs.
+    
+        Parameters:
+            datasets (list of Dataset objects): Dataset objects of the data you want to plot.
+            loss_metric (str): Name used for the loss quantifier (e.g. 'MAE').
+            
+        Options:
+            save_loc (str): Directory where you want the histogram saved to (default: current directory).
+            extra_metrics (list of str): List of names for other metrics that were monitored during training (default: []).
+    """
+    
+    # Make main loss plot
+    plt.figure('loss')
+    for dataset in datasets:
+        plt.plot(dataset.train_history['loss'], label=dataset.reco_method+'(Training)',color=dataset.color)
+        plt.plot(dataset.train_history['val_loss'], '--', label=dataset.reco_method+'(Validation)',color=dataset.color)
+        plt.xlabel('Epoch', fontsize=12)
+        plt.ylabel('Loss ('+loss_metric+')', fontsize=12)
+        plt.xticks(fontsize=10)
+        plt.yticks(fontsize=10)
+        plt.legend(fontsize=10)
+        
+    # Save main loss plot
+    fig_name = loss_metric+'_Loss'
+    plt.savefig(save_loc+'/'+fig_name,bbox_inches='tight')
+    print('Saved Figure: '+fig_name)
+    plt.close('loss')
+    
+    # Make other plots
+    for metric in extra_metrics:
+        
+        # Make the plot
+        plt.figure(metric)
+        for dataset in datasets:
+            plt.plot(dataset.train_history[metric], label=dataset.reco_method+'(Training)',color=dataset.color)
+            plt.plot(dataset.train_history['val_'+metric], '--', label=dataset.reco_method+'(Validation)',color=dataset.color)
+            plt.xlabel('Epoch', fontsize=12)
+            plt.ylabel(metric, fontsize=12)
+            plt.xticks(fontsize=10)
+            plt.yticks(fontsize=10)
+            plt.legend(fontsize=10)
+            
+        # Save extra plot
+        fig_name = metric+'_Loss'
+        plt.savefig(save_loc+'/'+fig_name,bbox_inches='tight')
+        plt.close(metric)
 
 
 def TruthReco_Hist(dataset,particle,observable,x_min,x_max,nbins=30,save_loc='./'):
@@ -162,7 +212,7 @@ def Res_Hist(datasets,particle,observable,save_loc='./',tag='',nbins=30,include_
     Creates and saves a resolution (or residual) plot all datasets provided, for a given particle and observable.
 
         Parameters:
-            datasets (list of Dataset objects): RecoModel objects of the data you want to plot.
+            datasets (list of Dataset objects): Dataset objects of the data you want to plot.
             particle (Particle object): Particle object of the particle you want to plot.
             observable (Observable object): Observable object of the observable you want to plot.
 
