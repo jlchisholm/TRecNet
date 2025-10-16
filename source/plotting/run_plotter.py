@@ -2,7 +2,7 @@
 #                                                                        #
 #  run_plotter.py                                                        #
 #  Author: Jenna Chisholm                                                #
-#  Updated: Oct.10/25                                                    #
+#  Updated: Oct.16/25                                                    #
 #                                                                        #
 #  Runs plotting software and creates results plots based on config      #
 #  settings.                                                             # 
@@ -15,7 +15,7 @@
 import os, sys
 import json
 from argparse import ArgumentParser
-from ParticleObservables import PARTICLES
+from Particles_and_Observables import PARTICLES
 from Plots import PLOT_TYPES
 from Plotter import Plotter
 

@@ -13,6 +13,12 @@
             "nom_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet_6jets_20230525_111504_nominal_Results.root",
             "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet_6jets_20230525_111504_sysUP_Results.root",
             "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet_6jets_20230525_111504_sysDOWN_Results.root",
+            "available_variables":
+            {
+                "th": ["pt","eta","phi","m"],
+                "tl": ["pt","eta","phi","m"],
+                "ttbar": ["pt","eta","phi","m"]
+            },
             "cuts": 
             [
                 {
@@ -32,6 +38,12 @@
             "nom_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar_6jets_20230525_214703_nominal_Results.root",
             "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar_6jets_20230525_214703_sysUP_Results.root",
             "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar_6jets_20230525_214703_sysDOWN_Results.root",
+            "available_variables":
+            {
+                "th": ["pt","eta","phi","m"],
+                "tl": ["pt","eta","phi","m"],
+                "ttbar": ["pt","eta","phi","m"]
+            },
             "cuts": 
             [
                 {
@@ -51,6 +63,12 @@
             "nom_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrain_6jets_20230531_133250_nominal_Results.root",
             "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrain_6jets_20230531_133250_sysUP_Results.root",
             "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrain_6jets_20230531_133250_sysDOWN_Results.root",
+            "available_variables":
+            {
+                "th": ["pt","eta","phi","m"],
+                "tl": ["pt","eta","phi","m"],
+                "ttbar": ["pt","eta","phi","m"]
+            },
             "cuts": 
             [
                 {
@@ -70,6 +88,12 @@
             "nom_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445_nominal_Results.root",
             "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445_sysUP_Results.root",
             "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/TRecNet+ttbar+JetPretrainUnfrozen_6jets_20230601_131445_sysDOWN_Results.root",
+            "available_variables":
+            {
+                "th": ["pt","eta","phi","m"],
+                "tl": ["pt","eta","phi","m"],
+                "ttbar": ["pt","eta","phi","m"]
+            },
             "cuts": 
             [
                 {
@@ -84,9 +108,15 @@
         "KLFitter6":
         {
             "shortname": "KLF6",
-            "nom_input": "/data/jchishol/mntuples_08_01_22/Results/KLF6_Results.root",
-            "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/KLF6_Results.root",
-            "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/KLF6_Results.root",
+            "nom_input": "/data/jchishol/mntuples_08_01_22/Results/KLFitter6_TestDataResults.root",
+            "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/KLFitter6_TestDataResults.root",
+            "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/KLFitter6_TestDataResults.root",
+            "available_variables":
+            {
+                "th": ["pt","eta","phi","m"],
+                "tl": ["pt","eta","phi","m"],
+                "ttbar": ["pt","eta","phi","m"]
+            },
             "cuts": 
             [
                 {
@@ -108,9 +138,15 @@
         "PseudoTop":
         {
             "shortname": "PT",
-            "nom_input": "/data/jchishol/mntuples_08_01_22/Results/PT_Results.root",
-            "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/PT_Results.root",
-            "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/PT_Results.root",
+            "nom_input": "/data/jchishol/mntuples_08_01_22/Results/PseudoTop_TestDataResults.root",
+            "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/PseudoTop_TestDataResults.root",
+            "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/PseudoTop_TestDataResults.root",
+            "available_variables":
+            {
+                "th": ["pt","eta","phi","m"],
+                "tl": ["pt","eta","phi","m"],
+                "ttbar": ["pt","eta","phi","m"]
+            },
             "cuts":
             [
                 {
@@ -125,9 +161,15 @@
         "Chi2":
         {
             "shortname": "Chi2",
-            "nom_input": "/data/jchishol/mntuples_08_01_22/Results/Chi2_Results.root",
-            "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/Chi2_Results.root",
-            "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/Chi2_Results.root",
+            "nom_input": "/data/jchishol/mntuples_08_01_22/Results/Chi2_TestDataResults.root",
+            "sysUP_input": "/data/jchishol/mntuples_08_01_22/Results/Chi2_TestDataResults.root",
+            "sysDOWN_input": "/data/jchishol/mntuples_08_01_22/Results/Chi2_TestDataResults.root",
+            "available_variables":
+            {
+                "th": ["m"],
+                "tl": ["m"],
+                "ttbar": ["pt","eta","phi","m"]
+            },
             "cuts": 
             [
                 {

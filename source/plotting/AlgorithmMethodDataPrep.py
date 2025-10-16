@@ -21,7 +21,7 @@ import vector
 import itertools
 import tk as tkinter
 from Plotter import *
-from ParticleObservables import PARTICLES
+from Particles_and_Observables import PARTICLES
 
 
 

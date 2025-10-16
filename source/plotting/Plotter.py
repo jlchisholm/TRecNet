@@ -17,8 +17,8 @@ import uproot
 import h5py
 import json
 import Util
-from ParticleObservables import PARTICLES
-from DataStructures import Dataset, Variable
+from Particles_and_Observables import PARTICLES
+from Variables_and_Datasets import Dataset, Variable
 import Plots
 
 
@@ -70,6 +70,7 @@ class Plotter:
         self.datasets = {}
         for model, specs in self.dataset_config['Models'].items():
             if model in sum(self.reco_models_to_plot.values(),[]): # only make datasets for the models we're going to need
+                avail_var_names= specs["available_variables"]
                 for cut in specs["cuts"]: # separate dataset objects for separate cuts
                     
                     if cut["cut_on"]!=None:
@@ -78,9 +79,9 @@ class Plotter:
                             total_df = pd.DataFrame(dataset_file["reco"][cut_var],columns=[cut_var]) 
                             cut_df = self.getCutDF(total_df,cut_var,cut["max"],cut["min"])
                             perc_events = int(100*len(cut_df)/len(total_df))
-                        self.datasets.update({model+'('+cut["tag"]+')': Dataset(model,cut["color_scheme"],cut["tag"],cut_var,cut["max"],cut["min"],perc_events,specs["shortname"])})
+                        self.datasets.update({model+'('+cut["tag"]+')': Dataset(model,cut["color_scheme"],avail_var_names,cut["tag"],cut_var,cut["max"],cut["min"],perc_events,specs["shortname"])})
                     else:
-                        self.datasets.update({model+'('+cut["tag"]+')': Dataset(model,cut["color_scheme"],reco_method_short=specs["shortname"])})        
+                        self.datasets.update({model+'('+cut["tag"]+')': Dataset(model,cut["color_scheme"],avail_var_names,reco_method_short=specs["shortname"])})        
             
             
     def getDatasetsToPlot(self, reco_models_to_plot):
@@ -180,7 +181,7 @@ class Plotter:
                         df[col_name] = df[col_name]/(1000000)
                         print('CAUTION: '+col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
                     else:
-                        print('WARNING: '+col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
+                        print('ERROR: '+col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
                         sys.exit()
 
                 elif obs_units == "MeV":
@@ -281,6 +282,11 @@ class Plotter:
             
             # Get the dataset object
             dataset = self.datasets[dataset_name] 
+            
+            # Get the variable of interest, or skip this dataset if it isn't available
+            if variable.name not in dataset.avail_vars.keys():
+                print('INFO: '+variable.name+' is not an available variable for '+dataset.name+'. Skipping this plot.')
+                continue
                     
             # Get the dataframe and make cut if necessary
             if dataset.cut_var!=None:
@@ -354,9 +360,6 @@ class Plotter:
         for par, obs in observables_to_plot.items():
             for ob, specs in obs.items():
                 
-                # Construct the variable of interest
-                variable = Variable(PARTICLES[par],PARTICLES[par].get_observable(ob))
-                
                 # Read the specs
                 x_min = specs["min"]
                 x_max = specs["max"]
@@ -367,6 +370,13 @@ class Plotter:
                     
                     # Get the dataset object
                     dataset = self.datasets[dataset_name] 
+                    
+                    # Get the variable of interest, or skip this dataset if it isn't available
+                    if par+'_'+ob in dataset.avail_vars.keys():
+                        variable = dataset.avail_vars[par+'_'+ob]
+                    else:
+                        print('INFO: '+par+'_'+ob+' is not an available variable for '+dataset.reco_method+'. Skipping this plot.')
+                        continue
                     
                     # Get dataframe and make cut if necessary
                     if dataset.cut_var!=None:
@@ -400,9 +410,6 @@ class Plotter:
         for par, obs in observables_to_plot.items():
             for ob, specs in obs.items():
                 
-                # Construct the variable of interest
-                variable = Variable(PARTICLES[par],PARTICLES[par].get_observable(ob))
-                
                 # Read the specs and get ticks
                 if even_stats:
                     nbins = specs["even_stats_bins"]["nbins"]
@@ -424,6 +431,13 @@ class Plotter:
                     
                     # Get the dataset object
                     dataset = self.datasets[dataset_name] 
+                    
+                    # Get the variable of interest, or skip this dataset if it isn't available
+                    if par+'_'+ob in dataset.avail_vars.keys():
+                        variable = dataset.avail_vars[par+'_'+ob]
+                    else:
+                        print('INFO: '+par+'_'+ob+' is not an available variable for '+dataset.name+'. Skipping this plot.')
+                        continue
                         
                     # Get dataframe and make cut if necessary
                     if dataset.cut_var!=None:
@@ -521,8 +535,8 @@ class Plotter:
                 
                 # Get some important particle observable info
                 particle = PARTICLES[par]
-                x_ob = plot_specs["x_var"]
-                y_ob = plot_specs["y_var"]
+                x_ob = plot_specs["x_obs"]
+                y_ob = plot_specs["y_obs"]
                 folded_bins = plot_specs["folded_bins"]
                 
                 # Construct the variables of interest

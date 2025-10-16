@@ -79,6 +79,7 @@ def TrainValLoss_Plot(datasets, loss_metric, save_loc='./', extra_metrics=[]):
         # Save extra plot
         fig_name = metric+'_Loss'
         plt.savefig(save_loc+'/'+fig_name,bbox_inches='tight')
+        print('Saved Figure: '+fig_name)
         plt.close(metric)
 
 
