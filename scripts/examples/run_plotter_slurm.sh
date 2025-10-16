@@ -6,7 +6,7 @@
 source /home/jchishol/scratch_env/bin/activate
 cd /home/jchishol/TRecNet/
 
-python source/plotting/run_plotter.py -c /home/jchishol/TRecNet/config/plotting/examples/example_plot_config.json
+python source/plotting/run_plotter.py -c /home/jchishol/TRecNet/config/plotting/examples/example_plot_config.json -l INFO
 
 # done
 # do some cleanup, move output files elsewhere if needed
