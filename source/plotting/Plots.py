@@ -19,6 +19,8 @@
 
 
 # Import useful packages
+import logging
+logger = logging.getLogger(__name__)
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')  # need for not displaying plots when running batch jobs
@@ -59,7 +61,7 @@ def TrainValLoss_Plot(datasets, loss_metric, save_loc='./', extra_metrics=[]):
     # Save main loss plot
     fig_name = loss_metric+'_Loss'
     plt.savefig(save_loc+'/'+fig_name,bbox_inches='tight')
-    print('Saved Figure: '+fig_name)
+    logger.info('Saved Figure: '+fig_name)
     plt.close('loss')
     
     # Make other plots
@@ -79,7 +81,7 @@ def TrainValLoss_Plot(datasets, loss_metric, save_loc='./', extra_metrics=[]):
         # Save extra plot
         fig_name = metric+'_Loss'
         plt.savefig(save_loc+'/'+fig_name,bbox_inches='tight')
-        print('Saved Figure: '+fig_name)
+        logger.info('Saved Figure: '+fig_name)
         plt.close(metric)
 
 
@@ -124,11 +126,11 @@ def TruthReco_Hist(dataset,variable,x_min,x_max,nbins=30,save_loc='./'):
     ax1.set_ylabel('Counts')
     ax2.set_ylabel('Ratio (truth/reco)')
     ax1.legend()
-    
+        
     # Save the figure as a png in save location
     fig_name = dataset.reco_method+'('+dataset.cut_tag+')_TruthReco_Hist_'+variable.name
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
-    print('Saved Figure: '+fig_name)
+    logger.info('Saved Figure: '+fig_name)
 
     plt.close()
     
@@ -195,7 +197,7 @@ def Confusion_Matrix(dataset,variable,ticks,tick_labels,folded_bins=True,norm=Tr
     # Save the figure in save location as a png
     fig_name = dataset.reco_method+'('+dataset.cut_tag+')_Confusion_Matrix'+tag+'_'+variable.name
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
-    print('Saved Figure: '+fig_name)
+    logger.info('Saved Figure: '+fig_name)
 
     plt.close()
 
@@ -268,7 +270,7 @@ def Res_Hist(datasets,variable,save_loc='./',tag='',nbins=30,include_moments=Fal
     # Save figure in save location
     fig_name = variable.res+'_'+variable.name+tag
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
-    print('Saved Figure: '+fig_name)
+    logger.info('Saved Figure: '+fig_name)
 
     plt.close() 
     
@@ -353,7 +355,7 @@ def Res_vs_Var(datasets,y_variable,x_variable,ticks,tick_labels,folded_bins=True
     tag = tag+'_' if tag!='' else tag
     fig_name = y_variable.observable.name+'_'+y_res+'_vs_'+x_variable.observable.name+'_'+tag+par.name
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
-    print('Saved Figure: '+fig_name)
+    logger.info('Saved Figure: '+fig_name)
     
     plt.close()
     
@@ -429,6 +431,6 @@ def Sys_Hist(datasets,variable,ticks,tick_labels,folded_bins=True,save_loc='./',
     tag = tag+'_' if tag!='' else tag
     fig_name = 'Systematics_'+tag+variable.name
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
-    print('Saved Figure: '+fig_name)
+    logger.info('Saved Figure: '+fig_name)
 
     plt.close()

@@ -13,6 +13,7 @@
 
 # Import useful packages
 import os, sys
+import logging
 import json
 from argparse import ArgumentParser
 from Particles_and_Observables import PARTICLES
@@ -78,9 +79,14 @@ if __name__ == "__main__":
     # Get JSON file name of plotting info from command line and load the file
     parser = ArgumentParser()
     parser.add_argument('-c','--plotting_config', help='JSON file name (including path) that contains the plotting specifications you wish to use.', type=str, required=True)
+    parser.add_argument('-l','--log_level', help='Level of logging to use.', type=str, default='WARNING',choices=['DEBUG','INFO','WARNING','ERROR','CRITICAL'])
     args = parser.parse_args()
     f_plotting_config = args.plotting_config
     plotting_config = json.load(open(f_plotting_config))
+    
+    # Set logging level
+    logging.basicConfig(level=args.log_level.upper(), format='%(levelname)s: %(message)s')
+    logger = logging.getLogger(__name__)
     
     # Extract config file names for the plots we want to make
     config_dir = plotting_config['config_files_location']
@@ -91,7 +97,7 @@ if __name__ == "__main__":
     
     # Exit if no plots to make
     if plot_configs=={}:
-        print('ERROR: No plots to make!')
+        logging.error('No plots to make!')
         sys.exit()
             
     # Creates save directories for plots if they don't already exist

@@ -12,6 +12,8 @@
 
 # Import useful packages
 import sys
+import logging
+logger = logging.getLogger(__name__)
 from Particles_and_Observables import PARTICLES
   
 class Variable:
@@ -94,9 +96,9 @@ class Dataset:
             self.cut_label = r'$\chi^2$<50'
         else:
             self.cut_label = cut_tag
-            
+                        
         if self.perc_events==100 and self.cut_tag!='No Cuts': 
-            print('ERROR: Do you really have 100\% of events if you are making cuts? Exiting program.')
+            logger.error('Do you really have 100\% of events if you are making cuts? Exiting program.')
             sys.exit()
         
         # Get the available variables for this dataset

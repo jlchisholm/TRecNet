@@ -11,6 +11,8 @@
 
 # Import useful packages
 import sys
+import logging
+logger = logging.getLogger(__name__)
 import numpy as np
 import pandas as pd
 import uproot
@@ -65,7 +67,7 @@ class Plotter:
             elif plot_type=='Sys':
                 self.sys_config = json.load(open(file_name))
                 self.reco_models_to_plot[plot_type] = self.sys_config["reco_models_to_plot"]
-            
+                            
         # Create "datasets"    
         self.datasets = {}
         for model, specs in self.dataset_config['Models'].items():
@@ -133,7 +135,7 @@ class Plotter:
         # No cuts
         else:
             df_cut = df
-            print('WARNING: No cuts made.')
+            logger.warning('No cuts made.')
 
         return df_cut
     
@@ -171,33 +173,33 @@ class Plotter:
                 if obs_units == "GeV":
                     if mode_df[col_name][0] in TeV_order_range:
                         df[col_name] = df[col_name]*1000
-                        print('CAUTION: '+col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                        logger.warning(col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
                     elif mode_df[col_name][0] in GeV_order_range:
                         pass
                     elif mode_df[col_name][0] in MeV_order_range:
                         df[col_name] = df[col_name]/1000
-                        print('CAUTION: '+col_name+' is estimated to be in units of MeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                        logger.warning(col_name+' is estimated to be in units of MeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
                     elif mode_df[col_name][0] in keV_order_range:
                         df[col_name] = df[col_name]/(1000000)
-                        print('CAUTION: '+col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                        logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
                     else:
-                        print('ERROR: '+col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
+                        logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
                         sys.exit()
 
                 elif obs_units == "MeV":
                     if mode_df[col_name][0] in TeV_order_range:
                         df[col_name] = df[col_name]*1000000
-                        print('CAUTION: '+col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                        logger.warning(col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
                     elif mode_df[col_name][0] in GeV_order_range:
                         df[col_name] = df[col_name]*1000
-                        print('CAUTION: '+col_name+' is estimated to be in units of GeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                        logger.warning(col_name+' is estimated to be in units of GeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
                     elif mode_df[col_name][0] in MeV_order_range:
                         pass
                     elif mode_df[col_name][0] in keV_order_range:
                         df[col_name] = df[col_name]/(1000)
-                        print('CAUTION: '+col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                        logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
                     else:
-                        print('WARNING: '+col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
+                        logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
                         sys.exit()
      
         return df
@@ -227,7 +229,7 @@ class Plotter:
         # Set the variables (making sure we don't have observable name in there multiple times)
         truth_vars = [variable] + extra_truth_vars if variable not in extra_truth_vars else extra_truth_vars
         reco_vars = [variable] + extra_reco_vars if variable not in extra_reco_vars else extra_reco_vars
-        
+                
         # Read in data to pandas dataframe
         with uproot.open(self.dataset_config["Models"][dataset.reco_method][input_type+"_input"]) as data_file:
             
@@ -285,7 +287,7 @@ class Plotter:
             
             # Get the variable of interest, or skip this dataset if it isn't available
             if variable.name not in dataset.avail_vars.keys():
-                print('INFO: '+variable.name+' is not an available variable for '+dataset.name+'. Skipping this plot.')
+                logger.info(variable.name+' is not an available variable for '+dataset.name+'. Skipping this plot.')
                 continue
                     
             # Get the dataframe and make cut if necessary
@@ -375,7 +377,7 @@ class Plotter:
                     if par+'_'+ob in dataset.avail_vars.keys():
                         variable = dataset.avail_vars[par+'_'+ob]
                     else:
-                        print('INFO: '+par+'_'+ob+' is not an available variable for '+dataset.reco_method+'. Skipping this plot.')
+                        logger.info(par+'_'+ob+' is not an available variable for '+dataset.reco_method+'. Skipping this plot.')
                         continue
                     
                     # Get dataframe and make cut if necessary
@@ -436,7 +438,7 @@ class Plotter:
                     if par+'_'+ob in dataset.avail_vars.keys():
                         variable = dataset.avail_vars[par+'_'+ob]
                     else:
-                        print('INFO: '+par+'_'+ob+' is not an available variable for '+dataset.name+'. Skipping this plot.')
+                        logger.info(par+'_'+ob+' is not an available variable for '+dataset.name+'. Skipping this plot.')
                         continue
                         
                     # Get dataframe and make cut if necessary
