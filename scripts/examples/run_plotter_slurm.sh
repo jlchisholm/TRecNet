@@ -1,5 +1,7 @@
 #!/bin/sh
 
+#SBATCH --mem=40G
+#SBATCH --nodelist=atlas-node08
 #SBATCH --output /home/jchishol/slurm_jobs/run_plotter_%j.out
 
 # do stuff to set up computing environment, variables, create output directories, cd into the working directory, print the input files names so we can double check later in the log file, etc

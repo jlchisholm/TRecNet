@@ -1,5 +1,5 @@
 {
-    "TRecNet_models_to_plot": ["TRecNet","TRecNet+ttbar","TRecNet+ttbar+JetPretrain"],
+    "TRecNet_models_to_plot": ["TRecNet","TRecNet+ttbar","TRecNet+ttbar+JetPretrain","TRecNet+ttbar+JetPretrainUnfrozen"],
     "loss_metric": "mae",
     "extra_metrics": ["mse"]
 }

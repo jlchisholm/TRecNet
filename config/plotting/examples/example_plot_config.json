@@ -1,5 +1,5 @@
 {   
-    "save_loc": "example_plots/",
+    "save_loc": "example_plots",
     "config_files_location":"/home/jchishol/TRecNet/config/plotting/examples/",
     "dataset_config": "example_dataset_config.json",
     "TrainValLoss":

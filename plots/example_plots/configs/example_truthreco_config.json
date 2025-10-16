@@ -1,0 +1,79 @@
+{
+    "reco_models_to_plot": [
+        "TRecNet",
+        "TRecNet+ttbar",
+        "TRecNet+ttbar+JetPretrain",
+        "TRecNet+ttbar+JetPretrainUnfrozen",
+        "KLFitter6",
+        "PseudoTop",
+        "Chi2"
+    ],
+    "variables": {
+        "ttbar": {
+            "pt": {
+                "min": 0,
+                "max": 550,
+                "nbins": 30
+            },
+            "eta": {
+                "min": -6,
+                "max": 7.5,
+                "nbins": 30
+            },
+            "phi": {
+                "min": -3,
+                "max": 3.75,
+                "nbins": 30
+            },
+            "m": {
+                "min": 200,
+                "max": 1700,
+                "nbins": 30
+            }
+        },
+        "th": {
+            "pt": {
+                "min": 0,
+                "max": 550,
+                "nbins": 30
+            },
+            "eta": {
+                "min": -6,
+                "max": 7.5,
+                "nbins": 30
+            },
+            "phi": {
+                "min": -3,
+                "max": 3.75,
+                "nbins": 30
+            },
+            "m": {
+                "min": 100,
+                "max": 260,
+                "nbins": 30
+            }
+        },
+        "tl": {
+            "pt": {
+                "min": 0,
+                "max": 550,
+                "nbins": 30
+            },
+            "eta": {
+                "min": -6,
+                "max": 7.5,
+                "nbins": 30
+            },
+            "phi": {
+                "min": -3,
+                "max": 3.75,
+                "nbins": 30
+            },
+            "m": {
+                "min": 100,
+                "max": 260,
+                "nbins": 30
+            }
+        }
+    }
+}

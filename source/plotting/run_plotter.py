@@ -40,18 +40,22 @@ def createPlotDirectories(main_dir, plots_to_make):
     # Main directory
     if not os.path.exists('plots/'+main_dir):
         os.mkdir('plots/'+main_dir)
+        
+    # Configs directory
+    if not os.path.exists('plots/'+main_dir+'/configs/'):
+        os.mkdir('plots/'+main_dir+'/configs/')
 
     # Sub-directories
     for par_dir in [particle_name+'/' for particle_name in PARTICLES.keys()]: # directory for each particle
-        if not os.path.exists(main_dir+par_dir):
-            os.mkdir(main_dir+par_dir) 
+        if not os.path.exists('plots/'+main_dir+'/'+par_dir):
+            os.mkdir('plots/'+main_dir+'/'+par_dir) 
         for plot_dir in [plot_type+'/' for plot_type in plots_to_make]: # directory for each plot type
-            if not os.path.exists(main_dir+par_dir+plot_dir) and plot_dir!='TrainValLoss/':
-                os.mkdir(main_dir+par_dir+plot_dir)
+            if not os.path.exists('plots/'+main_dir+'/'+par_dir+plot_dir) and plot_dir!='TrainValLoss/':
+                os.mkdir('plots/'+main_dir+'/'+par_dir+plot_dir)
     
     # Do train val loss plots separately
-    if not os.path.exists(main_dir+'TrainValLoss/'):
-        os.mkdir(main_dir+'TrainValLoss/')
+    if not os.path.exists('plots/'+main_dir+'/TrainValLoss/'):
+        os.mkdir('plots/'+main_dir+'/TrainValLoss/')
                      
     print('Plot directories established.')
 
@@ -70,7 +74,7 @@ def saveConfigs(dir,*configs):
 
         with open(f_config) as infile:
             temp_config = json.load(infile)
-            with open(dir+'/'+name,'w') as outfile:
+            with open('plots/'+dir+'/configs/'+name,'w') as outfile:
                 json.dump(temp_config, outfile, indent=4)
 
         
