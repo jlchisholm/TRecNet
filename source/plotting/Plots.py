@@ -2,7 +2,7 @@
 #                                                                    #
 #  Plots.py                                                          #
 #  Author: Jenna Chisholm                                            #
-#  Updated: Oct.10/25                                                #
+#  Updated: Oct.16/25                                                #
 #                                                                    #
 #  Defines a plotting class with functions for plotting training and #
 #  validation loss, truth vs. reco histograms, confusion matrices,   #
@@ -221,7 +221,7 @@ def Res_Hist(datasets,variable,save_loc='./',tag='',nbins=30,include_moments=Fal
     """
 
     # Create figure to be filled
-    plt.figure(name+' '+'Res')
+    plt.figure(variable.name+' '+'Res')
     
     # Get percentage of the dataset's events in the range of the plot
     num_events = {}
@@ -235,7 +235,7 @@ def Res_Hist(datasets,variable,save_loc='./',tag='',nbins=30,include_moments=Fal
         df = dataset.df
 
         # Calculate the resolution (or residuals)
-        df = Util.calculate_res(variable,df)
+        df = Util.calculateRes(variable,df)
 
         # Calculate mean and standard deviation of the resolution
         if include_moments==True:
@@ -311,7 +311,7 @@ def Res_vs_Var(datasets,y_variable,x_variable,ticks,tick_labels,folded_bins=True
         df = dataset.df
         
         # Calculate the resolution (or residuals)
-        df = Util.calculate_res(y_variable,df)
+        df = Util.calculateRes(y_variable,df)
         
         # Get data points for histogram (going through each bin here)
         points = []   # Array to hold var vs fwhm values
@@ -326,10 +326,10 @@ def Res_vs_Var(datasets,y_variable,x_variable,ticks,tick_labels,folded_bins=True
                 if i!=0: # only cut out lower events if not the first bin
                     cut_temp = df[df['truth_'+par.name+'_'+x_variable.observable.name]>=bottom_edge]
                 if i!=(len(ticks[:-1])-1): # only cut out upper events if not the last bin
-                    cut_temp = cut_temp[cut_temp['truth_'+par.name+'_'+x_variable.observable.name]<top_edge]
+                    cut_temp = df[df['truth_'+par.name+'_'+x_variable.observable.name]<top_edge]
             else:
                 cut_temp = df[df['truth_'+par.name+'_'+x_variable.observable.name]>=bottom_edge]
-                cut_temp = cut_temp[cut_temp['truth_'+par.name+'_'+x_variable.observable.name]<top_edge]
+                cut_temp = df[df['truth_'+par.name+'_'+x_variable.observable.name]<top_edge]
 
             # Get standard deviation and append point to list
             sigma = cut_temp['res_'+y_variable.name].std()

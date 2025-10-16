@@ -36,6 +36,7 @@ class Observable:
                 alt_names (list of str): Alternate names for the observable (default: []).
         """
 
+        # Set attributes
         self.name = name
         self.label = label
         self.units = units
@@ -68,12 +69,23 @@ class Particle:
                 alt_names (list of str): Alternate names for the particle (default: []).
         """
 
+        # Set attributes
         self.name = name
         self.label = label
         self.potential_observables = {observable.name: observable for observable in observables}
         self.alt_names = alt_names
         
+        
     def get_observable(self,name):
+        """
+        Grabs the observable object with the given name.
+
+            Parameters:
+                name (str): Name of the observable.
+            
+            Returns:
+                _ (Observable object): Observable of interest.
+        """
         
         return self.potential_observables[name]
   

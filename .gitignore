@@ -12,3 +12,4 @@ trained_models/
 diagrams/*/*.log
 diagrams/*/*.aux
 diagrams/*/*.gz
+plots/

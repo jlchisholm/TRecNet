@@ -33,9 +33,13 @@ def createPlotDirectories(main_dir, plots_to_make):
             Creates all the <main_dir>, with directories for each particle within, and directories for each of the plot types within each of the aforementioned particle directories.
     """
     
+    # Plots directory
+    if not os.path.exists('plots/'):
+        os.mkdir('plots/')
+    
     # Main directory
-    if not os.path.exists(main_dir):
-        os.mkdir(main_dir)
+    if not os.path.exists('plots/'+main_dir):
+        os.mkdir('plots/'+main_dir)
 
     # Sub-directories
     for par_dir in [particle_name+'/' for particle_name in PARTICLES.keys()]: # directory for each particle

@@ -2,7 +2,7 @@
 #                                                                    #
 #  Plotter.py                                                        #
 #  Author: Jenna Chisholm                                            #
-#  Updated: Oct.10/25                                                #
+#  Updated: Oct.16/25                                                #
 #                                                                    #
 #  Makes plots.                                                      #
 #                                                                    #
@@ -38,11 +38,9 @@ class Plotter:
                 particles (list of Particle objects): List of particles to be plotted.
                 f_dataset_config (str): File name (and path) for the dataset config.
                 plot_configs (dic): Dictionary of config files for each type of plot to be produced.
-                
-        
         """
         
-        self.main_dir = main_dir
+        self.main_dir = 'plots/'+main_dir
         self.plots_to_make = plot_configs.keys()
         self.dataset_config = json.load(open(f_dataset_config))
         
@@ -105,32 +103,34 @@ class Plotter:
         return datasets_to_plot
             
             
-    def getCutDF(self,df,cut_on,max,min):
+    def getCutDF(self,df,cut_on,max_val,min_val):
         """
         Creates a version of the input dataframe with the specified cuts (or lack thereof).
 
             Parameters:
                 df (pd.DataFrame): Base dataframe.
                 cut_on (str or None): Name of the thing which is being cut on, or None if no cut is desired.
-                max (int or None): Maximum value, or None if there is no maximum desired..
-                min (int or None): Minimum value, or None if there is no minimum desired.
+            
+            Optional:
+                max_val (int or None): Maximum value, or None if there is no maximum desired..
+                min_val (int or None): Minimum value, or None if there is no minimum desired.
 
             Returns:
                 df_cut (pd.DataFrame): Dataframe with the implemented cuts, or the original dataframe if no cuts are desired.
         """
 
         # Keep data with metric > min
-        if max==None and min!=None:
-            df_cut = df[df[cut_on]>min]
+        if max_val==None and min_val!=None:
+            df_cut = df[df[cut_on]>min_val]
 
         # Keep data with metric < max
-        elif max!=None and min==None:
-            df_cut = df[df[cut_on]<max]
+        elif max_val!=None and min_val==None:
+            df_cut = df[df[cut_on]<max_val]
 
         # Keep data with min < metric < max
-        elif max!=None and min!=None:
-            df_cut = df[df[cut_on]>min]
-            df_cut = df_cut[df_cut[cut_on]<max]
+        elif max_val!=None and min_val!=None:
+            df_cut = df[df[cut_on]>min_val]
+            df_cut = df_cut[df_cut[cut_on]<max_val]
 
         # No cuts
         else:
@@ -140,72 +140,7 @@ class Plotter:
         return df_cut
     
     
-    def checkUnits(self,df,var_name,obs_units):
-        """
-        Checks if the values for a particular observable are of the same order as specified in the Observable definition. If not, values are converted to the specified magnitude. Only applies to energy-related (not angular) observables.
-        
-            Parameters:
-                df (pd.DataFrame): Dataframe.
-                var_name (str): Name of the desired variable (e.g. 'th_pt').
-                obs_units (str): Units for the observable of interest.
-                
-            Returns:
-                df (pd.DataFrame): Dataframe with corrected units.
-        """
-                
-        # Only need to check units of energy-related variables (i.e. not angular variables)
-        if obs_units != "":
-            
-            TeV_order_range = [-1,-2] # 0.1s, 0.01s
-            GeV_order_range = [1,2] # 10s, 100s
-            MeV_order_range = [4,5] # 10 000s, 100 000s
-            keV_order_range = [7,8] # 10 000 000s, 100 000 000s
-            
-            # Calculate the order of each value and the modes
-            order_df = np.floor(np.log10(df))
-            mode_df = order_df.mode()
-            
-            # Go through truth (if available) and reco
-            column_names = ['truth_'+var_name, 'reco_'+var_name] if 'truth_'+var_name in df.keys() else ['reco_'+var_name]
-            for col_name in column_names:
-            
-                # Modify units as asked
-                if obs_units == "GeV":
-                    if mode_df[col_name][0] in TeV_order_range:
-                        df[col_name] = df[col_name]*1000
-                        logger.warning(col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                    elif mode_df[col_name][0] in GeV_order_range:
-                        pass
-                    elif mode_df[col_name][0] in MeV_order_range:
-                        df[col_name] = df[col_name]/1000
-                        logger.warning(col_name+' is estimated to be in units of MeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                    elif mode_df[col_name][0] in keV_order_range:
-                        df[col_name] = df[col_name]/(1000000)
-                        logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                    else:
-                        logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
-                        sys.exit()
-
-                elif obs_units == "MeV":
-                    if mode_df[col_name][0] in TeV_order_range:
-                        df[col_name] = df[col_name]*1000000
-                        logger.warning(col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                    elif mode_df[col_name][0] in GeV_order_range:
-                        df[col_name] = df[col_name]*1000
-                        logger.warning(col_name+' is estimated to be in units of GeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                    elif mode_df[col_name][0] in MeV_order_range:
-                        pass
-                    elif mode_df[col_name][0] in keV_order_range:
-                        df[col_name] = df[col_name]/(1000)
-                        logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                    else:
-                        logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
-                        sys.exit()
-     
-        return df
-    
-    
-    def getDataFrame(self,input_type,dataset_name,variable,extra_truth_vars=[],extra_reco_vars=[],cut_obs=None):
+    def getDataFrame(self,input_type,dataset_name,variable,extra_truth_vars=[],extra_reco_vars=[],cut_var=None):
         """
         Get truth and reco dataframes containing the given observable name. Also include any extra specified variables.
         
@@ -217,7 +152,7 @@ class Plotter:
             Optional:
                 extra_truth_vars (list of Variable objects): List of any additional truth variables that will be needed.
                 extra_reco_vars (list of Variable objects): List of any additional reco variables that will be needed.
-                cut_obs (str): Name of the observable this dataset will be cut on (e.g. 'logLikelihood').
+                cut_var (str): Name of the observable this dataset will be cut on (e.g. 'logLikelihood').
             
             Return:
                 df (pd.DataFrame): Dataframe containing truth and reco values for the given observable. Also includes any extra truth and reco variables that were specified.
@@ -243,20 +178,20 @@ class Plotter:
                 # Get reco data (including cut variable if necessary)
                 reco_df = data_file["reco"].arrays([v.name for v in reco_vars],library="pd")
                 reco_df = reco_df.add_prefix('reco_')
-                if cut_obs!=None: reco_df[cut_obs] = data_file["reco"].arrays([cut_obs],library="pd")
+                if cut_var!=None: reco_df[cut_var] = data_file["reco"].arrays([cut_var],library="pd")
                 
                 # Make dataframe and ensure the units are correct
                 df = pd.concat([truth_df,reco_df], axis=1)
                 for var in list(set(truth_vars + reco_vars)):
-                    self.checkUnits(df,var.name,var.units)
+                    df = Util.checkUnits(df,var.name,var.units)
                 
             # Systematics data
             else:
                 df = data_file[input_type].arrays([v.name for v in reco_vars],library="pd")
                 df = df.add_prefix('reco_') 
-                if cut_obs!=None: df[cut_obs] = data_file[input_type].arrays([cut_obs],library="pd")
-                for var in list(set(df,var.name,var.units)):
-                    self.checkUnits(df,variable.name,variable.units)
+                if cut_var!=None: df[cut_var] = data_file[input_type].arrays([cut_var],library="pd")
+                for var in list(set(truth_vars + reco_vars)):
+                    df = Util.checkUnits(df,variable.name,variable.units)
         
         return df
             
@@ -287,12 +222,12 @@ class Plotter:
             
             # Get the variable of interest, or skip this dataset if it isn't available
             if variable.name not in dataset.avail_vars.keys():
-                logger.info(variable.name+' is not an available variable for '+dataset.name+'. Skipping this plot.')
+                logger.info(variable.name+' is not an available variable for '+dataset.reco_method+'. Skipping this plot.')
                 continue
                     
             # Get the dataframe and make cut if necessary
             if dataset.cut_var!=None:
-                df = self.getDataFrame('nom',dataset_name,variable,extra_truth_vars=extra_vars,extra_reco_vars=extra_vars,cut_obs=dataset.cut_var)
+                df = self.getDataFrame('nom',dataset_name,variable,extra_truth_vars=extra_vars,extra_reco_vars=extra_vars,cut_var=dataset.cut_var)
                 df = self.getCutDF(df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
             else:
                 df = self.getDataFrame('nom',dataset_name,variable,extra_truth_vars=extra_vars,extra_reco_vars=extra_vars)
@@ -302,8 +237,8 @@ class Plotter:
             
             # Also get systematics dataframes if required
             if with_systematics:
-                up_df = self.getDataFrame('sysUP',dataset_name,variable,extra_truth_vars=extra_vars,extra_reco_vars=extra_vars)
-                down_df = self.getDataFrame('sysDOWN',dataset_name,variable,extra_truth_vars=extra_vars,extra_reco_vars=extra_vars)
+                up_df = self.getDataFrame('sysUP',dataset_name,variable,extra_truth_vars=extra_vars,extra_reco_vars=extra_vars,cut_var=dataset.cut_var)
+                down_df = self.getDataFrame('sysDOWN',dataset_name,variable,extra_truth_vars=extra_vars,extra_reco_vars=extra_vars,cut_var=dataset.cut_var)
                 if dataset.cut_var!=None:
                     up_df = self.getCutDF(up_df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
                     down_df = self.getCutDF(down_df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
@@ -382,7 +317,7 @@ class Plotter:
                     
                     # Get dataframe and make cut if necessary
                     if dataset.cut_var!=None:
-                        df = self.getDataFrame('nom',dataset_name,variable,cut_obs=dataset.cut_var)
+                        df = self.getDataFrame('nom',dataset_name,variable,cut_var=dataset.cut_var)
                         df = self.getCutDF(df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
                     else:
                         df = self.getDataFrame('nom',dataset_name,variable)
@@ -412,20 +347,23 @@ class Plotter:
         for par, obs in observables_to_plot.items():
             for ob, specs in obs.items():
                 
+                # Construct the variable of interest
+                variable = Variable(PARTICLES[par],PARTICLES[par].get_observable(ob))
+                
                 # Read the specs and get ticks
                 if even_stats:
                     nbins = specs["even_stats_bins"]["nbins"]
                     folded_bins = specs["even_stats_bins"]["folded_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(variable.name)),columns=[variable.name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[variable.name],variable.observable,folded_bins,nbins)
+                    ticks, tick_labels = Util.getEvenStatsTicks(temp_df[variable.name],variable.observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
                     x_min = specs["custom_bins"]["min"]
                     x_max = specs["custom_bins"]["max"]
                     step = specs["custom_bins"]["step"]
                     folded_bins = specs["custom_bins"]["folded_bins"]
-                    ticks, tick_labels = Util.get_ticks(variable.observable,x_min,x_max,step,folded_bins)
+                    ticks, tick_labels = Util.getTicks(variable.observable,x_min,x_max,step,folded_bins)
                     stats_tag = ''
                 
                 # Iterate through each dataset
@@ -435,18 +373,16 @@ class Plotter:
                     dataset = self.datasets[dataset_name] 
                     
                     # Get the variable of interest, or skip this dataset if it isn't available
-                    if par+'_'+ob in dataset.avail_vars.keys():
-                        variable = dataset.avail_vars[par+'_'+ob]
-                    else:
-                        logger.info(par+'_'+ob+' is not an available variable for '+dataset.name+'. Skipping this plot.')
+                    if variable.name not in dataset.avail_vars.keys():
+                        logger.info(variable.name+' is not an available variable for '+dataset.reco_method+'. Skipping this plot.')
                         continue
                         
                     # Get dataframe and make cut if necessary
                     if dataset.cut_var!=None:
-                        df = self.getDataFrame('nom',dataset_name,variable.name,variable.units,cut_obs=dataset.cut_var)
+                        df = self.getDataFrame('nom',dataset_name,variable,cut_var=dataset.cut_var)
                         df = self.getCutDF(df,dataset.cut_var,dataset.cut_max,dataset.cut_min)
                     else:
-                        df = self.getDataFrame('nom',dataset_name,variable.name,variable.units)
+                        df = self.getDataFrame('nom',dataset_name,variable)
 
                     # Link data to the dataset
                     dataset.link_temp_df(df)
@@ -536,7 +472,6 @@ class Plotter:
             for plot_specs in plot_requests:
                 
                 # Get some important particle observable info
-                particle = PARTICLES[par]
                 x_ob = plot_specs["x_obs"]
                 y_ob = plot_specs["y_obs"]
                 folded_bins = plot_specs["folded_bins"]
@@ -547,20 +482,20 @@ class Plotter:
                 
                 # Get datasets
                 extra_vars = [y_variable] if y_ob!=x_ob else []
-                datasets = self.getDatasetList(par,x_variable,datasets_to_plot,extra_vars=extra_vars)
+                datasets = self.getDatasetList(x_variable,datasets_to_plot,extra_vars=extra_vars)
                 
                 # Read the specs and get ticks
                 if even_stats:
                     nbins = plot_specs["n_even_stats_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(x_variable.name)),columns=[x_variable.name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[x_variable.name],x_variable.observable,folded_bins,nbins)
+                    ticks, tick_labels = Util.getEvenStatsTicks(temp_df[x_variable.name],x_variable.observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
                     x_min = plot_specs["custom_bins"][0]
                     x_max = plot_specs["custom_bins"][1]
                     step = plot_specs["custom_bins"][2]
-                    ticks, tick_labels = Util.get_ticks(x_variable.observable,x_min,x_max,step,folded_bins)
+                    ticks, tick_labels = Util.getTicks(x_variable.observable,x_min,x_max,step,folded_bins)
                     stats_tag = ''
 
                 # Make plot!
@@ -598,14 +533,14 @@ class Plotter:
                     folded_bins = specs["even_stats_bins"]["folded_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(variable.name)),columns=[variable.name])
-                    ticks, tick_labels = Util.get_even_stats_ticks(temp_df[variable.name],variable.observable,folded_bins,nbins)
+                    ticks, tick_labels = Util.getEvenStatsTicks(temp_df[variable.name],variable.observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
                     x_min = specs["custom_bins"]["min"]
                     x_max = specs["custom_bins"]["max"]
                     step = specs["custom_bins"]["step"]
                     folded_bins = specs["custom_bins"]["folded_bins"]
-                    ticks, tick_labels = Util.get_ticks(variable.observable,x_min,x_max,step,folded_bins)
+                    ticks, tick_labels = Util.getTicks(variable.observable,x_min,x_max,step,folded_bins)
                     stats_tag = ''
                 
                 # Make plot!
