@@ -1,0 +1,119 @@
+
+---------------------------------------------------Resolution_tl_pt: ---------------------------------------------------
+Number of events in the dataset (for the cut): 
+{'KLF6(LL>-52)': 2968528,
+ 'KLF6(No Cuts)': 3605901,
+ 'TRN(No Cuts)': 3616038,
+ 'TRN+ttbar+JPU(No Cuts)': 3616038}
+Number of events in the dataset in the plotted range: 
+{'KLF6(LL>-52)': 2352685,
+ 'KLF6(No Cuts)': 2803617,
+ 'TRN(No Cuts)': 3441527,
+ 'TRN+ttbar+JPU(No Cuts)': 3435136}
+Percentage of the dataset's events inside the plotted range: 
+{'KLF6(LL>-52)': 79.25426339249621,
+ 'KLF6(No Cuts)': 77.75080347463782,
+ 'TRN(No Cuts)': 95.17397217617736,
+ 'TRN+ttbar+JPU(No Cuts)': 94.99723177687845}
+
+---------------------------------------------------Resolution_tl_pt(p_T<100): ---------------------------------------------------
+Number of events in the dataset (for the cut): 
+{'KLF6(LL>-52)': 1006684,
+ 'KLF6(No Cuts)': 1221498,
+ 'TRN(No Cuts)': 1224849,
+ 'TRN+ttbar+JPU(No Cuts)': 1224849}
+Number of events in the dataset in the plotted range: 
+{'KLF6(LL>-52)': 499336,
+ 'KLF6(No Cuts)': 575130,
+ 'TRN(No Cuts)': 1052858,
+ 'TRN+ttbar+JPU(No Cuts)': 1046702}
+Percentage of the dataset's events inside the plotted range: 
+{'KLF6(LL>-52)': 49.60205983208236,
+ 'KLF6(No Cuts)': 47.08399031353305,
+ 'TRN(No Cuts)': 85.95818749903049,
+ 'TRN+ttbar+JPU(No Cuts)': 85.45559493455927}
+
+---------------------------------------------------Resolution_tl_pt(250<p_T<500): ---------------------------------------------------
+Number of events in the dataset (for the cut): 
+{'KLF6(LL>-52)': 370442,
+ 'KLF6(No Cuts)': 450531,
+ 'TRN(No Cuts)': 451836,
+ 'TRN+ttbar+JPU(No Cuts)': 451836}
+Number of events in the dataset in the plotted range: 
+{'KLF6(LL>-52)': 369960,
+ 'KLF6(No Cuts)': 449440,
+ 'TRN(No Cuts)': 451813,
+ 'TRN+ttbar+JPU(No Cuts)': 451815}
+Percentage of the dataset's events inside the plotted range: 
+{'KLF6(LL>-52)': 99.86988516420924,
+ 'KLF6(No Cuts)': 99.75784130281824,
+ 'TRN(No Cuts)': 99.99490965748635,
+ 'TRN+ttbar+JPU(No Cuts)': 99.99535229596579}
+
+---------------------------------------------------Resolution_tl_pt(p_T>500): ---------------------------------------------------
+Number of events in the dataset (for the cut): 
+{'KLF6(LL>-52)': 17101,
+ 'KLF6(No Cuts)': 20778,
+ 'TRN(No Cuts)': 20832,
+ 'TRN+ttbar+JPU(No Cuts)': 20832}
+Number of events in the dataset in the plotted range: 
+{'KLF6(LL>-52)': 17101,
+ 'KLF6(No Cuts)': 20772,
+ 'TRN(No Cuts)': 20832,
+ 'TRN+ttbar+JPU(No Cuts)': 20832}
+Percentage of the dataset's events inside the plotted range: 
+{'KLF6(LL>-52)': 100.0,
+ 'KLF6(No Cuts)': 99.97112330349408,
+ 'TRN(No Cuts)': 100.0,
+ 'TRN+ttbar+JPU(No Cuts)': 100.0}
+
+---------------------------------------------------Residuals_tl_eta: ---------------------------------------------------
+Number of events in the dataset (for the cut): 
+{'KLF6(LL>-52)': 2968528,
+ 'KLF6(No Cuts)': 3605901,
+ 'TRN(No Cuts)': 3616038,
+ 'TRN+ttbar+JPU(No Cuts)': 3616038}
+Number of events in the dataset in the plotted range: 
+{'KLF6(LL>-52)': 1993420,
+ 'KLF6(No Cuts)': 2423142,
+ 'TRN(No Cuts)': 3498346,
+ 'TRN+ttbar+JPU(No Cuts)': 3493409}
+Percentage of the dataset's events inside the plotted range: 
+{'KLF6(LL>-52)': 67.15180048832283,
+ 'KLF6(No Cuts)': 67.19934906698771,
+ 'TRN(No Cuts)': 96.74527756622027,
+ 'TRN+ttbar+JPU(No Cuts)': 96.60874692135425}
+
+---------------------------------------------------Residuals_tl_phi: ---------------------------------------------------
+Number of events in the dataset (for the cut): 
+{'KLF6(LL>-52)': 2968528,
+ 'KLF6(No Cuts)': 3605901,
+ 'TRN(No Cuts)': 3616038,
+ 'TRN+ttbar+JPU(No Cuts)': 3616038}
+Number of events in the dataset in the plotted range: 
+{'KLF6(LL>-52)': 1958860,
+ 'KLF6(No Cuts)': 2379119,
+ 'TRN(No Cuts)': 3461410,
+ 'TRN+ttbar+JPU(No Cuts)': 3461278}
+Percentage of the dataset's events inside the plotted range: 
+{'KLF6(LL>-52)': 65.98758711388271,
+ 'KLF6(No Cuts)': 65.97848914875921,
+ 'TRN(No Cuts)': 95.72382812348764,
+ 'TRN+ttbar+JPU(No Cuts)': 95.7201777193713}
+
+---------------------------------------------------Residuals_tl_m: ---------------------------------------------------
+Number of events in the dataset (for the cut): 
+{'KLF6(LL>-52)': 2968528,
+ 'KLF6(No Cuts)': 3605901,
+ 'TRN(No Cuts)': 3616038,
+ 'TRN+ttbar+JPU(No Cuts)': 3616038}
+Number of events in the dataset in the plotted range: 
+{'KLF6(LL>-52)': 2394685,
+ 'KLF6(No Cuts)': 2844377,
+ 'TRN(No Cuts)': 2909108,
+ 'TRN+ttbar+JPU(No Cuts)': 2926169}
+Percentage of the dataset's events inside the plotted range: 
+{'KLF6(LL>-52)': 80.66910603504498,
+ 'KLF6(No Cuts)': 78.88117283308665,
+ 'TRN(No Cuts)': 80.45015013669658,
+ 'TRN+ttbar+JPU(No Cuts)': 80.92196486873202}

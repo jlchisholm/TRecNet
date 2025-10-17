@@ -12,3 +12,6 @@ trained_models/
 diagrams/*/*.log
 diagrams/*/*.aux
 diagrams/*/*.gz
+plots/*
+!plots/example_plots/
+TRecNet_env/

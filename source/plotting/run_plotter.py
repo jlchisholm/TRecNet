@@ -2,7 +2,7 @@
 #                                                                        #
 #  run_plotter.py                                                        #
 #  Author: Jenna Chisholm                                                #
-#  Updated: Oct.10/25                                                    #
+#  Updated: Oct.16/25                                                    #
 #                                                                        #
 #  Runs plotting software and creates results plots based on config      #
 #  settings.                                                             # 
@@ -13,41 +13,59 @@
 
 # Import useful packages
 import os, sys
+import logging
 import json
 from argparse import ArgumentParser
-from ParticleObservables import PARTICLES
+from Particles_and_Observables import PARTICLES
 from Plots import PLOT_TYPES
 from Plotter import Plotter
 
 
-def createPlotDirectories(main_dir, plots_to_make):
+def createPlotDirectories(dir_name, plots_to_make):
     """
     Creates directories to store the plots in, if they do not already exist.
 
         Parameters: 
-            main_dir (str): Name (including path) of the primary directory you want to save the plots in.
+            dir_name (str): Name you'd like to use for the plots directory.
             plots_to_make (list of str): List of plot types that will be made.
 
         Returns:
-            Creates all the <main_dir>, with directories for each particle within, and directories for each of the plot types within each of the aforementioned particle directories.
+            'plots/'+main_dir (str): Directory to store plots and such in. 
     """
     
-    # Main directory
-    if not os.path.exists(main_dir):
-        os.mkdir(main_dir)
+    # Plots directory
+    if not os.path.exists('plots/'):
+        os.mkdir('plots/')
+    
+    # Directory name from config file (appended number so things are never overwritten)
+    i = 0
+    while (os.path.exists('plots/'+dir_name+'_'+str(i))):
+        i+=1
+    main_dir = dir_name+'_'+str(i)
+    os.mkdir('plots/'+main_dir)
+        
+    # Configs directory
+    if not os.path.exists('plots/'+main_dir+'/configs/'):
+        os.mkdir('plots/'+main_dir+'/configs/')
 
     # Sub-directories
     for par_dir in [particle_name+'/' for particle_name in PARTICLES.keys()]: # directory for each particle
-        if not os.path.exists(main_dir+par_dir):
-            os.mkdir(main_dir+par_dir) 
+        if not os.path.exists('plots/'+main_dir+'/'+par_dir):
+            os.mkdir('plots/'+main_dir+'/'+par_dir) 
         for plot_dir in [plot_type+'/' for plot_type in plots_to_make]: # directory for each plot type
-            if not os.path.exists(main_dir+par_dir+plot_dir):
-                os.mkdir(main_dir+par_dir+plot_dir)
+            if not os.path.exists('plots/'+main_dir+'/'+par_dir+plot_dir) and plot_dir!='TrainValLoss/':
+                os.mkdir('plots/'+main_dir+'/'+par_dir+plot_dir)
+    
+    # Do train val loss plots separately
+    if not os.path.exists('plots/'+main_dir+'/TrainValLoss/'):
+        os.mkdir('plots/'+main_dir+'/TrainValLoss/')
                      
     print('Plot directories established.')
+    
+    return 'plots/'+main_dir
 
 
-def save_configs(dir,*configs):
+def saveConfigs(dir,*configs):
     """
     Saves any number of JSON config files to the given directory.
     
@@ -61,7 +79,7 @@ def save_configs(dir,*configs):
 
         with open(f_config) as infile:
             temp_config = json.load(infile)
-            with open(dir+'/'+name,'w') as outfile:
+            with open('plots/'+dir+'/configs/'+name,'w') as outfile:
                 json.dump(temp_config, outfile, indent=4)
 
         
@@ -74,9 +92,14 @@ if __name__ == "__main__":
     # Get JSON file name of plotting info from command line and load the file
     parser = ArgumentParser()
     parser.add_argument('-c','--plotting_config', help='JSON file name (including path) that contains the plotting specifications you wish to use.', type=str, required=True)
+    parser.add_argument('-l','--log_level', help='Level of logging to use.', type=str, default='WARNING',choices=['DEBUG','INFO','WARNING','ERROR','CRITICAL'])
     args = parser.parse_args()
     f_plotting_config = args.plotting_config
     plotting_config = json.load(open(f_plotting_config))
+    
+    # Set logging level
+    logging.basicConfig(level=args.log_level.upper(), format='%(levelname)s: %(message)s')
+    logger = logging.getLogger(__name__)
     
     # Extract config file names for the plots we want to make
     config_dir = plotting_config['config_files_location']
@@ -87,15 +110,15 @@ if __name__ == "__main__":
     
     # Exit if no plots to make
     if plot_configs=={}:
-        print('ERROR: No plots to make!')
+        logging.error('No plots to make!')
         sys.exit()
             
     # Creates save directories for plots if they don't already exist
-    main_dir = plotting_config['save_loc']
-    createPlotDirectories(main_dir, plot_configs.keys())
+    dir_name = plotting_config['save_loc']
+    main_dir = createPlotDirectories(dir_name, plot_configs.keys())
             
     # Save all the config files
-    save_configs(main_dir,config_dir+plotting_config['dataset_config'],*plot_configs.values())
+    saveConfigs(main_dir,config_dir+plotting_config['dataset_config'],*plot_configs.values())
     
     # Make the plots
     plotter = Plotter(main_dir,config_dir+plotting_config['dataset_config'],plot_configs)

@@ -10,46 +10,122 @@
 
 
 # Import useful packages
+import sys
+import logging
+logger = logging.getLogger(__name__)
 import pandas as pd
 import numpy as np
 from pprint import pprint
 
 
-def wrap_phi(var):
-    var = var%(2*np.pi)
-    var = var - 2*np.pi*(var > np.pi)
-    return var
-
-def calculate_res(particle, observable, df):
+def wrap_phi(phi):
     """
-    Calculates the resolution or residuals for a given particle and observable.
+    Wraps phi values, so they are always within +/- pi. Written by Tao Zhang.
+    
+        Parameter:
+            phi (int or float or double): Value of phi.
+            
+        Returns:
+            phi (float or double): Wrapped value of phi.
+    """
+    
+    phi = phi%(2*np.pi)
+    phi = phi - 2*np.pi*(phi > np.pi)
+    
+    return phi
+
+
+def checkUnits(df,var_name,obs_units):
+    """
+    Checks if the values for a particular observable are of the same order as specified in the Observable definition. If not, values are converted to the specified magnitude. Only applies to energy-related (not angular) observables.
     
         Parameters:
-            particle (Particle object): Particle of interest.
-            observable (Observable object): Observable of interest.
+            df (pd.DataFrame): Dataframe.
+            var_name (str): Name of the desired variable (e.g. 'th_pt').
+            obs_units (str): Units for the observable of interest.
+            
+        Returns:
+            df (pd.DataFrame): Dataframe with corrected units.
+    """
+            
+    # Only need to check units of energy-related variables (i.e. not angular variables)
+    if obs_units != "":
+        
+        TeV_order_range = [-1,-2] # 0.1s, 0.01s
+        GeV_order_range = [1,2] # 10s, 100s
+        MeV_order_range = [4,5] # 10 000s, 100 000s
+        keV_order_range = [7,8] # 10 000 000s, 100 000 000s
+        
+        # Calculate the order of each value and the modes
+        order_df = np.floor(np.log10(df))
+        mode_df = order_df.mode()
+        
+        # Go through truth (if available) and reco
+        column_names = ['truth_'+var_name, 'reco_'+var_name] if 'truth_'+var_name in df.keys() else ['reco_'+var_name]
+        for col_name in column_names:
+        
+            # Modify units as asked
+            if obs_units == "GeV":
+                if mode_df[col_name][0] in TeV_order_range:
+                    df[col_name] = df[col_name]*1000
+                    logger.warning(col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                elif mode_df[col_name][0] in GeV_order_range:
+                    pass
+                elif mode_df[col_name][0] in MeV_order_range:
+                    df[col_name] = df[col_name]/1000
+                    logger.warning(col_name+' is estimated to be in units of MeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                elif mode_df[col_name][0] in keV_order_range:
+                    df[col_name] = df[col_name]/(1000000)
+                    logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                else:
+                    logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
+                    sys.exit()
+
+            elif obs_units == "MeV":
+                if mode_df[col_name][0] in TeV_order_range:
+                    df[col_name] = df[col_name]*1000000
+                    logger.warning(col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                elif mode_df[col_name][0] in GeV_order_range:
+                    df[col_name] = df[col_name]*1000
+                    logger.warning(col_name+' is estimated to be in units of GeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                elif mode_df[col_name][0] in MeV_order_range:
+                    pass
+                elif mode_df[col_name][0] in keV_order_range:
+                    df[col_name] = df[col_name]/(1000)
+                    logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+                else:
+                    logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
+                    sys.exit()
+    
+    return df
+
+
+def calculateRes(variable, df):
+    """
+    Calculates the resolution or residuals for a given variable.
+    
+        Parameters:
+            variable (Variable object): Variable of interest.
             df (pd.DataFrame): Dataframe to append the data to.
             
         Returns:
             df (pd.DataFrame): Original dataframe with the resolution or residuals appended.
     """
     
-    name = particle.name+'_'+observable.name
-    res = observable.res
-    
-    if res=='Resolution':
-        if observable.name=='phi':
-            df['res_'+name] = wrap_phi((df['reco_'+name] - df['truth_'+name]))/df['truth_'+name]
+    if variable.res=='Resolution':
+        if variable.observable.name=='phi':
+            df['res_'+variable.name] = wrap_phi((df['reco_'+variable.name] - df['truth_'+variable.name]))/df['truth_'+variable.name]
         else:
-            df['res_'+name] = (df['reco_'+name] - df['truth_'+name])/df['truth_'+name]
+            df['res_'+variable.name] = (df['reco_'+variable.name] - df['truth_'+variable.name])/df['truth_'+variable.name]
     else:
-        if observable.name=='phi':
-            df['res_'+name] = wrap_phi(df['reco_'+name] - df['truth_'+name])
+        if variable.observable.name=='phi':
+            df['res_'+variable.name] = wrap_phi(df['reco_'+variable.name] - df['truth_'+variable.name])
         else:
-            df['res_'+name] = df['reco_'+name] - df['truth_'+name]
+            df['res_'+variable.name] = df['reco_'+variable.name] - df['truth_'+variable.name]
             
     return df
 
-def get_ticks(observable, start, stop, step, folded_bins):
+def getTicks(observable, start, stop, step, folded_bins):
     """
     Creates ticks and tick labels for bins.
     
@@ -74,7 +150,7 @@ def get_ticks(observable, start, stop, step, folded_bins):
     return ticks, tick_labels
 
 
-def get_even_stats_ticks(df_col,observable,folded_bins,nbins=8):
+def getEvenStatsTicks(df_col,observable,folded_bins,nbins=8):
     """
     Figures out bin width such that each bin has approximately the same number of events.
     
@@ -139,7 +215,3 @@ def save_plot_info(dir, fig_name, num_events, num_in, in_percent):
     file.write("Percentage of the dataset's events inside the plotted range: \n")
     pprint(in_percent,stream=file)
     file.close()
-    
-
-    
-
