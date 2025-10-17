@@ -3,8 +3,8 @@
 #SBATCH --output /home/jchishol/slurm_jobs/run_combineH5Files_%j.out
 
 # Go to the main TRecNet directory and source the environment
-cd "$(dirname "$(realpath $BASH_SOURCE)")"
-cd ../../
+TRecNet_loc=$HOME/TRecNet/
+cd $TRecNet_loc
 source TRecNet_env/bin/activate
 
 

@@ -1,10 +1,10 @@
 #!/bin/sh
 
-#SBATCH --output /home/jchishol/slurm_jobs/run_makeTrainTestFiles_%j.out
+#SBATCH --output /slurm_jobs/run_makeTrainTestFiles_%j.out
 
 # Go to the main TRecNet directory and source the environment
-cd "$(dirname "$(realpath $BASH_SOURCE)")"
-cd ../../
+TRecNet_loc=$HOME/TRecNet/
+cd $TRecNet_loc
 source TRecNet_env/bin/activate
 
 
