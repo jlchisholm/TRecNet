@@ -21,25 +21,28 @@ from Plots import PLOT_TYPES
 from Plotter import Plotter
 
 
-def createPlotDirectories(main_dir, plots_to_make):
+def createPlotDirectories(dir_name, plots_to_make):
     """
     Creates directories to store the plots in, if they do not already exist.
 
         Parameters: 
-            main_dir (str): Name (including path) of the primary directory you want to save the plots in.
+            dir_name (str): Name you'd like to use for the plots directory.
             plots_to_make (list of str): List of plot types that will be made.
 
         Returns:
-            Creates all the <main_dir>, with directories for each particle within, and directories for each of the plot types within each of the aforementioned particle directories.
+            'plots/'+main_dir (str): Directory to store plots and such in. 
     """
     
     # Plots directory
     if not os.path.exists('plots/'):
         os.mkdir('plots/')
     
-    # Main directory
-    if not os.path.exists('plots/'+main_dir):
-        os.mkdir('plots/'+main_dir)
+    # Directory name from config file (appended number so things are never overwritten)
+    i = 0
+    while (os.path.exists('plots/'+dir_name+'_'+str(i))):
+        i+=1
+    main_dir = dir_name+'_'+str(i)
+    os.mkdir('plots/'+main_dir)
         
     # Configs directory
     if not os.path.exists('plots/'+main_dir+'/configs/'):
@@ -58,6 +61,8 @@ def createPlotDirectories(main_dir, plots_to_make):
         os.mkdir('plots/'+main_dir+'/TrainValLoss/')
                      
     print('Plot directories established.')
+    
+    return 'plots/'+main_dir
 
 
 def saveConfigs(dir,*configs):
@@ -109,8 +114,8 @@ if __name__ == "__main__":
         sys.exit()
             
     # Creates save directories for plots if they don't already exist
-    main_dir = plotting_config['save_loc']
-    createPlotDirectories(main_dir, plot_configs.keys())
+    dir_name = plotting_config['save_loc']
+    main_dir = createPlotDirectories(dir_name, plot_configs.keys())
             
     # Save all the config files
     saveConfigs(main_dir,config_dir+plotting_config['dataset_config'],*plot_configs.values())
