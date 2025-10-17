@@ -17,6 +17,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             },
@@ -32,6 +33,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             },
@@ -47,6 +49,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             },
@@ -62,6 +65,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             }
@@ -80,6 +84,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             },
@@ -95,6 +100,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             },
@@ -110,6 +116,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             },
@@ -125,6 +132,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             }
@@ -143,6 +151,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             },
@@ -158,6 +167,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             },
@@ -173,6 +183,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             },
@@ -188,6 +199,7 @@
                 "even_stats_bins":
                 {
                     "folded_bins": true,
+                    "square_bins": true,
                     "nbins": 8
                 }
             }

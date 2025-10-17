@@ -352,6 +352,7 @@ class Plotter:
                 
                 # Read the specs and get ticks
                 if even_stats:
+                    square_bins = specs["even_stats_bins"]["square_bins"]
                     nbins = specs["even_stats_bins"]["nbins"]
                     folded_bins = specs["even_stats_bins"]["folded_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
@@ -359,6 +360,7 @@ class Plotter:
                     ticks, tick_labels = Util.getEvenStatsTicks(temp_df[variable.name],variable.observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
+                    square_bins=True
                     x_min = specs["custom_bins"]["min"]
                     x_max = specs["custom_bins"]["max"]
                     step = specs["custom_bins"]["step"]
@@ -388,7 +390,7 @@ class Plotter:
                     dataset.link_temp_df(df)
                     
                     # Make the plot
-                    Plots.Confusion_Matrix(dataset,variable,ticks,tick_labels,folded_bins=folded_bins,tag=stats_tag,save_loc=self.main_dir+'/'+par+'/CM/')
+                    Plots.Confusion_Matrix(dataset,variable,ticks,tick_labels,folded_bins=folded_bins,square_bins=square_bins,tag=stats_tag,save_loc=self.main_dir+'/'+par+'/CM/')
                     
         print('CM plots completed.')  
         

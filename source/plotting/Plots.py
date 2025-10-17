@@ -135,7 +135,7 @@ def TruthReco_Hist(dataset,variable,x_min,x_max,nbins=30,save_loc='./'):
     plt.close()
     
 
-def Confusion_Matrix(dataset,variable,ticks,tick_labels,folded_bins=True,norm=True,tag='',save_loc='./'):
+def Confusion_Matrix(dataset,variable,ticks,tick_labels,folded_bins=True,square_bins=True,norm=True,tag='',save_loc='./'):
     """ 
     Creates and saves a 2D histogram of true vs reconstructed data, normalized across rows, for a given dataset, particle, and observable.
 
@@ -147,6 +147,7 @@ def Confusion_Matrix(dataset,variable,ticks,tick_labels,folded_bins=True,norm=Tr
         
         Options:
             folded_bins (bool): Whether or not to use folded bins (e.g. have the last tick label for pt be infinity) (default: True).
+            square_bins (bool): Whether to have square bins or rectangular bins that match the ticks (primarily needed when using uneven bins) (default: True).
             norm (bool): Whether or not to normalize the confusion matrix across rows (default: True).
             tag (str): Extra tag to add to the plot save name.
             save_loc (str): Directory where you want the histogram saved to (default: current directory).
@@ -161,6 +162,15 @@ def Confusion_Matrix(dataset,variable,ticks,tick_labels,folded_bins=True,norm=Tr
     # Define a useful string and some important constants
     n = len(ticks)
     ran = ticks[::n-1]
+
+    # Fix the end bin sizes if non-square bins are desired (we'll make them 75% larger than the other largest bin)
+    if not square_bins: 
+        if tick_labels[0]=='-'+r'$\infty$': # If these are set to infinity, it implies folded bins for this variable
+            ticks[0] = np.ptp(ticks[1:])*1.75
+            
+        if tick_labels[-1]==r'$\infty$':
+            ticks[-1] = np.ptp(ticks[:-1])*1.75
+            
 
     # Create 2D array of truth vs reco observable (which can be plotted also)
     if folded_bins:
@@ -179,20 +189,33 @@ def Confusion_Matrix(dataset,variable,ticks,tick_labels,folded_bins=True,norm=Tr
     # Plot truth vs reco pt with normalized rowsx
     plt.figure(variable.name+' Normalized 2D Plot')
     masked_cm = np.ma.masked_where(cm==0,cm)  # Needed to make the zero bins white
-    plt.imshow(masked_cm,extent=[0,n-1,0,n-1],cmap=color_map,origin='lower')
-    plt.xticks(np.arange(n),tick_labels,fontsize=12,rotation=-25)
-    plt.yticks(np.arange(n),tick_labels,fontsize=12)
+    
+    # Plot differently depending on bin settings
+    if square_bins:
+        plt.imshow(masked_cm,extent=[0,n-1,0,n-1],cmap=color_map,origin='lower')
+        plt.xticks(np.arange(n),tick_labels,fontsize=12,rotation=-25)
+        plt.yticks(np.arange(n),tick_labels,fontsize=12)
+    else:
+        plt.pcolormesh(ticks,ticks,masked_cm,cmap=color_map)
+        plt.xticks(ticks,tick_labels,fontsize=12,rotation=-25)
+        plt.yticks(ticks,tick_labels,fontsize=12)
+    
+    # Set labels and colorbar
     plt.xlabel('Reco-level '+variable.label, fontsize=15)
     plt.ylabel('Parton-level '+variable.label, fontsize=15)
     if norm: plt.clim(0,100)
     cb = plt.colorbar()
     cb.ax.tick_params(labelsize=12)
-
+    
     # Label the content of each bin
     for j in range (n-1):
         for k in range(n-1):
             if masked_cm.T[j,k] != 0:   # Don't label empty bins
-                plt.text(j+0.5,k+0.5,masked_cm.T[j,k],color='k',fontsize=10,weight="bold",ha="center",va="center")
+                if square_bins:
+                    plt.text(j+0.5,k+0.5,masked_cm.T[j,k],color='k',fontsize=10,weight="bold",ha="center",va="center")
+                else:
+                    plt.text((ticks[j]+ticks[j+1])/2,(ticks[k]+ticks[k+1])/2,masked_cm.T[j,k],color='k',fontsize=10,weight="bold",ha="center",va="center")
+                
 
     # Save the figure in save location as a png
     fig_name = dataset.reco_method+'('+dataset.cut_tag+')_Confusion_Matrix'+tag+'_'+variable.name
