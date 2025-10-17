@@ -114,8 +114,12 @@ YSTAR = Observable("ystar","y_{star}","","Residuals",["y_star"])
 CHI = Observable("chi","\\chi","","Resolution",["chi_tt"])
 
 # Particles
+BH = Particle("bh","b,had",[PT,PX,PY,ETA,Y,PHI,M,E],["b_from_thad","bhad"])
+BL = Particle("bl","b,lep",[PT,PX,PY,ETA,Y,PHI,M,E],["b_from_tlep","blep"])
+WH = Particle("wh","W,had",[PT,PX,PY,ETA,Y,PHI,M,E],["W_from_thad","whad","WHad"])
+WL = Particle("wl","W,lep",[PT,PX,PY,ETA,Y,PHI,M,E],["W_from_tlep","wlep","WLep"])
 TH = Particle("th","t,had",[PT,PX,PY,ETA,Y,PHI,M,E,POUT],["thad","topHad","top_had"])
 TL = Particle("tl","t,lep",[PT,PX,PY,ETA,Y,PHI,M,E,POUT],["tlep","topLep","top_lep"])
-TTBAR = Particle("ttbar","t\\overline{t}",[PT,PX,PY,ETA,Y,PHI,M,E,DPHI,DETA,HT,YBOOST,YSTAR,CHI]) # no alterative names
+TTBAR = Particle("ttbar","t\\overline{t}",[PT,PX,PY,ETA,Y,PHI,M,E,DPHI,DETA,HT,YBOOST,YSTAR,CHI],["Ttbar"])
 
-PARTICLES = {particle.name: particle for particle in [TH,TL,TTBAR]}
+PARTICLES = {particle.name: particle for particle in [BH,BL,WH,WL,TH,TL,TTBAR]}
