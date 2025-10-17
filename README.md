@@ -123,8 +123,9 @@ This will create a root file in the given save directory that contains all the d
 
 **2. Run plotter:** Run the plotting code, using the following command:
 ```console
-$ python source/plotting/run_plotter.py -c config/plotting/<examples/plot_config.json>
+$ python source/plotting/run_plotter.py -c config/plotting/<examples/plot_config.json> - l <log_level>
 ```
+`<log_level>` can be set to 'DEBUG', 'INFO', 'WARNING', 'ERROR', or 'CRITICAL' for various levels of verbosity.
 
 
 
