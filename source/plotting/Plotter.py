@@ -40,7 +40,7 @@ class Plotter:
                 plot_configs (dic): Dictionary of config files for each type of plot to be produced.
         """
         
-        self.main_dir = 'plots/'+main_dir+'/'
+        self.main_dir = main_dir+'/'
         self.plots_to_make = plot_configs.keys()
         self.dataset_config = json.load(open(f_dataset_config))
         

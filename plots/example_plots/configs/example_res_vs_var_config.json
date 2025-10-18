@@ -2,7 +2,7 @@
     "reco_models_to_plot": [
         "TRecNet",
         "TRecNet+ttbar+JetPretrainUnfrozen",
-        "Chi2"
+        "KLFitter6"
     ],
     "even_stats_binning": true,
     "variables": {
