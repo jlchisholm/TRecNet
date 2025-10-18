@@ -2,7 +2,7 @@
 #                                                                    #
 #  AlgorithmMethodDataPrep.py                                        #
 #  Author: Jenna Chisholm                                            #
-#  Updated: Oct.10/25                                                #
+#  Updated: Oct.17/25                                                #
 #                                                                    #
 #  A class creating "Results.root" files for each of the algorithm   #
 #  methods such that they match the format of the ML results.        #
@@ -17,9 +17,7 @@ import h5py
 import pandas as pd
 import awkward as ak
 import numpy as np
-import vector
 import itertools
-import tk as tkinter
 from Plotter import *
 from Particles_and_Observables import PARTICLES
 
@@ -55,7 +53,7 @@ def getKeys(reco_method,model_keys):
         alt_par_names.append(par.name)
 
         # For each variable of that particle
-        for var in par.observables.values():                  
+        for var in par.potential_observables.values():                  
 
             # Reset
             found_reco=False
@@ -151,6 +149,7 @@ def createDF(reco_method,filename,truth_keys,reco_keys,test_eventnumbers=[]):
         # Cut on eta (had some weird really really large numbers that seem to be reconstruction fails)
         df_nom_reco = df_nom_reco[df_nom_reco['ttbar_eta']<1000]
         df_nom_reco = df_nom_reco[df_nom_reco['ttbar_eta']>-1000]
+        
         df_up = df_up[df_up['ttbar_eta']<1000]
         df_up = df_up[df_up['ttbar_eta']>-1000]
         df_down = df_down[df_down['ttbar_eta']<1000]
@@ -168,6 +167,11 @@ def createDF(reco_method,filename,truth_keys,reco_keys,test_eventnumbers=[]):
         for df in [df_nom_reco, df_up, df_down]:
             df.replace([np.inf,-np.inf],np.nan,inplace=True)
             df.dropna(inplace=True)
+            
+    # Double check that there are no events in truth that are not in reco, and remove them if there are
+    common_idx = df_nom_truth.index.intersection(df_nom_reco.index)
+    df_nom_truth = df_nom_truth.loc[common_idx]
+    df_nom_reco = df_nom_reco.loc[common_idx]
 
     return df_nom_truth, df_nom_reco, df_up, df_down
 

@@ -79,7 +79,7 @@ def saveConfigs(dir,*configs):
 
         with open(f_config) as infile:
             temp_config = json.load(infile)
-            with open('plots/'+dir+'/configs/'+name,'w') as outfile:
+            with open(dir+'/configs/'+name,'w') as outfile:
                 json.dump(temp_config, outfile, indent=4)
 
         
