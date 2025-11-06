@@ -183,7 +183,8 @@ class Plotter:
                 # Make dataframe and ensure the units are correct
                 df = pd.concat([truth_df,reco_df], axis=1)
                 for var in list(set(truth_vars + reco_vars)):
-                    df = Util.checkUnits(df,var.name,var.units)
+                    df = Util.checkUnits(df,'truth_'+var.name,var.units)
+                    df = Util.checkUnits(df,'reco_'+var.name,var.units)
                 
             # Systematics data
             else:
@@ -191,7 +192,7 @@ class Plotter:
                 df = df.add_prefix('reco_') 
                 if cut_var!=None: df[cut_var] = data_file[input_type].arrays([cut_var],library="pd")
                 for var in list(set(truth_vars + reco_vars)):
-                    df = Util.checkUnits(df,variable.name,variable.units)
+                    df = Util.checkUnits(df,'reco_'+var.name,var.units)
         
         return df
             
@@ -357,6 +358,7 @@ class Plotter:
                     folded_bins = specs["even_stats_bins"]["folded_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(variable.name)),columns=[variable.name])
+                    temp_df = Util.checkUnits(temp_df,variable.name,variable.units)
                     ticks, tick_labels = Util.getEvenStatsTicks(temp_df[variable.name],variable.observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
@@ -491,6 +493,7 @@ class Plotter:
                     nbins = plot_specs["n_even_stats_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(x_variable.name)),columns=[x_variable.name])
+                    temp_df = Util.checkUnits(temp_df,x_variable.name,x_variable.units)
                     ticks, tick_labels = Util.getEvenStatsTicks(temp_df[x_variable.name],x_variable.observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
@@ -535,6 +538,7 @@ class Plotter:
                     folded_bins = specs["even_stats_bins"]["folded_bins"]
                     with h5py.File(self.dataset_config['Test_Data']['nom_input'],'r') as test_file:
                         temp_df = pd.DataFrame(np.array(test_file.get(variable.name)),columns=[variable.name])
+                    temp_df = Util.checkUnits(temp_df,variable.name,variable.units)
                     ticks, tick_labels = Util.getEvenStatsTicks(temp_df[variable.name],variable.observable,folded_bins,nbins)
                     stats_tag = '(stats_binning)'
                 else:
