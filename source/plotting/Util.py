@@ -35,13 +35,13 @@ def wrap_phi(phi):
     return phi
 
 
-def checkUnits(df,var_name,obs_units):
+def checkUnits(df,col_name,obs_units):
     """
     Checks if the values for a particular observable are of the same order as specified in the Observable definition. If not, values are converted to the specified magnitude. Only applies to energy-related (not angular) observables.
     
         Parameters:
             df (pd.DataFrame): Dataframe.
-            var_name (str): Name of the desired variable (e.g. 'th_pt').
+            col_name (str): Name of the desired column in the dataframe (e.g. 'truth_th_pt').
             obs_units (str): Units for the observable of interest.
             
         Returns:
@@ -60,42 +60,38 @@ def checkUnits(df,var_name,obs_units):
         order_df = np.floor(np.log10(df))
         mode_df = order_df.mode()
         
-        # Go through truth (if available) and reco
-        column_names = ['truth_'+var_name, 'reco_'+var_name] if 'truth_'+var_name in df.keys() else ['reco_'+var_name]
-        for col_name in column_names:
-        
-            # Modify units as asked
-            if obs_units == "GeV":
-                if mode_df[col_name][0] in TeV_order_range:
-                    df[col_name] = df[col_name]*1000
-                    logger.warning(col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                elif mode_df[col_name][0] in GeV_order_range:
-                    pass
-                elif mode_df[col_name][0] in MeV_order_range:
-                    df[col_name] = df[col_name]/1000
-                    logger.warning(col_name+' is estimated to be in units of MeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                elif mode_df[col_name][0] in keV_order_range:
-                    df[col_name] = df[col_name]/(1000000)
-                    logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                else:
-                    logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
-                    sys.exit()
+        # Modify units as asked
+        if obs_units == "GeV":
+            if mode_df[col_name][0] in TeV_order_range:
+                df[col_name] = df[col_name]*1000
+                logger.warning(col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+            elif mode_df[col_name][0] in GeV_order_range:
+                pass
+            elif mode_df[col_name][0] in MeV_order_range:
+                df[col_name] = df[col_name]/1000
+                logger.warning(col_name+' is estimated to be in units of MeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+            elif mode_df[col_name][0] in keV_order_range:
+                df[col_name] = df[col_name]/(1000000)
+                logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+            else:
+                logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
+                sys.exit()
 
-            elif obs_units == "MeV":
-                if mode_df[col_name][0] in TeV_order_range:
-                    df[col_name] = df[col_name]*1000000
-                    logger.warning(col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                elif mode_df[col_name][0] in GeV_order_range:
-                    df[col_name] = df[col_name]*1000
-                    logger.warning(col_name+' is estimated to be in units of GeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                elif mode_df[col_name][0] in MeV_order_range:
-                    pass
-                elif mode_df[col_name][0] in keV_order_range:
-                    df[col_name] = df[col_name]/(1000)
-                    logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
-                else:
-                    logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
-                    sys.exit()
+        elif obs_units == "MeV":
+            if mode_df[col_name][0] in TeV_order_range:
+                df[col_name] = df[col_name]*1000000
+                logger.warning(col_name+' is estimated to be in units of TeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+            elif mode_df[col_name][0] in GeV_order_range:
+                df[col_name] = df[col_name]*1000
+                logger.warning(col_name+' is estimated to be in units of GeV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+            elif mode_df[col_name][0] in MeV_order_range:
+                pass
+            elif mode_df[col_name][0] in keV_order_range:
+                df[col_name] = df[col_name]/(1000)
+                logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
+            else:
+                logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
+                sys.exit()
     
     return df
 
