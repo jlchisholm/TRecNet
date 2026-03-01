@@ -1,0 +1,132 @@
+{
+    "reco_models_to_plot": ["TRecNet","TRecNet+ttbar+JetPretrainUnfrozen","KLFitter6"],
+    "variables":
+    {
+        "ttbar":
+        {
+            "pt":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {},
+                    {"pt_high":100},
+                    {"pt_low":250, "pt_high":500},
+                    {"pt_low":500}
+                ]
+            },
+            "eta":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "phi":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "m":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            }
+        },
+        "th":
+        {
+            "pt":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {},
+                    {"pt_high":100},
+                    {"pt_low":250, "pt_high":500},
+                    {"pt_low":500}
+                ]
+            },
+            "eta":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "phi":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "m":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            }
+        },
+        "tl":
+        {
+            "pt":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {},
+                    {"pt_high":100},
+                    {"pt_low":250, "pt_high":500},
+                    {"pt_low":500}
+                ]
+            },
+            "eta":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "phi":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            },
+            "m":
+            {
+                "include_moments": true,
+                "nbins": 30,
+                "pt_cuts": 
+                [
+                    {}
+                ]
+            }
+        }
+    }
+}

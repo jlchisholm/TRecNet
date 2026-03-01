@@ -116,7 +116,7 @@ class MLFilePrep:
         return df_other
 
 
-    def getTruthData(self,truth_tree,keys,var_conf,jn,extra_b_mode,include_jet_truths):
+    def getTruthData(self,truth_tree,keys,var_conf,jn,b_mode,include_jet_truths):
         """
         Creates a dataframe for the truth variables, including: pt, eta, phi, m, y, E, and pout for thad and tlep; and pt, eta, phi, m, y, E, dphi, Ht, chi, and yboost for ttbar; pt, eta, phi, m for whad and wlep; and isTruth for each of the jets.
         
@@ -125,7 +125,7 @@ class MLFilePrep:
                 keys (list of str): Keys for the variables in the ROOT file.
                 var_conf (str): Name (including path) of the config file for the variable names.
                 jn (int): Number of jets you want per event, with padding where need be.
-                extra_b_mode (str): How to include extra b's from ttbb (i.e. b vs bbar, or b1 vs b2).
+                b_mode (str): How to include sort b's from ttbar decay (i.e. b vs bbar, or b1 vs b2).
                 include_jet_truths (bool): Flag to include any jet origin truth variables available in the ROOT file.
             
             Returns:
@@ -138,12 +138,12 @@ class MLFilePrep:
             for v in ['pt','eta','phi','m']:
                 truth_keys[p+v] = getObservableName(var_conf,keys,p+v)
                 
-        # If ttbb, also get b and bbar keys or b1b2 keys
-        if extra_b_mode=='bbbar':
-            for p in ['b_','bbar_']:
+        # Get b and bbar keys or b1b2 keys
+        if b_mode=='bbbar':
+            for p in ['b_t_','bbar_tbar_']:
                 for v in ['pt', 'eta', 'phi', 'm']:
                     truth_keys[p+v] = getObservableName(var_conf,keys,p+v)
-        elif extra_b_mode=='b1b2':
+        elif b_mode=='b1b2':
             for p in ['b1_','b2_']:
                 for v in ['pt', 'eta', 'phi', 'm']:
                     truth_keys[p+v] = getObservableName(var_conf,keys,p+v)
@@ -167,7 +167,7 @@ class MLFilePrep:
         return df_truth
 
 
-    def getDataframes(self,root_file,tree_type,var_conf,jn,extra_b_mode,include_jet_truths):
+    def getDataframes(self,root_file,tree_type,var_conf,jn,b_mode,include_jet_truths):
         """
         Creates the jet, other, and truth dataframes from a specified file.
 
@@ -176,7 +176,7 @@ class MLFilePrep:
                 tree_type (str): Name of the tree from which to extract the data (nominal, up, or down).
                 var_conf (str): Name (including path) of the config file for the variable names.
                 jn (int): Number of jets you want per event, with padding where need be.
-                extra_b_mode (str): How to include extra b's from ttbb (i.e. b vs bbar, or b1 vs b2).
+                b_mode (str): How to include b's from ttbar decay (i.e. b vs bbar, or b1 vs b2).
                 include_jet_truths (bool): Flag to include any jet origin truth variables available in the ROOT file.
         
             Returns: 
@@ -208,7 +208,7 @@ class MLFilePrep:
         # Get the truth dataframe (only for nominal)
         if tree_type=='nominal':
             print('Getting truth dataframe ...')
-            df_truth = self.getTruthData(tree,keys,var_conf,jn,extra_b_mode,include_jet_truths)
+            df_truth = self.getTruthData(tree,keys,var_conf,jn,b_mode,include_jet_truths)
         else:
             df_truth = ak.to_dataframe({'eventNumber':tree['eventNumber']})
         
@@ -216,7 +216,7 @@ class MLFilePrep:
         return df_jets, df_other, df_truth
 
 
-    def makeH5File(self,input,save_dir,tree_type,var_conf,jn,extra_b_mode,include_jet_truths):
+    def makeH5File(self,input,save_dir,tree_type,var_conf,jn,b_mode,include_jet_truths):
         """
         Creates and saves h5 file with the reco and truth variables.
 
@@ -226,7 +226,7 @@ class MLFilePrep:
                 tree_type (str): Name of the tree from which to extract the data (nominal, up, or down).
                 var_conf (str): Name (including path) of the config file for the variable names.
                 jn (int): Number of jets you want per event, with padding where need be.
-                extra_b_mode (str): How to include extra b's from ttbb (i.e. b vs bbar, or b1 vs b2).
+                b_mode (str): How to include b'sfrom ttbar decay (i.e. b vs bbar, or b1 vs b2).
                 include_jet_truths (bool): Flag to include any jet origin truth variables available in the ROOT file.
 
             Returns: 
@@ -239,11 +239,11 @@ class MLFilePrep:
         prefix = in_name.split('.root')[0].split('_pruned')[0]
 
         # Get the data to be saved
-        df_jets, df_other, df_truth = self.getDataframes(input,tree_type,var_conf,jn,extra_b_mode,include_jet_truths)
+        df_jets, df_other, df_truth = self.getDataframes(input,tree_type,var_conf,jn,b_mode,include_jet_truths)
 
         # Add a tag for the data type and the number of jets included
         tag = '_sysUP' if tree_type=='up' else '_sysDOWN' if tree_type=='down' else '_nom'
-        tag = '_bbbar'+tag if extra_b_mode=='bbbar' else '_b1b2'+tag if extra_b_mode=='b1b2' else tag
+        tag = '_bbbar'+tag if b_mode=='bbbar' else '_b1b2'+tag if b_mode=='b1b2' else tag
         tag = '_'+str(jn)+'jets'+tag
 
         # Creating h5 file for input in the neural network
@@ -410,7 +410,7 @@ p_makeH5File.add_argument('--save_dir',help='Path for directory where file will 
 p_makeH5File.add_argument('--tree_type',help='Name of the tree from which to extract the data.',choices=['nominal', 'up', 'down'],required=True)
 p_makeH5File.add_argument('--var_conf',help='Config file (including path) for names of variables.',required=True)
 p_makeH5File.add_argument('--jn',help='Number of jets to include per event (using padding if necessary) (default: 6).',type=int,default=6)
-p_makeH5File.add_argument('--extra_b_mode', help='How to include extra bs from ttbb (i.e. b vs bbar, or b1 vs b2).', choices=['none','bbbar','b1b2'],required=True)
+p_makeH5File.add_argument('--b_mode', help='How to include bs from ttbar decay (i.e. b vs bbar, or b1 vs b2).', choices=['none','bbbar','b1b2'],required=True)
 p_makeH5File.add_argument('--include_jet_truths', help='Flag to include any jet origin truth variables available in the ROOT file.', action='store_true')
 
 # Define arguments for combineH5Files
@@ -427,7 +427,7 @@ p_makeTrainTest.add_argument('--split',help='Percentage of events (expressed as 
 args = parser.parse_args()
 if args.function == 'makeH5File':
     prepper = MLFilePrep()
-    prepper.makeH5File(args.input,args.save_dir,args.tree_type,args.var_conf,args.jn,args.extra_b_mode,args.include_jet_truths)
+    prepper.makeH5File(args.input,args.save_dir,args.tree_type,args.var_conf,args.jn,args.b_mode,args.include_jet_truths)
 elif args.function == 'combineH5Files':
     file_list = [file.strip() for file in args.file_list]
     prepper = MLFilePrep()

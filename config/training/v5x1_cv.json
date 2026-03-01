@@ -1,0 +1,37 @@
+{
+  "data": "/data/tommylub/h5_files/nom_ttbb_10jets_b1b2_train.h5",
+  "xmaxmean": "/data/tommylub/maxmean/X_maxmean_nom_ttbb_10jets_b1b2_train.npy",
+  "ymaxmean": "/data/tommylub/maxmean/Y_maxmean_nom_ttbb_10jets_b1b2_train.npy",
+  "split": [70, 15, 15],
+  "njets": 10,
+
+  "max_epochs": 80,
+  "patience": 10,
+
+  "initial_lr": 0.0003,
+  "final_lr_div": 20,
+  "lr_power": 0.75,
+  "lr_decay_step": 200000,
+
+  "batch_size": 256,
+  "optimizer": "adamw",
+
+  "create": {
+    "add_ttbar": true,
+    "b_mode": "b1b2",
+    "pretrained_jet_classifier": null,
+    "pretrained_bb_classifier": null
+  },
+
+  "unfreeze": {
+    "frozen_model": null
+  },
+
+  "hparams": {
+    "d_model": 256,
+    "ffn_dim": 1024,
+    "n_heads": 4,
+    "n_blocks": 4,
+    "enc_dropout": 0.05
+  }
+}

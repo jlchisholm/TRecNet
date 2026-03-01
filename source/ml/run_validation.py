@@ -14,12 +14,16 @@
 #                                                                        #
 ##########################################################################
 
-import os
+import os, sys
+# makes intra-repo imports work regardless of CWD
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if ROOT not in sys.path: sys.path.insert(0, ROOT)
 os.environ["CUDA_VISIBLE_DEVICES"]="1"    # These are the GPUs visible for training
 from argparse import ArgumentParser
-
+import uproot
 from Predictions import Predictor
 from TRecNet_Model import TRecNet_Model
+from Models.blocks import set_encoder, transformer_blocks, objwise, pooling # apparantly i need to import these here, idk ask python
 
 import numpy as np
 import pandas as pd
@@ -28,6 +32,8 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sklearn.metrics import multilabel_confusion_matrix
 import seaborn as sb
+# added new path handler 
+from paths import resolve_model_dir
 
 import tracemalloc
 tracemalloc.start()
@@ -59,10 +65,11 @@ def plot_pred_vs_truth(model_name, var, preds, truths, save_loc):
     plt.ylabel('Events',fontsize=axis_size)
     plt.xticks(fontsize=ticks_size)
     plt.yticks(fontsize=ticks_size)
-    plt.savefig(save_loc+var, bbox_inches='tight')
+    outpath = os.path.join(save_loc, var + ".png")   # directory to save to
+    plt.savefig(outpath, bbox_inches='tight')
     plt.close()
-    
-    print('Saved figure: '+save_loc+var)
+    print('Saved figure: ' + outpath)
+
       
 def jet_cm_plot(njets, preds, truths, save_loc):
     
@@ -104,30 +111,32 @@ def jet_cm_plot(njets, preds, truths, save_loc):
 
 
 def make_plots(model, scale_pred_dic, scale_true_dic, origscale_pred_dic, origscale_true_dic):
-    
-    # Create directory for saving things in if it doesn't exist
-    save_loc ='models/'+model.model_name+'/'+model.model_id+'/val_plots/'
-    if not os.path.exists(save_loc):
-        os.makedirs(save_loc)
-    
+    # finds the trained run directory via resolve_model_dir(model.model_id)
+    model_dir = resolve_model_dir(model.model_id)
+
+    # save dirs for validation plots
+    # creates two dedicated output dirs
+    # plots/val/scaled
+    # plots/val/original
+    save_loc_scaled   = os.path.join(model_dir, "plots", "val", "scaled")
+    save_loc_original = os.path.join(model_dir, "plots", "val", "original")
+    os.makedirs(save_loc_scaled, exist_ok=True)
+    os.makedirs(save_loc_original, exist_ok=True)
+
+    model_name = getattr(model, 'model_name', model.model_id)
+
     # Scaled Plots
-    if not os.path.exists(save_loc+'scaled/'):
-        os.makedirs(save_loc+'scaled/')
     for key in scale_pred_dic.keys():
-        plot_pred_vs_truth(model.model_name, key, scale_pred_dic[key], scale_true_dic[key], save_loc+'scaled/')
-        
+        plot_pred_vs_truth(model_name, key, scale_pred_dic[key], scale_true_dic[key], save_loc_scaled)
+
     # Original Scale Plots
-    if not os.path.exists(save_loc+'original/'):
-        os.makedirs(save_loc+'original/')
     for key in origscale_pred_dic.keys():
-        plot_pred_vs_truth(model.model_name, key, origscale_pred_dic[key], origscale_true_dic[key], save_loc+'original/')
-            
+        plot_pred_vs_truth(model_name, key, origscale_pred_dic[key], origscale_true_dic[key], save_loc_original)
+
     # Jet CM Plot (For JetPretrainer)
     if model.model_name == 'JetPretrainer':
-        jet_cm_plot(scale_pred_dic, scale_true_dic, save_loc+'scaled/')
-        #jet_cm_plot(preds_origscale_dic, true_origscale_dic, save_loc+'original/')
-
-
+        jet_cm_plot(model.njets, scale_pred_dic, scale_true_dic, save_loc_scaled)
+        #jet_cm_plot(preds_origscale_dic, true_origscale_dic, save_loc_original)    
 
 
 
@@ -150,8 +159,26 @@ if __name__ == "__main__":
 
     # Test the model
     print('Beginning validation for '+args.model_id+'...')
-    Predictor = Predictor()
-    scale_pred_dic, scale_true_dic, origscale_pred_dic, origscale_true_dic = Predictor.get_scaled_and_origscale_pred_dics(model, args.train_data, 'val')
+    predictor = Predictor()
+    scale_pred_dic, scale_true_dic, origscale_pred_dic, origscale_true_dic = predictor.get_scaled_and_origscale_pred_dics(model, args.train_data, 'val')
     make_plots(model, scale_pred_dic, scale_true_dic, origscale_pred_dic, origscale_true_dic)
+    
+    model_dir = resolve_model_dir(model.model_id)
+    results_save_path = os.path.join(model_dir, 'results', 'Results.root')
+    os.makedirs(os.path.dirname(results_save_path), exist_ok=True)
+    results_file = uproot.recreate(results_save_path)
+
+    results_file["reco"] = origscale_pred_dic
+    results_file["reco_scaled"] = scale_pred_dic
+
+    results_file["parton"] = origscale_true_dic
+    results_file["parton_scaled"] = scale_true_dic
+
+    print('Results saved in %s.' % results_save_path)
+
+    # make sure it is what we want it to be
+    # with uproot.open(results_save_path) as f:
+    #     print(f.keys())  # expect: ['reco;1', 'reco_scaled;1', 'parton;1', 'parton_scaled;1']
+    #     print(f['reco'].keys())  # branch names match your dict keys
 
     print('Validation complete! :)')

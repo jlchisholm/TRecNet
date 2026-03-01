@@ -1,3 +1,8 @@
+TRecNet/
+.venv/
+venv/
+env/
+
 __pycache__/
 .ipynb_checkpoints/
 .tensorboard_logs/
@@ -5,9 +10,22 @@ __pycache__/
 tensorboard_logs/
 env/TRecNet_env/
 image/TRecNetContainer.sif
+config/plotting/my_configs
 scripts/my_scripts/
 image/*.sif
 trained_models/
 diagrams/*/*.log
 diagrams/*/*.aux
 diagrams/*/*.gz
+<<<<<<< HEAD
+=======
+outputs/
+/TRecNet_env
+model_comparisons/
+outputs/
+model_comparisons/
+*.h5
+*.npy
+*.root
+*.log
+plots/

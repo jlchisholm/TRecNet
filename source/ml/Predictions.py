@@ -10,7 +10,7 @@
 #                                                                       #
 #########################################################################
 
-
+import os
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
@@ -24,6 +24,8 @@ from tensorflow import keras
 from MLUtil import *
 from Scaler import Scaler
 from InfoGrabber import InfoGrabber
+# use path utility module
+from paths import resolve_model_dir, keras_path, outputs_dir
 
         
         
@@ -93,14 +95,23 @@ class Predictor:
         # Create objects to use utilities
         processor = Utilities()
         grabber = InfoGrabber()
-        
+
+        # use the path module to resolve the dir
+        model_dir = resolve_model_dir(model.model_id)
+
+        # Also want the path to the keras model file directly
+        kpath = keras_path(model_dir, model.model_id)
+        if not os.path.isfile(kpath):
+            raise FileNotFoundError(f"Could not find model file at {kpath}")
+        # print(kpath)
+        trained_model = keras.models.load_model(kpath)
+
         # Load the things we'll need
         X_maxmean_dic, prediction.Y_maxmean_dic = processor.loadMaxMean(model.xmm_file, model.ymm_file)
-        trained_model = keras.models.load_model('trained_models/'+model.model_id+'/'+model.model_id+'.keras')
 
         # These are the keys for what we're feeding into the pre-processing, and getting back in the end
         # X and Y variables to be used (NOTE: later have option to feed these in) OR read them in from the info file
-        X_keys, Y_keys = processor.getInputKeys(model.model_v,model.n_jets,model.with_ttbar,model.extra_b_mode)
+        X_keys, Y_keys = processor.getInputKeys(model.model_v,model.n_jets,model.with_ttbar, model.b_mode)
 
         # For val and test, we have truth values, but for data (or systematics) we don't --> treat these modes differently
         if mode=='val' or mode=='test':
@@ -149,9 +160,9 @@ class Predictor:
         """
         
         # Make predictions if not already done
-        if prediction == None:
-            prediction = self.get_scaled_predictions(self, model, data_file, mode)
-        elif prediction.pred_scaled == None:
+        if prediction is None:
+            prediction = self.get_scaled_predictions(model, data_file, mode)
+        elif prediction.pred_scaled is None:
             print("ERROR: The prediction object you entered has no predictions in it. Exiting program.")
             sys.exit()
         
@@ -186,9 +197,9 @@ class Predictor:
         """
         
         # Make predictions if not already done
-        if prediction == None:
-            prediction = self.get_scaled_predictions(self, model, data_set, mode)
-        elif prediction.pred_scaled == None:
+        if prediction is None:
+            prediction = self.get_scaled_predictions(model, data_set, mode)
+        elif prediction.pred_scaled is None:
             print("ERROR: The prediction object you entered has no predictions in it. Exiting program.")
             sys.exit()
         
@@ -223,15 +234,16 @@ class Predictor:
         """
         
         # Make predictions if not already done
-        if prediction == None:
-            prediction = self.get_scaled_predictions(self, model, data_set, mode)
-        elif prediction.pred_scaled == None:
+        if prediction is None:
+            prediction = self.get_scaled_predictions(model, data_set, mode)
+        elif prediction.pred_scaled is None:
             print("ERROR: The prediction object you entered has no predictions in it. Exiting program.")
             sys.exit()
             
         # Get the dictionaries from the prediction
-        pred_scaled_dic, true_scaled_dic = Predictor.get_scaled_pred_dics(model, data_set, mode, prediction)
-        pred_origscale_dic, true_origscale_dic = Predictor.get_origscale_pred_dics(model, data_set, mode, prediction)
+        # i can call self.get_scaled_pred_dics instead of Predictor.get_scaled_pred_dics
+        pred_scaled_dic, true_scaled_dic = self.get_scaled_pred_dics(model, data_set, mode, prediction)
+        pred_origscale_dic, true_origscale_dic = self.get_origscale_pred_dics(model, data_set, mode, prediction)
         
         return pred_scaled_dic, true_scaled_dic, pred_origscale_dic, true_origscale_dic
         
@@ -249,27 +261,42 @@ class Predictor:
                 save_loc (str): Location to save the test results.
                 include_scaled (bool): Whether to also save the scaled variables to the result file.
         """
-        
-        # Create the save file
-        data_name = data_file.split('.h5')[0]
-        if 'train' in data_name and mode=='val':
-            data_name = data_name.split('train')[0]+'val'
-        save_name = save_loc+model.model_id+'_'+data_name+'_Results.root'
-        results_file = uproot.recreate(save_name)
-        
+
+	    # Use os.path.basename + .rsplit('.h5', 1)[0] for clean extraction.
+        dataset_basename = os.path.basename(data_file).rsplit('.h5', 1)[0]
+        if 'train' in dataset_basename and mode == 'val':
+            # mirror the validation naming used elsewhere
+            dataset_basename = dataset_basename.replace('train', 'val', 1)
+
+        # if save_loc provided -> build output dir: <save_loc>/<model_id>/<mode>/<dataset_basename>.
+        # else: fall back to central helper outputs_dir(...).
+        if save_loc and len(save_loc.strip()) > 0:
+            out_dir = os.path.join(save_loc, model.model_id, mode, dataset_basename)
+            os.makedirs(out_dir, exist_ok=True)
+        else:
+            out_dir = outputs_dir(model.model_id, mode, dataset_basename)
+
+        # get the save path and create the file
+        save_path = os.path.join(out_dir, "Results.root")
+        results_file = uproot.recreate(save_path)
+
         # Make predictions
         if include_scaled:
-            scale_pred_dic, scale_true_dic, pred_dic, true_dic = Predictor.get_scaled_and_origscale_pred_dics(model, data_file, mode)
+            scale_pred_dic, scale_true_dic, pred_dic, true_dic = self.get_scaled_and_origscale_pred_dics(
+                model, data_file, mode
+            )
         else:
-            pred_dic, true_dic = Predictor.get_origscale_pred_dics(model, data_file, mode)
+            pred_dic, true_dic = self.get_origscale_pred_dics(
+                model, data_file, mode
+            )
 
         # Save the results as 'reco' (pred) and 'parton' (truth) (if available)
         results_file["reco"] = pred_dic
         if include_scaled:
             results_file["reco_scaled"] = scale_pred_dic
-        if mode in ['val','test']: 
+        if mode in ['val','test']:
             results_file["parton"] = true_dic
             if include_scaled:
                 results_file["parton_scaled"] = scale_true_dic
 
-        print('Results saved in %s.' % save_name)
+        print('Results saved in %s.' % save_path)

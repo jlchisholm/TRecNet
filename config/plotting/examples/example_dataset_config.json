@@ -1,0 +1,46 @@
+{
+  "Test_Data": {
+    "nom_input": "/data/tommylub/h5_files/nom_ttbb_10jets_b1b2_test.h5"
+  },
+  "Models": {
+    "TRecNet_ttbb_v5": {
+      "shortname": "v5",
+      "model_id": "TRecNet_ttbb_v5_b1b2+ttbar_10jets_20251007_073429",
+      "nom_input": "/home/tommylub/TRecNet/outputs/TRecNet_ttbb_v5_b1b2+ttbar_10jets_20251007_073429/test/nom_ttbb_10jets_b1b2_test/Results.root",
+      "available_variables": {
+        "th":    ["pt","eta","phi","m"],
+        "tl":    ["pt","eta","phi","m"],
+        "ttbar": ["pt","eta","phi","m"]
+      },
+      "cuts": [
+        { "cut_on": null, "max": null, "min": null, "tag": "No Cuts", "color_scheme": "tab:purple" }
+      ]
+    },
+    "TRecNet_ttbb_v5x1": {
+      "shortname": "v5x1",
+      "model_id": "TRecNet_ttbb_v5x1_b1b2+ttbar_10jets_20251020_104443",
+      "nom_input": "/home/tommylub/TRecNet/outputs/TRecNet_ttbb_v5x1_b1b2+ttbar_10jets_20251020_104443/test/nom_ttbb_10jets_b1b2_test/Results.root",
+      "available_variables": {
+        "th":    ["pt","eta","phi","m"],
+        "tl":    ["pt","eta","phi","m"],
+        "ttbar": ["pt","eta","phi","m"]
+      },
+      "cuts": [
+        { "cut_on": null, "max": null, "min": null, "tag": "No Cuts", "color_scheme": "tab:orange" }
+      ]
+    },
+    "TRecNet_ttbb_v5x1_clf": {
+      "shortname": "v5x1_clf",
+      "model_id": "TRecNet_ttbb_v5x1_clf_b1b2+ttbar_10jets_20251019_213359",
+      "nom_input": "/home/tommylub/TRecNet/outputs/TRecNet_ttbb_v5x1_clf_b1b2+ttbar_10jets_20251019_213359/test/nom_ttbb_10jets_b1b2_test/Results.root",
+      "available_variables": {
+        "th":    ["pt","eta","phi","m"],
+        "tl":    ["pt","eta","phi","m"],
+        "ttbar": ["pt","eta","phi","m"]
+      },
+      "cuts": [
+        { "cut_on": null, "max": null, "min": null, "tag": "No Cuts", "color_scheme": "tab:green" }
+      ]
+    }
+  }
+}

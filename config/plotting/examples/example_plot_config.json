@@ -1,0 +1,35 @@
+{   
+    "save_loc": "example_plots",
+    "config_files_location":"/home/tommylub/TRecNet/config/plotting/examples/",
+    "dataset_config": "example_dataset_config.json",
+    "TrainValLoss":
+    {
+        "make_plots": true,
+        "config": "example_train_val_loss_config.json"
+    },
+    "TruthReco":
+    {
+        "make_plots": true,
+        "config": "example_truthreco_config.json"
+    },
+    "CM":
+    {
+        "make_plots": true,
+        "config": "example_cm_config.json"
+    },
+    "Res":
+    {
+        "make_plots": true,
+        "config": "example_res_config.json"
+    },
+    "ResVsVar":
+    {
+        "make_plots": true,
+        "config": "example_res_vs_var_config.json"
+    },
+    "Sys":
+    {
+        "make_plots": true,
+        "config": "example_sys_config.json"
+    }
+}

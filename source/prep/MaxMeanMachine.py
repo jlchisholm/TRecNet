@@ -27,14 +27,14 @@ class MaxMeanMachine:
     def __init__(self):
         print("Creating MaxMeanMachine.")
     
-    def saveMaxMean(self,input_file,save_dir,extra_b_mode):
+    def saveMaxMean(self,input_file,save_dir,b_mode):
         """
         Saves dictionary of [max,mean] values for X (reco) and Y (truth) variables.
         
             Parameters: 
                 input_file (str): Name (and path) of the h5 file you want to calculate the max mean values for.
                 save_dir (str): Directory where you would like to save the max mean values.
-                extra_b_mode (str): How to include extra b's from ttbb (i.e. b vs bbar, or b1 vs b2).
+                b_mode (str): How to include b's from ttbar decay (i.e. b vs bbar, or b1 vs b2).
 
             Returns: 
                 Saves two numpy files of [max, mean] values; one for X (reco) variables and one for Y (truth) variables.
@@ -99,9 +99,9 @@ class MaxMeanMachine:
 
         # Calculate px and py for truth
         particles = ['th_','wh_','tl_','wl_','ttbar_']
-        if extra_b_mode == 'bbbar':
-            particles.extend(['b_','bbar_'])
-        elif extra_b_mode == 'b1b2':
+        if b_mode == 'bbbar':
+            particles.extend(['b_t_','bbar_tbar_'])
+        elif b_mode == 'b1b2':
             particles.extend(['b1_','b2_'])
             
         for p in particles:
@@ -129,11 +129,11 @@ parser = ArgumentParser()
 # Define arguments for saveMaxMean
 parser.add_argument('--input',help='Input training h5 file (including path).',required=True)
 parser.add_argument('--save_dir',help='Path for directory where file will be saved.',required=True)
-parser.add_argument('--extra_b_mode', help='How to include extra bs from ttbb (i.e. b vs bbar, or b1 vs b2).', choices=['none','bbbar','b1b2'],required=True)
+parser.add_argument('--b_mode', help='How to include bs from ttbar decay (i.e. b vs bbar, or b1 vs b2).', choices=['none','bbbar','b1b2'],required=True)
 
 # Parse the arguments and proceed with stuff
 args = parser.parse_args()
 mm = MaxMeanMachine()
-mm.saveMaxMean(args.input,args.save_dir,args.extra_b_mode)
+mm.saveMaxMean(args.input,args.save_dir,args.b_mode)
 
 print('Done :)')

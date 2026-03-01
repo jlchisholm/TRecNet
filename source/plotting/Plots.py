@@ -1,0 +1,531 @@
+######################################################################
+#                                                                    #
+#  Plots.py                                                          #
+#  Author: Jenna Chisholm                                            #
+#  Updated: Oct.16/25                                                #
+#                                                                    #
+#  Defines a plotting class with functions for plotting training and #
+#  validation loss, truth vs. reco histograms, confusion matrices,   #
+#  systematics histograms, resolution/residual histograms, and plots #
+#  of resolution/residual as a function of a specified variable.     #
+#  Intended for visualizing and comparing the results of different   #
+#  ttbar reconstruction methods.                                     # 
+#                                                                    #
+#  Thoughts for improvements: Include systematics, allow pt cuts     #
+#  for truth vs reco and confusion matrices, maybe better color      #
+#  scheme handling (e.g. with cuts on the data).                     #
+#                                                                    #
+######################################################################
+
+
+# Import useful packages
+import logging
+logger = logging.getLogger(__name__)
+import numpy as np
+import matplotlib
+matplotlib.use('Agg')  # need for not displaying plots when running batch jobs
+from matplotlib import pyplot as plt
+from matplotlib import colors
+#from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, plot_confusion_matrix
+from sigfig import round
+import Util
+
+
+PLOT_TYPES = ['TrainValLoss','TruthReco','CM','Res','ResVsVar','Sys']
+ATLAS_LABEL = {"enabled": False}
+
+
+def _add_atlas_label(ax, atlas_label):
+    """
+    Add an ATLAS-style label OUTSIDE the axes (in the figure margin).
+
+    atlas_label dict example:
+      {
+        "enabled": True,
+        "text": "ATLAS Internal",
+        "loc": "upper left",      # upper left/right, lower left/right
+        "fontsize": 14,
+        "bold": True,
+        "pad": 0.01,             # padding in figure-fraction units
+        "alpha": 1.0,
+        "color": "black",
+        "bbox": False
+      }
+    """
+    if not atlas_label or not atlas_label.get("enabled", False):
+        return
+
+    fig = ax.figure
+
+    text = atlas_label.get("text", "ATLAS")
+    loc = atlas_label.get("loc", "upper left")
+    fontsize = atlas_label.get("fontsize", 14)
+    bold = atlas_label.get("bold", True)
+    pad = atlas_label.get("pad", 0.01)   # figure-fraction padding
+    alpha = atlas_label.get("alpha", 1.0)
+    color = atlas_label.get("color", "black")
+    use_bbox = atlas_label.get("bbox", False)
+
+    # Axes position in figure coordinates: [0..1] x [0..1]
+    pos = ax.get_position()  # Bbox in figure fraction coords
+    x0, y0, x1, y1 = pos.x0, pos.y0, pos.x1, pos.y1
+
+    # Place label just OUTSIDE the axes box
+    loc_map = {
+        "upper left":  (x0, y1, "left",  "bottom",  +pad, +pad),
+        "upper right": (x1, y1, "right", "bottom",  -pad, +pad),
+        "lower left":  (x0, y0, "left",  "top",     +pad, -pad),
+        "lower right": (x1, y0, "right", "top",     -pad, -pad),
+    }
+    x, y, ha, va, dx, dy = loc_map.get(loc, loc_map["upper left"])
+    x += dx
+    y += dy
+
+    bbox = None
+    if use_bbox:
+        bbox = dict(facecolor="white", edgecolor="none", alpha=0.7, pad=3.0)
+
+    # IMPORTANT: figure transform => always outside plot content
+    fig.text(
+        x, y,
+        text,
+        transform=fig.transFigure,
+        ha=ha, va=va,
+        fontsize=fontsize,
+        fontweight=("bold" if bold else "normal"),
+        color=color,
+        alpha=alpha,
+        bbox=bbox,
+        zorder=1000,
+    )
+
+
+def TrainValLoss_Plot(datasets, loss_metric, save_loc='./', extra_metrics=[]):
+    """
+    Creates and saves a plot of the training and validation loss for the given datasets over epochs.
+    
+        Parameters:
+            datasets (list of Dataset objects): Dataset objects of the data you want to plot.
+            loss_metric (str): Name used for the loss quantifier (e.g. 'MAE').
+            
+        Options:
+            save_loc (str): Directory where you want the histogram saved to (default: current directory).
+            extra_metrics (list of str): List of names for other metrics that were monitored during training (default: []).
+    """
+    
+    # Make main loss plot
+    plt.figure('loss')
+    for dataset in datasets:
+        plt.plot(dataset.train_history['loss'], label=dataset.reco_method+'(Training)',color=dataset.color)
+        plt.plot(dataset.train_history['val_loss'], '--', label=dataset.reco_method+'(Validation)',color=dataset.color)
+        plt.xlabel('Epoch', fontsize=12)
+        plt.ylabel('Loss ('+loss_metric+')', fontsize=12)
+        plt.xticks(fontsize=10)
+        plt.yticks(fontsize=10)
+        plt.legend(fontsize=10)
+        
+    # Save main loss plot
+    fig_name = loss_metric+'_Loss'
+    ax = plt.gca()
+    _add_atlas_label(ax, ATLAS_LABEL)
+    plt.savefig(save_loc+'/'+fig_name,bbox_inches='tight')
+    logger.info('Saved Figure: '+fig_name)
+    plt.close('loss')
+    
+    # Make other plots
+    for metric in extra_metrics:
+        
+        # Make the plot
+        plt.figure(metric)
+        for dataset in datasets:
+            plt.plot(dataset.train_history[metric], label=dataset.reco_method+'(Training)',color=dataset.color)
+            plt.plot(dataset.train_history['val_'+metric], '--', label=dataset.reco_method+'(Validation)',color=dataset.color)
+            plt.xlabel('Epoch', fontsize=12)
+            plt.ylabel(metric, fontsize=12)
+            plt.xticks(fontsize=10)
+            plt.yticks(fontsize=10)
+            plt.legend(fontsize=10)
+            
+        # Save extra plot
+        fig_name = metric+'_Loss'
+        plt.savefig(save_loc+'/'+fig_name,bbox_inches='tight')
+        logger.info('Saved Figure: '+fig_name)
+        plt.close(metric)
+
+
+def TruthReco_Hist(dataset,variable,x_min,x_max,nbins=30,save_loc='./'):
+    """
+    Creates and saves a histogram with true and reconstructed data both plotted, for a given dataset, particle, and observable.
+
+        Parameters:
+            dataset (Dataset object): Dataset object with the data you want to plot.
+            variable (Variable object): Variable object of the variable you want to plot.
+            x_min (int or float): Minimum value to plot.
+            x_max (int or float): Maximum value to plot.
+
+        Options:
+            nbins (int): Number of desired bins for the histogram (default: 30).
+            save_loc (str): Directory where you want the histogram saved to (default: current directory).
+
+        Returns:
+            Saves histogram in <save_loc> as '<reco_method>_TruthReco_Hist_<data_type>_<particle>_<observable>.png' .
+    """
+
+    # Plot histograms of true and reco results on the same histogram
+    _, (ax1, ax2) = plt.subplots(nrows=2,sharex=True,gridspec_kw={'height_ratios': [4, 1]})
+    truth_n, _, _ = ax1.hist(dataset.df['truth_'+variable.name],bins=nbins,range=(x_min,x_max),histtype='step',label='truth',color='black')
+    reco_n, bins, _ = ax1.hist(dataset.df['reco_'+variable.name],bins=nbins,range=(x_min,x_max),histtype='step',label='reco',color=dataset.color)
+    _add_atlas_label(ax1, ATLAS_LABEL)
+    # Make sure histograms aren't getting cut off
+    max_truth = max(truth_n)*1.05
+    max_reco = max(reco_n)*1.05
+    ax1.set(ylim=(0,max([max_truth,max_reco])))
+
+    # Plot the ratio of the two histograms underneath (with a dashed line at 1)
+    x_dash,y_dash = np.linspace(x_min,x_max,100),[1]*100
+    ax2.plot(x_dash,y_dash,'k--')
+    bin_width = np.diff(bins)
+    ax2.plot(bins[:-1]+bin_width/2, truth_n/reco_n,'o',color=dataset.color)  # Using bin width so points are plotted aligned with middle of the bin
+    ax2.set(ylim=(0, 2))
+    #ax2.set_yscale('log')
+
+    # Set some axis labels
+    ax2.set_xlabel(variable.label)
+    ax1.set_ylabel('Counts')
+    ax2.set_ylabel('Ratio (truth/reco)')
+    ax1.legend()
+        
+    # Save the figure as a png in save location
+    fig_name = dataset.reco_method+'('+dataset.cut_tag+')_TruthReco_Hist_'+variable.name
+    plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
+    logger.info('Saved Figure: '+fig_name)
+
+    plt.close()
+    
+
+def Confusion_Matrix(dataset,variable,ticks,tick_labels,folded_bins=True,square_bins=True,norm=True,tag='',save_loc='./'):
+    """ 
+    Creates and saves a 2D histogram of true vs reconstructed data, normalized across rows, for a given dataset, particle, and observable.
+
+        Parameters:
+            dataset (Dataset object): Dataset object with the data you want to plot.
+            variable (Variable object): Variable object of the variable you want to plot.
+            ticks (array): Array of the bin edges (int or float, depending on the observable).
+            tick_labels (list of str): List of labels for the ticks.  
+        
+        Options:
+            folded_bins (bool): Whether or not to use folded bins (e.g. have the last tick label for pt be infinity) (default: True).
+            square_bins (bool): Whether to have square bins or rectangular bins that match the ticks (primarily needed when using uneven bins) (default: True).
+            norm (bool): Whether or not to normalize the confusion matrix across rows (default: True).
+            tag (str): Extra tag to add to the plot save name.
+            save_loc (str): Directory where you want the histogram saved to (default: current directory).
+
+        Returns:
+            Saves histogram in <save_loc> as '<reco_method>_Confusion_Matrix_<data_type>_<particle>_<observable>.png'. 
+    """
+    
+    # Make the appropriate color map
+    color_map=colors.LinearSegmentedColormap.from_list('my_cmap', ['white', dataset.color])
+
+    # Define a useful string and some important constants
+    n = len(ticks)
+    ran = ticks[::n-1]
+
+    # Fix the end bin sizes if non-square bins are desired (we'll make them 75% larger than the other largest bin)
+    if not square_bins: 
+        if tick_labels[0]=='-'+r'$\infty$': # If these are set to infinity, it implies folded bins for this variable
+            ticks[0] = np.ptp(ticks[1:])*1.75
+            
+        if tick_labels[-1]==r'$\infty$':
+            ticks[-1] = np.ptp(ticks[:-1])*1.75
+            
+
+    # Create 2D array of truth vs reco observable (which can be plotted also)
+    if folded_bins:
+        H, _, _, _ = plt.hist2d(np.clip(dataset.df['reco_'+variable.name],ticks[0],ticks[-1]),np.clip(dataset.df['truth_'+variable.name],ticks[0],ticks[-1]),bins=ticks,range=[ran,ran])
+    else:
+        H, _, _, _ = plt.hist2d(dataset.df['reco_'+variable.name],ticks[0],ticks[-1],dataset.df['truth_'+variable.name],ticks[0],ticks[-1],bins=ticks,range=[ran,ran])
+
+    # Normalize across rows (if desired)
+    if norm:
+        H = np.divide(H,np.sum(H,axis=0),where=np.sum(H,axis=0)!=0)  # This should ensure we're not dividing by zero
+        H = H*100
+    
+    # Round to integers (and transpose, so it's where we need it for plotting later)
+    cm = np.rint(H).T.astype(int)
+
+    # Plot truth vs reco pt with normalized rowsx
+    plt.figure(variable.name+' Normalized 2D Plot')
+    masked_cm = np.ma.masked_where(cm==0,cm)  # Needed to make the zero bins white
+    
+    # Plot differently depending on bin settings
+    if square_bins:
+        plt.imshow(masked_cm,extent=[0,n-1,0,n-1],cmap=color_map,origin='lower')
+        plt.xticks(np.arange(n),tick_labels,fontsize=12,rotation=-25)
+        plt.yticks(np.arange(n),tick_labels,fontsize=12)
+    else:
+        plt.pcolormesh(ticks,ticks,masked_cm,cmap=color_map)
+        plt.xticks(ticks,tick_labels,fontsize=12,rotation=-25)
+        plt.yticks(ticks,tick_labels,fontsize=12)
+    
+    # Set labels and colorbar
+    plt.xlabel('Reco-level '+variable.label, fontsize=15)
+    plt.ylabel('Parton-level '+variable.label, fontsize=15)
+    if norm: plt.clim(0,100)
+    cb = plt.colorbar()
+    cb.ax.tick_params(labelsize=12)
+    
+    # Label the content of each bin
+    for j in range (n-1):
+        for k in range(n-1):
+            if masked_cm.T[j,k] != 0:   # Don't label empty bins
+                if square_bins:
+                    plt.text(j+0.5,k+0.5,masked_cm.T[j,k],color='k',fontsize=10,weight="bold",ha="center",va="center")
+                else:
+                    plt.text((ticks[j]+ticks[j+1])/2,(ticks[k]+ticks[k+1])/2,masked_cm.T[j,k],color='k',fontsize=10,weight="bold",ha="center",va="center")
+                
+
+    # Save the figure in save location as a png
+    fig_name = dataset.reco_method+'('+dataset.cut_tag+')_Confusion_Matrix'+tag+'_'+variable.name
+    _add_atlas_label(plt.gca(), ATLAS_LABEL)
+    plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
+    logger.info('Saved Figure: '+fig_name)
+
+    plt.close()
+
+
+def Res_Hist(datasets,variable,save_loc='./',tag='',nbins=30,include_moments=False):
+    """
+    Creates and saves a resolution (or residual) plot all datasets provided, for a given particle and observable.
+
+        Parameters:
+            datasets (list of Dataset objects): Dataset objects of the data you want to plot.
+            variable (Variable object): Variable object of the variable you want to plot.
+
+        Options:
+            save_loc (str): Directory where you want the histogram saved to (default: current directory).
+            tag (str): Extra tag to add to the plot save name.
+            nbins (int): Number of desired bins for the histogram (default: 30).
+            include_moments (bool): Whether or not to include the mean and standard deviation in the legend.
+
+        Returns:
+            Saves histogram in <save_loc> as '<res>_<data_type>_<particle>_<observable>.png'.
+    """
+
+    # Create figure to be filled
+    plt.figure(variable.name+' '+'Res')
+    
+    # Get percentage of the dataset's events in the range of the plot
+    num_events = {}
+    num_in_events = {}
+    in_dic = {}
+    
+    # Fill figure with data
+    for dataset in datasets:
+        
+        # Get dataframe
+        df = dataset.df
+
+        # Calculate the resolution (or residuals)
+        df = Util.calculateRes(variable,df)
+
+        # Calculate mean and standard deviation of the resolution
+        if include_moments==True:
+            res_mean = round(df['res_'+variable.name].mean(),sigfigs=2)
+            res_std = round(df['res_'+variable.name].std(),sigfigs=2)
+            fit_mean = round(df['res_'+variable.name][df['res_'+variable.name]>-1][df['res_'+variable.name]<1].mean(),sigfigs=2)
+            fit_std = round(df['res_'+variable.name][df['res_'+variable.name]>-1][df['res_'+variable.name]<1].std(),sigfigs=2)
+            mom_tag = '\n'+r'$\mu_{\mathrm{total}}=$'+str(res_mean)+', '+r'$\sigma_{\mathrm{total}}=$'+str(res_std)+',\n'+r'$\mu_{\mathrm{core}}=$'+str(fit_mean)+', '+r'$\sigma_{\mathrm{core}}=$'+str(fit_std)
+        else:
+            mom_tag = ''
+
+        # Plot the resolution
+        #model_label = dataset.reco_method_short+': '+dataset.cut_tag+' ('+str(dataset.perc_events)+'%)'+mom_tag
+        model_label = dataset.reco_method_short+'('+dataset.cut_tag+')'+mom_tag if dataset.cut_tag!='No Cuts' else dataset.reco_method_short+mom_tag
+        plt.hist(df['res_'+variable.name],bins=nbins,range=(-1,1),histtype='step',label=model_label,density=True,color=dataset.color)
+        
+        # Get percentage of dataset's events in the plot
+        in_events = df['res_'+variable.name][df['res_'+variable.name]>-1]
+        in_events = df['res_'+variable.name][df['res_'+variable.name]<1]
+        num_events[dataset.reco_method_short+'('+dataset.cut_tag+')'] = len(df['res_'+variable.name])
+        num_in_events[dataset.reco_method_short+'('+dataset.cut_tag+')'] = len(in_events)
+        in_dic[dataset.reco_method_short+'('+dataset.cut_tag+')'] = (len(in_events)/len(df['res_'+variable.name]))*100
+
+    # Add some labels
+    plt.legend(prop={'size': 9})
+    #plt.legend(bbox_to_anchor=(1.04, 1), loc="upper left", prop={'size': 10},borderaxespad=0)
+    plt.xlabel(variable.label_nounits+' '+variable.res, fontsize=14)
+    plt.ylabel('Events (Normalized)', fontsize=14)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+
+    # Save figure in save location
+    fig_name = variable.res+'_'+variable.name+tag
+    _add_atlas_label(plt.gca(), ATLAS_LABEL)
+    plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
+    logger.info('Saved Figure: '+fig_name)
+
+    plt.close() 
+    
+    # Save crucial plot info
+    Util.save_plot_info(save_loc, fig_name, num_events, num_in_events, in_dic)
+
+
+def Res_vs_Var(datasets,y_variable,x_variable,ticks,tick_labels,folded_bins=True,save_loc='./',tag=''):
+    """
+    Creates and saves a plot of resolution (or residual) for a given observable against another (or the same) given observable, for all datasets provided, for a given particle.
+
+        Parameters:
+            datasets (list of Dataset objects): List of dataset objects of the datasets you want to plot.
+            y_variable (Variable object): Variable whose resolution (or residuals) will be plotted on the y-axis.
+            x_variable (Variable object): Variable whose parton level values will be plotted on the x-axis.
+            ticks (array): Array of the bin edges (int or float, depending on the observable).
+            tick_labels (list of str): List of labels for the ticks.
+
+        Options:
+            folded_bins (bool): Whether or not to use folded bins (e.g. have the last tick label for pt be infinity) (default: True).
+            save_loc (str): Directory where you want the histogram saved to (default: current directory).
+            tag (str): Extra tag to add to the plot save name.
+            
+        Returns:
+            Saves histogram in <save_loc> as '<y_obs>_<y_res>_vs_<x_obs>_<data_type>_<particle>.png'.
+    """
+    
+    # Useful to define
+    y_res = y_variable.res
+    par = x_variable.particle
+    
+    # Create a scatter plot to be filled
+    plt.figure(y_variable.observable.name+' '+y_res+' vs '+x_variable.observable.name)
+    
+    for dataset in datasets:
+        
+        # Get dataframe
+        df = dataset.df
+        
+        # Calculate the resolution (or residuals)
+        df = Util.calculateRes(y_variable,df)
+        
+        # Get data points for histogram (going through each bin here)
+        points = []   # Array to hold var vs fwhm values
+        for i, bottom_edge in enumerate(ticks[:-1]):
+
+            # Set some helpful observables
+            top_edge = ticks[i+1]
+            middle = bottom_edge + (top_edge - bottom_edge)/2
+
+            # Look at resolution at a particular value of var
+            if folded_bins:
+                if i!=0: # only cut out lower events if not the first bin
+                    cut_temp = df[df['truth_'+par.name+'_'+x_variable.observable.name]>=bottom_edge]
+                if i!=(len(ticks[:-1])-1): # only cut out upper events if not the last bin
+                    cut_temp = df[df['truth_'+par.name+'_'+x_variable.observable.name]<top_edge]
+            else:
+                cut_temp = df[df['truth_'+par.name+'_'+x_variable.observable.name]>=bottom_edge]
+                cut_temp = df[df['truth_'+par.name+'_'+x_variable.observable.name]<top_edge]
+
+            # Get standard deviation and append point to list
+            sigma = cut_temp['res_'+y_variable.name].std()
+            points.append([middle,sigma])
+
+        # Plot the data
+        xpoints = np.array(range(len(points)))+0.5
+        ypoints = np.array(points)[:,1]
+        xerror = np.full(len(points),0.5)   
+        #model_label = dataset.reco_method_short+': '+dataset.cut_tag+' ('+str(dataset.perc_events)+'%)'
+        model_label = dataset.reco_method_short+'('+dataset.cut_tag+')' if dataset.cut_tag!='No Cuts' else dataset.reco_method_short
+        plt.errorbar(xpoints, ypoints,xerr=xerror,label=model_label,color=dataset.color, fmt='o')
+
+    # Add some labels
+    plt.xlabel('Parton-level '+x_variable.label, fontsize=14)
+    y_sigma_str = r'$\sigma_{\mathrm{total}}$'
+    plt.ylabel(y_sigma_str+' of '+y_variable.label_nounits+' '+y_res, fontsize=14)
+    plt.legend(prop={'size': 12})
+    plt.xticks(np.arange(len(ticks)),tick_labels,fontsize=12)
+    plt.yticks(fontsize=12)
+
+    # Save figure in save location
+    tag = tag+'_' if tag!='' else tag
+    fig_name = y_variable.observable.name+'_'+y_res+'_vs_'+x_variable.observable.name+'_'+tag+par.name
+    _add_atlas_label(plt.gca(), ATLAS_LABEL)
+    plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
+    logger.info('Saved Figure: '+fig_name)
+    
+    plt.close()
+    
+    
+    
+def Sys_Hist(datasets,variable,ticks,tick_labels,folded_bins=True,save_loc='./',tag=''):
+    """
+    Creates and saves a histogram of the systematics for all datasets provided, for a given particle and observable.
+
+        Parameters:
+            datasets (list of Dataset objects): List of dataset objects of the datasets you want to plot.
+            variable (Variable object): Variable object of the variable you want to plot.
+            ticks (array): Array of the bin edges (int or float, depending on the observable).
+            tick_labels (list of str): List of labels for the ticks.  
+
+        Options:
+            folded_bins (bool): Whether or not to use folded bins (e.g. have the last tick label for pt be infinity) (default: True).
+            save_loc (str): Directory where you want the histogram saved to (default: current directory).
+            tag (str): Extra tag to add to the plot save name (default: '').
+
+        Returns:
+            Saves histogram in <save_loc> as '<res>_<data_type>_<particle>_<observable>.png'.                
+    """
+
+    # Define a useful things
+    n = len(ticks)
+    ran = ticks[::n-1]
+
+    # Go through and plot each of the datasets
+    for dataset in datasets:
+
+        # Create a temporary plot to bin the data (set density=True to normalize the counts)
+        plt.figure('Temporary')
+        if folded_bins:
+            reco_n, bins, _ = plt.hist(np.clip(dataset.df['reco_'+variable.name],ticks[0],ticks[-1]),bins=ticks,range=ran,density=True)
+            sysUP_n, _, _ = plt.hist(np.clip(dataset.sysUP_df['reco_'+variable.name],ticks[0],ticks[-1]),bins=ticks,range=ran,density=True)
+            sysDOWN_n, _, _ = plt.hist(np.clip(dataset.sysDOWN_df['reco_'+variable.name],ticks[0],ticks[-1]),bins=ticks,range=ran,density=True)
+        else:
+            reco_n, bins, _ = plt.hist(dataset.df['reco_'+variable.name],bins=ticks,range=ran,density=True)
+            sysUP_n, _, _ = plt.hist(dataset.sysUP_df['reco_'+variable.name],bins=ticks,range=ran,density=True)
+            sysDOWN_n, _, _ = plt.hist(dataset.sysDOWN_df['reco_'+variable.name],bins=ticks,range=ran,density=True)
+        plt.close('Temporary')
+
+        # Calculate the up and down fractional uncertainties
+        sysUP_results = np.array([100*(up-nom)/nom for up,nom in zip(sysUP_n,reco_n)])
+        sysDOWN_results = np.array([100*(down-nom)/nom for down,nom in zip(sysDOWN_n,reco_n)])
+
+        # Switch back to the systematics figure
+        plt.figure('Sys')
+        #plt.hist(bins[:-1], bins, weights=sysUP_results, histtype='step', color=dataset.color, linestyle='dotted')
+        #plt.hist(bins[:-1], bins, weights=sysDOWN_results, histtype='step', color=dataset.color, label=dataset.reco_method+': '+dataset.cut_tag)
+
+        # Need to sort systematics into which one is on top and which one is on bottom -- if both are on the same side of zero, just use the bigger one
+        pos_weights = np.array([max(up,down) if max(up,down)>0 else 0 for up, down in zip(sysUP_results,sysDOWN_results)])
+        neg_weights = np.array([min(up,down) if min(up,down)<0 else 0 for up, down in zip(sysUP_results,sysDOWN_results)])
+
+        # Plot the fractional uncertainties
+        plt.hist(np.arange(n-1), bins=np.arange(n), weights=pos_weights, histtype='step', color=dataset.color, label=dataset.reco_method+': '+dataset.cut_tag+' ('+str(dataset.perc_events)+'%)')
+        plt.hist(np.arange(n-1), bins=np.arange(n), weights=neg_weights, histtype='step', color=dataset.color)
+
+    # Draw a dashed line at zero
+    x_dash, y_dash = np.linspace(0,n-1,n-1),[0]*(n-1)
+    plt.plot(x_dash,y_dash,'k--')
+
+    # Set some axis labels
+    plt.xlabel(variable.label)
+    plt.ylabel('Fractional Uncertainty [%]')
+    plt.xticks(np.arange(n),tick_labels,fontsize=12,rotation=-25)
+    plt.yticks(fontsize=12)
+    plt.legend(prop={'size': 6})
+
+    # Save the figure as a png in save location
+    tag = tag+'_' if tag!='' else tag
+    fig_name = 'Systematics_'+tag+variable.name
+    _add_atlas_label(plt.gca(), ATLAS_LABEL)
+    plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
+    logger.info('Saved Figure: '+fig_name)
+
+    plt.close()

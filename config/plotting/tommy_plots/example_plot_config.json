@@ -1,0 +1,23 @@
+{
+  "save_loc": "good_plots",
+  "config_files_location": "/home/tommylub/TRecNet/config/plotting/tommy_plots/",
+  "dataset_config": "tommy_dataset_config.json",
+    "atlas_label": {
+    "enabled": true,
+    "text": "ATLAS Internal",
+    "loc": "upper left",
+    "fontsize": 14,
+    "bold": true,
+    "pad": 0.02,
+    "alpha": 1.0,
+    "color": "black",
+    "bbox": false
+  },
+
+  "TrainValLoss": { "make_plots": true, "config": "example_train_val_loss_config.json" },
+  "TruthReco":   { "make_plots": true,  "config": "tommy_truthreco_config.json" },
+  "CM":          { "make_plots": true,  "config": "tommy_cm_config.json" },
+  "Res":         { "make_plots": true,  "config": "tommy_res_config.json" },
+  "ResVsVar":    { "make_plots": true,  "config": "tommy_res_vs_var_config.json" },
+  "Sys":         { "make_plots": false, "config": "example_sys_config.json" }
+}
