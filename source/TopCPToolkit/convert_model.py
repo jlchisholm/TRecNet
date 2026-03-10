@@ -87,17 +87,17 @@ if __name__== "__main__":
     Y_maxmean_dic = np.load(ymm_file,allow_pickle=True).item()
     
     # Split into max and mean dictionaries for x and y variables
-    x_maxs = {key: [vals[0]] for key, vals in X_maxmean_dic.items()}
-    x_means = {key: [vals[1]] for key, vals in X_maxmean_dic.items()}
-    y_maxs = {key: [vals[0]] for key, vals in Y_maxmean_dic.items()}
-    y_means = {key: [vals[1]] for key, vals in Y_maxmean_dic.items()}
+    x_maxs = {key: [float(vals[0])] for key, vals in X_maxmean_dic.items()}
+    x_means = {key: [float(vals[1])] for key, vals in X_maxmean_dic.items()}
+    y_maxs = {key: [float(vals[0])] for key, vals in Y_maxmean_dic.items()}
+    y_means = {key: [float(vals[1])] for key, vals in Y_maxmean_dic.items()}
     
     # Create root file
     file = uproot.recreate(args.output+model_id+'_maxmeans.root')
-    file['x_maxs'] = x_maxs
-    file['x_means'] = x_means
-    file['y_maxs'] = y_maxs
-    file['y_means'] = y_means
+    file.mktree('x_maxs', x_maxs)
+    file.mktree('x_means', x_means)
+    file.mktree('y_maxs', y_maxs)
+    file.mktree('y_means', y_means)
     
     print("Maxmean root file saved to "+args.output)
     
