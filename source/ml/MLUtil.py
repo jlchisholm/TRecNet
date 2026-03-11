@@ -56,9 +56,17 @@ class Utilities:
             Y_keys = ['j'+str(i+1)+'_isExtraB' for i in range(n_jets)]
             
         else:
-            Y_keys = ['th_pt', 'th_eta','th_phi','th_m', 'wh_pt', 'wh_eta', 'wh_phi', 'wh_m', 'tl_pt', 'tl_eta', 'tl_phi', 'tl_m', 'wl_pt', 'wl_eta', 'wl_phi', 'wl_m']
+            # Start with hadronic keys
+            Y_keys = ['th_pt', 'th_eta','th_phi','th_m', 'wh_pt', 'wh_eta', 'wh_phi', 'wh_m'] 
+            
+            # Next is ttbar keys (if included), since these are output with the hadronic keys
             if add_ttbar:
                 Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
+                
+            # Leptonic keys AFTER hadronic + ttbar keys
+            Y_keys.extend(['tl_pt', 'tl_eta', 'tl_phi', 'tl_m', 'wl_pt', 'wl_eta', 'wl_phi', 'wl_m']) # lep keys AFTER hadronic + ttbar keys
+
+            # bbbar or b1b2 keys at the end
             if b_mode == 'bbbar':
                 Y_keys.extend(['b_t_pt','b_t_m','b_t_eta','b_t_phi','bbar_tbar_pt','bbar_tbar_m','bbar_tbar_eta','bbar_tbar_phi'])
             elif b_mode == 'b1b2':
