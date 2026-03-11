@@ -25,6 +25,7 @@ pip install uproot~=5.6.2
 pip install vector~=1.6.2
 pip install tensorflow~=2.20.0
 pip install onnxruntime~=1.19.2
+pip install keras-tuner~=1.4.8
 
 # Deactivate environment
 deactivate
