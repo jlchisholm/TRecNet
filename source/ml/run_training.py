@@ -26,8 +26,23 @@ import tracemalloc
 tracemalloc.start()
 
 # Dictionary of compatible models for each of the pretrained classifiers
-compatible_models = {"JetClassifier_v1": ["TRecNet_tt_v1", "TRecNet_ttbb_v1", "TRecNet_ttbb_v2", "TRecNet_ttbb_v3", "TRecNet_ttbb_v4", "TRecNet_ttbb_v5", "TRecNet_ttbb_v4x0", "TRecNet_ttbb_v5x0"],
-                    "bbClassifier_v1": ["TRecNet_ttbb_v1"]}
+compatible_models = {
+    "JetClassifier_v1": [
+        "TRecNet_tt_v1",
+        "TRecNet_ttbb_v1",
+        "TRecNet_ttbb_v2",
+        "TRecNet_ttbb_v3",
+        "TRecNet_ttbb_v4",
+        "TRecNet_ttbb_v5",
+        "TRecNet_ttbb_v4x0",
+        "TRecNet_ttbb_v5x0",
+        "TRecNet_ttbb_v5x1",
+        "TRecNet_ttbb_v5x1_clf",
+        "TRecNet_ttbb_v5x2",
+        "TRecNet_ttbb_v5x3",
+    ],
+    "bbClassifier_v1": ["TRecNet_ttbb_v1", "TRecNet_ttbb_v5"],
+}
 
 
 def pretrained_classifier_check(model_version, config, classifier):
@@ -57,7 +72,7 @@ def pretrained_classifier_check(model_version, config, classifier):
         # Check that pretrained classifier model is compatible with TRecNet model
         classifier_id = config["create"][classifier].split('/')[-1]
         classifier_version = classifier+classifier_id.split('_')[1]
-        if model_version not in compatible_models[classifier_version]:
+        if model_version not in compatible_models.get(classifier_version, []):
             print("Pretrained classifier version "+ classifier_version + " is not compatible with " + model_version + "!")
             sys.exit()
             
@@ -121,11 +136,11 @@ if __name__ == "__main__":
         print('===================================')
         
         # Set some things
-        # extracts extra_b_mode, add_ttbar, and booleans for +JetPretrain and +bbPretrain from the frozen model’s ID
+        # extracts b_mode, add_ttbar, and booleans for +JetPretrain and +bbPretrain from the frozen model's ID
         # was having trouble getting these from the config file directly
         # not a good long-term solution, but works for now
         frozen_model_id = config["unfreeze"]["frozen_file"].split('/')[-1]
-        extra_b_mode = 'bbbar' if 'bbbar' in frozen_model_id else 'b1b2' if 'b1b2' in frozen_model_id else None
+        b_mode = 'bbbar' if 'bbbar' in frozen_model_id else 'b1b2' if 'b1b2' in frozen_model_id else None
         add_ttbar = True if '+ttbar' in frozen_model_id else False
         add_jetpretrain = True if '+JetPretrain' in frozen_model_id else False
         add_bbpretrain = True if '+bbPretrain' in frozen_model_id else False
@@ -142,7 +157,7 @@ if __name__ == "__main__":
                 
         # Create the model.  # this should be load I feel like, change later!
         Model = TRecNet_Model()
-        Model.initialize(args.version, config["njets"], add_ttbar, extra_b_mode, add_jetpretrain, add_bbpretrain, True)
+        Model.initialize(args.version, config["njets"], add_ttbar, b_mode, add_jetpretrain, add_bbpretrain, True)
         # meh way to get the hparams in the model, but it works for now
         Model.hparams = config.get("hparams", {}) or {}
         # Start the training

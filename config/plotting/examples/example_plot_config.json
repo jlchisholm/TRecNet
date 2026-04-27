@@ -1,6 +1,6 @@
-{   
+{
     "save_loc": "example_plots",
-    "config_files_location":"/home/tommylub/TRecNet/config/plotting/examples/",
+    "config_files_location": "config/plotting/examples/",
     "dataset_config": "example_dataset_config.json",
     "TrainValLoss":
     {

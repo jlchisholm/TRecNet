@@ -23,9 +23,10 @@ from Training import Training
 compatible_models = {
     "JetClassifier_v1": [
         "TRecNet_tt_v1", "TRecNet_ttbb_v1", "TRecNet_ttbb_v2", "TRecNet_ttbb_v3",
-        "TRecNet_ttbb_v4", "TRecNet_ttbb_v5", "TRecNet_ttbb_v4x0", "TRecNet_ttbb_v5x0"
+        "TRecNet_ttbb_v4", "TRecNet_ttbb_v5", "TRecNet_ttbb_v4x0", "TRecNet_ttbb_v5x0",
+        "TRecNet_ttbb_v5x1", "TRecNet_ttbb_v5x1_clf", "TRecNet_ttbb_v5x2", "TRecNet_ttbb_v5x3"
     ],
-    "bbClassifier_v1": ["TRecNet_ttbb_v1"],
+    "bbClassifier_v1": ["TRecNet_ttbb_v1", "TRecNet_ttbb_v5"],
 }
 
 def pretrained_classifier_check(model_version, config, classifier):

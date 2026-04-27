@@ -1,31 +1,48 @@
+# Ignore environments and containers that are created
 TRecNet/
 .venv/
 venv/
 env/
+TRecNet_env/
+/TRecNet_env
+env/TRecNet_env/
+image/TRecNetContainer.sif
+image/*.sif
 
+# Ignore all configs, except for the checked-in examples
+config/prep/*
+!config/prep/examples
+config/ml/*
+!config/ml/examples
+config/plotting/*
+!config/plotting/examples
+!config/plotting/tommy_plots
+
+# Ignore latex compilation files for the diagrams
+diagrams/*/*.log
+diagrams/*/*.aux
+diagrams/*/*.gz
+
+# Ignore all plots directories produced, except for the example plot directory
+plots/*
+!plots/example_plots/
+
+# Ignore all scripts, except for the example ones
+scripts/*
+!scripts/examples
+
+# Ignore newly trained models, unless specified here
+trained_models/
+
+# Other things to ignore
 __pycache__/
 .ipynb_checkpoints/
 .tensorboard_logs/
 .vscode/
 tensorboard_logs/
-env/TRecNet_env/
-image/TRecNetContainer.sif
-config/plotting/my_configs
-scripts/my_scripts/
-image/*.sif
-trained_models/
-diagrams/*/*.log
-diagrams/*/*.aux
-diagrams/*/*.gz
-<<<<<<< HEAD
-=======
-outputs/
-/TRecNet_env
-model_comparisons/
 outputs/
 model_comparisons/
 *.h5
 *.npy
 *.root
 *.log
-plots/

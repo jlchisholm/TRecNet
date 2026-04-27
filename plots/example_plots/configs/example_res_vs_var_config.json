@@ -1,0 +1,115 @@
+{
+    "reco_models_to_plot": [
+        "TRecNet",
+        "TRecNet+ttbar+JetPretrainUnfrozen",
+        "KLFitter6"
+    ],
+    "even_stats_binning": true,
+    "variables": {
+        "th": [
+            {
+                "y_obs": "pt",
+                "x_obs": "pt",
+                "custom_bins": [
+                    0,
+                    600,
+                    30
+                ],
+                "n_even_stats_bins": 10,
+                "folded_bins": true
+            },
+            {
+                "y_obs": "m",
+                "x_obs": "pt",
+                "custom_bins": [
+                    0,
+                    600,
+                    30
+                ],
+                "n_even_stats_bins": 10,
+                "folded_bins": true
+            },
+            {
+                "y_obs": "eta",
+                "x_obs": "pt",
+                "custom_bins": [
+                    0,
+                    600,
+                    30
+                ],
+                "n_even_stats_bins": 10,
+                "folded_bins": true
+            }
+        ],
+        "tl": [
+            {
+                "y_obs": "pt",
+                "x_obs": "pt",
+                "custom_bins": [
+                    0,
+                    600,
+                    30
+                ],
+                "n_even_stats_bins": 10,
+                "folded_bins": true
+            },
+            {
+                "y_obs": "m",
+                "x_obs": "pt",
+                "custom_bins": [
+                    0,
+                    600,
+                    30
+                ],
+                "n_even_stats_bins": 10,
+                "folded_bins": true
+            },
+            {
+                "y_obs": "eta",
+                "x_obs": "pt",
+                "custom_bins": [
+                    0,
+                    600,
+                    30
+                ],
+                "n_even_stats_bins": 10,
+                "folded_bins": true
+            }
+        ],
+        "ttbar": [
+            {
+                "y_obs": "pt",
+                "x_obs": "pt",
+                "custom_bins": [
+                    0,
+                    600,
+                    30
+                ],
+                "n_even_stats_bins": 10,
+                "folded_bins": true
+            },
+            {
+                "y_obs": "m",
+                "x_obs": "pt",
+                "custom_bins": [
+                    0,
+                    600,
+                    30
+                ],
+                "n_even_stats_bins": 10,
+                "folded_bins": true
+            },
+            {
+                "y_obs": "eta",
+                "x_obs": "pt",
+                "custom_bins": [
+                    0,
+                    600,
+                    30
+                ],
+                "n_even_stats_bins": 10,
+                "folded_bins": true
+            }
+        ]
+    }
+}

@@ -2,7 +2,11 @@
 ############
 # run_cross_validation.py
 # perform nx2 cross validation on a model
-import os,sys
+import os, sys
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
 from argparse import ArgumentParser
 import json
@@ -13,9 +17,11 @@ compatible_models = {
     "JetClassifier_v1": [
         "TRecNet_tt_v1", "TRecNet_ttbb_v1", "TRecNet_ttbb_v2",
         "TRecNet_ttbb_v3", "TRecNet_ttbb_v4", "TRecNet_ttbb_v5",
-        "TRecNet_ttbb_v4x0", "TRecNet_ttbb_v5x0"
+        "TRecNet_ttbb_v4x0", "TRecNet_ttbb_v5x0",
+        "TRecNet_ttbb_v5x1", "TRecNet_ttbb_v5x1_clf",
+        "TRecNet_ttbb_v5x2", "TRecNet_ttbb_v5x3"
     ],
-    "bbClassifier_v1": ["TRecNet_ttbb_v1"],
+    "bbClassifier_v1": ["TRecNet_ttbb_v1", "TRecNet_ttbb_v5"],
 }
 
 def pretrained_classifier_check(model_version, config, classifier):
@@ -37,7 +43,7 @@ def pretrained_classifier_check(model_version, config, classifier):
         # Check that pretrained classifier model is compatible with TRecNet model
         classifier_id = config["create"][classifier].split('/')[-1]
         classifier_version = classifier+classifier_id.split('_')[1]
-        if model_version not in compatible_models[classifier_version]:
+        if model_version not in compatible_models.get(classifier_version, []):
             print("Pretrained classifier version "+ classifier_version + " is not compatible with " + model_version + "!")
             sys.exit()
             

@@ -11,11 +11,12 @@
 # 26th September 2025
 ############################################################################
 
-import os
 import glob
+import os
 
 # define environment variables (assumes you are working inside TRecNet)
-ROOT = os.environ.get("TRECNET_ROOT", os.getcwd())
+DEFAULT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+ROOT = os.environ.get("TRECNET_ROOT", DEFAULT_ROOT)
 # where to output/retrive trained models, outputs, and tensorboard logs
 TRAINED_ROOT = os.environ.get("TRECNET_TRAINED_ROOT", os.path.join(ROOT, "trained_models"))
 OUTPUTS_ROOT = os.environ.get("TRECNET_OUTPUTS_ROOT", os.path.join(ROOT, "outputs"))
@@ -34,8 +35,11 @@ def model_dir_candidates(model_id):
     '''Yield possible model directory candidates for a given model_id.'''
     # Direct access: trained_models/<model_id>/
     yield os.path.join(TRAINED_ROOT, model_id)
+    # One-level nested access: trained_models/<family>/<model_id>/
+    for d in glob.glob(os.path.join(TRAINED_ROOT, "*", model_id)):
+        yield d
     # Nested access: trained_models/TRecNet_*/<tag>/<model_id>/
-    for d in glob.glob(os.path.join(TRAINED_ROOT, "TRecNet_*", "*", model_id)):
+    for d in glob.glob(os.path.join(TRAINED_ROOT, "*", "*", model_id)):
         yield d
 
 def resolve_model_dir(model_id: str) -> str:
