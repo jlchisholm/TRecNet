@@ -24,12 +24,13 @@ from Variables_and_Datasets import Dataset, Variable
 import Plots
 
 
+
 class Plotter:
     """ 
     A class for making various kinds of plots.
     """
     
-    def __init__(self, main_dir, f_dataset_config, plot_configs):
+    def __init__(self, main_dir, f_dataset_config, plot_configs, atlas_label=None):
         """
         Initializes an Plotter object. 
 
@@ -43,6 +44,8 @@ class Plotter:
         self.main_dir = main_dir+'/'
         self.plots_to_make = plot_configs.keys()
         self.dataset_config = json.load(open(f_dataset_config))
+        self.atlas_label = atlas_label or {"enabled": False}
+        Plots.ATLAS_LABEL = self.atlas_label
         
         # Load config files for each plot type, and save the names of the reco models needed
         self.reco_models_to_plot = {}

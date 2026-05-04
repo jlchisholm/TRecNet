@@ -121,7 +121,12 @@ if __name__ == "__main__":
     saveConfigs(main_dir,config_dir+plotting_config['dataset_config'],*plot_configs.values())
     
     # Make the plots
-    plotter = Plotter(main_dir,config_dir+plotting_config['dataset_config'],plot_configs)
+    plotter = Plotter(
+        main_dir,
+        config_dir+plotting_config['dataset_config'],
+        plot_configs,
+        atlas_label=plotting_config.get("atlas_label", None)
+    )
     plotter.makePlots()
     
     print('Plotting complete :)')

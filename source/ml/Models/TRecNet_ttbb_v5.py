@@ -13,10 +13,49 @@
 
 from keras.layers import Flatten, Dense, concatenate, Masking, TimeDistributed, Reshape, Multiply
 
-def construct_TRecNet_ttbb_v5(Model,jet_input, other_input,jet_pretrain_model,bb_pretrain_model):
+def construct_TRecNet_ttbb_v5(Model,jet_input, 
+                              other_input,
+                              jet_pretrain_model,
+                              bb_pretrain_model,
+                              hparams = None):
     
+
+    '''
+    hparams keys (all optional):
+      jet_td: [128, 64]
+      bjet_td: [128, 128, 64]
+      other_mlp: [128, 64]
+      jet_cls_mlp: [256, 256]
+      bjet_cls_mlp: [256, 256]
+      weighted_td: [256, 256]
+      weighted_b_td: [256, 256]
+      lep_head: [256, 128]
+      had_head: [256, 128]
+      bb_head: [256, 128]
+      activ: "relu"
+      cls_activ: "relu"
+    '''
+    
+    hp = dict(hparams or {})
     # --- INITIAL JET PROCESSOR --- #
-    
+    activ = hp.get("activ", "relu")
+    cls_activ = hp.get("cls_activ", activ)
+
+    jet_td = hp.get("jet_td", [128, 64])
+    bjet_td = hp.get("bjet_td", [128, 128, 64])
+    other_mlp = hp.get("other_mlp", [128, 64])
+
+    jet_cls_mlp = hp.get("jet_cls_mlp", [256, 256])
+    bjet_cls_mlp = hp.get("bjet_cls_mlp", [256, 256])
+
+    weighted_td = hp.get("weighted_td", [256, 256])
+    weighted_b_td = hp.get("weighted_b_td", [256, 256])
+
+    lep_head = hp.get("lep_head", [256, 128])
+    had_head = hp.get("had_head", [256, 128])
+    bb_head  = hp.get("bb_head",  [256, 128])
+                                 
+
     Mask = Masking(Model.mask_value, name='masking_jets')(jet_input)
     Maskshape = Reshape((Model.jets_shape[1], Model.jets_shape[2]), name='reshape_masked_jets')(Mask)
     TDDense11 = TimeDistributed(Dense(128, activation='relu'), name='TDDense128')(Maskshape)

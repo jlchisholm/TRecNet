@@ -32,6 +32,72 @@ import Util
 
 
 PLOT_TYPES = ['TrainValLoss','TruthReco','CM','Res','ResVsVar','Sys']
+ATLAS_LABEL = {"enabled": False}
+
+
+def _add_atlas_label(ax, atlas_label):
+    """
+    Add an ATLAS-style label OUTSIDE the axes (in the figure margin).
+
+    atlas_label dict example:
+      {
+        "enabled": True,
+        "text": "ATLAS Internal",
+        "loc": "upper left",      # upper left/right, lower left/right
+        "fontsize": 14,
+        "bold": True,
+        "pad": 0.01,             # padding in figure-fraction units
+        "alpha": 1.0,
+        "color": "black",
+        "bbox": False
+      }
+    """
+    if not atlas_label or not atlas_label.get("enabled", False):
+        return
+
+    fig = ax.figure
+
+    text = atlas_label.get("text", "ATLAS")
+    loc = atlas_label.get("loc", "upper left")
+    fontsize = atlas_label.get("fontsize", 14)
+    bold = atlas_label.get("bold", True)
+    pad = atlas_label.get("pad", 0.01)   # figure-fraction padding
+    alpha = atlas_label.get("alpha", 1.0)
+    color = atlas_label.get("color", "black")
+    use_bbox = atlas_label.get("bbox", False)
+
+    # Axes position in figure coordinates: [0..1] x [0..1]
+    pos = ax.get_position()  # Bbox in figure fraction coords
+    x0, y0, x1, y1 = pos.x0, pos.y0, pos.x1, pos.y1
+
+    # Place label just OUTSIDE the axes box
+    loc_map = {
+        "upper left":  (x0, y1, "left",  "bottom",  +pad, +pad),
+        "upper right": (x1, y1, "right", "bottom",  -pad, +pad),
+        "lower left":  (x0, y0, "left",  "top",     +pad, -pad),
+        "lower right": (x1, y0, "right", "top",     -pad, -pad),
+    }
+    x, y, ha, va, dx, dy = loc_map.get(loc, loc_map["upper left"])
+    x += dx
+    y += dy
+
+    bbox = None
+    if use_bbox:
+        bbox = dict(facecolor="white", edgecolor="none", alpha=0.7, pad=3.0)
+
+    # IMPORTANT: figure transform => always outside plot content
+    fig.text(
+        x, y,
+        text,
+        transform=fig.transFigure,
+        ha=ha, va=va,
+        fontsize=fontsize,
+        fontweight=("bold" if bold else "normal"),
+        color=color,
+        alpha=alpha,
+        bbox=bbox,
+        zorder=1000,
+    )
 
 
 def TrainValLoss_Plot(datasets, loss_metric, save_loc='./', extra_metrics=[]):
@@ -60,6 +126,8 @@ def TrainValLoss_Plot(datasets, loss_metric, save_loc='./', extra_metrics=[]):
         
     # Save main loss plot
     fig_name = loss_metric+'_Loss'
+    ax = plt.gca()
+    _add_atlas_label(ax, ATLAS_LABEL)
     plt.savefig(save_loc+'/'+fig_name,bbox_inches='tight')
     logger.info('Saved Figure: '+fig_name)
     plt.close('loss')
@@ -107,7 +175,7 @@ def TruthReco_Hist(dataset,variable,x_min,x_max,nbins=30,save_loc='./'):
     _, (ax1, ax2) = plt.subplots(nrows=2,sharex=True,gridspec_kw={'height_ratios': [4, 1]})
     truth_n, _, _ = ax1.hist(dataset.df['truth_'+variable.name],bins=nbins,range=(x_min,x_max),histtype='step',label='truth',color='black')
     reco_n, bins, _ = ax1.hist(dataset.df['reco_'+variable.name],bins=nbins,range=(x_min,x_max),histtype='step',label='reco',color=dataset.color)
-    
+    _add_atlas_label(ax1, ATLAS_LABEL)
     # Make sure histograms aren't getting cut off
     max_truth = max(truth_n)*1.05
     max_reco = max(reco_n)*1.05
@@ -219,6 +287,7 @@ def Confusion_Matrix(dataset,variable,ticks,tick_labels,folded_bins=True,square_
 
     # Save the figure in save location as a png
     fig_name = dataset.reco_method+'('+dataset.cut_tag+')_Confusion_Matrix'+tag+'_'+variable.name
+    _add_atlas_label(plt.gca(), ATLAS_LABEL)
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
     logger.info('Saved Figure: '+fig_name)
 
@@ -292,6 +361,7 @@ def Res_Hist(datasets,variable,save_loc='./',tag='',nbins=30,include_moments=Fal
 
     # Save figure in save location
     fig_name = variable.res+'_'+variable.name+tag
+    _add_atlas_label(plt.gca(), ATLAS_LABEL)
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
     logger.info('Saved Figure: '+fig_name)
 
@@ -377,6 +447,7 @@ def Res_vs_Var(datasets,y_variable,x_variable,ticks,tick_labels,folded_bins=True
     # Save figure in save location
     tag = tag+'_' if tag!='' else tag
     fig_name = y_variable.observable.name+'_'+y_res+'_vs_'+x_variable.observable.name+'_'+tag+par.name
+    _add_atlas_label(plt.gca(), ATLAS_LABEL)
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
     logger.info('Saved Figure: '+fig_name)
     
@@ -453,6 +524,7 @@ def Sys_Hist(datasets,variable,ticks,tick_labels,folded_bins=True,save_loc='./',
     # Save the figure as a png in save location
     tag = tag+'_' if tag!='' else tag
     fig_name = 'Systematics_'+tag+variable.name
+    _add_atlas_label(plt.gca(), ATLAS_LABEL)
     plt.savefig(save_loc+fig_name+'.png',bbox_inches='tight')
     logger.info('Saved Figure: '+fig_name)
 

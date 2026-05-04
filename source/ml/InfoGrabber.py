@@ -7,10 +7,16 @@
 #  Defines classes and functions to help get info from trained models.  # 
 #                                                                       #
 #  Thoughts for improvements: Have X and Y keys as input variables?     #
+#
+#
+# Updated Sep.25/25
+#
 #                                                                       #
 #########################################################################
 
 import sys, os
+import glob
+from paths import resolve_model_dir
 
 class InfoGrabber:
     """
@@ -30,12 +36,14 @@ class InfoGrabber:
             Parameters:
                 model_id (str): ID of the trained model.
         """
+        # now uses the new path.py utilities (will sys.exit if not found)
+        _ = self.resolve_model_dir(model_id)
         
-        trained_models_list = os.listdir('trained_models/')
-        if (model_id not in trained_models_list):
-            print('There is not trained model with this ID. Exiting program.')
-            sys.exit()
-        
+    def resolve_model_dir(self, model_id: str) -> str:
+        '''New wrapper around the shared utility'''
+        # Uses path.py utility to resolve model directory 
+        return resolve_model_dir(model_id)
+
 
     def get_train_data_file(self, model_id):
         """
@@ -47,19 +55,26 @@ class InfoGrabber:
             Returns:
                 train_data_file (str): Name (including path) of the h5 train data file.
         """
-        
+        # get model directory with path.py utility
+        model_dir = self.resolve_model_dir(model_id)
+
+        # Now searches for info/run_Info.txt and falls back to {model_id}_Info.txt
+        new_info = os.path.join(model_dir, 'info', 'run_Info.txt')
+        old_info = os.path.join(model_dir, f'{model_id}_Info.txt')  # backward-compat fallback
+        info_file = new_info if os.path.isfile(new_info) else old_info
+
         train_data_file = None
-        info_file = 'trained_models/'+model_id+'/'+model_id+'_Info.txt'
+        # find data file
         with open(info_file) as file:
             for line in file:
                 if 'Training Data File: ' in line:
-                    train_data_file = line.split('Training Data File: ')[1]
+                    # success
+                    train_data_file = line.split('Training Data File: ')[1].strip()
                     break
-                    
-        if train_data_file == None:
+        if train_data_file is None:
+            # failure, exit
             print('Failed to find train data. Program exiting.')
             sys.exit()
-                
         return train_data_file
     
     
@@ -74,16 +89,25 @@ class InfoGrabber:
                 xmm_file (str): Name (including path) of the xmaxmean file. 
                 ymm_file (str): Name (including path) of the ymaxmean file.           
         """
-        
-        model_file_list = os.listdir('trained_models/'+model_id+'/')
-        xmm_file = next((f for f in model_file_list if 'X_maxmean' in f), None)
-        ymm_file = next((f for f in model_file_list if 'Y_maxmean' in f), None)
-        if (xmm_file==None or ymm_file==None):
+        model_dir = self.resolve_model_dir(model_id)
+        # prefers a scaling/ subdirectory if present
+        scaling_dir = os.path.join(model_dir, "scaling")
+        if os.path.isdir(scaling_dir):
+            files = os.listdir(scaling_dir)
+            xmm = next((f for f in files if 'X_maxmean' in f), None)
+            ymm = next((f for f in files if 'Y_maxmean' in f), None)
+            if xmm and ymm:
+                return os.path.join(scaling_dir, xmm), os.path.join(scaling_dir, ymm)
+        # if legacy uses model_dir directly
+        files = os.listdir(model_dir)
+        xmm = next((f for f in files if 'X_maxmean' in f), None)
+        ymm = next((f for f in files if 'Y_maxmean' in f), None)
+        if xmm is None or ymm is None:
+            # failure, exit
             print('Failed to find maxmean files. Something must be terribly wrong. Exiting program.')
             sys.exit()
-            
-        return xmm_file, ymm_file
-    
+        return os.path.join(model_dir, xmm), os.path.join(model_dir, ymm)
+        
     def get_train_val_split(self, model_id):
         """
         Extracts the training data h5 file name from the training info.
@@ -94,20 +118,38 @@ class InfoGrabber:
             Returns:
                 split (float): Percentage of data from training file that will be given to training, while the remainder is used for validation (taken from config file).
         """
-        
-        split = None
-        info_file = 'trained_models/'+model_id+'/'+model_id+'_Info.txt'
-        with open(info_file) as file:
-            for line in file:
-                if 'Percentage of Train Data Used for Training: ' in line:
-                    split = line.split('Percentage of Train Data Used for Training: ')[1]
+
+        model_dir = self.resolve_model_dir(model_id)
+        # same dual-path detection of info/run_Info.txt
+        new_info = os.path.join(model_dir, 'info', 'run_Info.txt')
+        old_info = os.path.join(model_dir, f'{model_id}_Info.txt')
+        info_file = new_info if os.path.isfile(new_info) else old_info
+
+        value = None
+        with open(info_file) as f:
+            for line in f:
+                if 'Percentage of Train Data Used for Training:' in line:
+                    value = line.split('Percentage of Train Data Used for Training:')[1].strip()
                     break
-                    
-        if split == None:
-            print('Failed to find train data. Program exiting.')
+        if value is None:
+            print('Failed to find train/val split. Program exiting.')
             sys.exit()
-                
-        return split
+        # added try/except to make function defensive
+        # added cases for detrmining split:
+        # two cases:
+        #  a) "0.7" or "0.70" -> float
+        #  b) "[70,15,15]" -> use 70/sum -> 0.7
+        try:
+            return float(value)
+        # try to parse as list
+        except ValueError:
+            txt = value.strip()
+            if txt.startswith('[') and txt.endswith(']'):
+                parts = [float(x) for x in txt.strip('[]').replace(',', ' ').split()]
+                if len(parts) >= 1 and sum(parts) > 0:
+                    return parts[0] / sum(parts)
+            print('Could not parse training split. Exiting program.')
+            sys.exit()
     
     
     def get_data_type(self, data_file):
@@ -140,7 +182,7 @@ class InfoGrabber:
     def get_njets(self, model_id):
         
         n_jets = model_id.split('jets')[0].split('_')[-1]
-        return n_jets
+        return int(n_jets)
     
     def get_ttbar_status(self, model_id):
         

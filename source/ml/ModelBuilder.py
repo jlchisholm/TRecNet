@@ -14,8 +14,8 @@
 import keras
 from keras.layers import Input, TFSMLayer
 
+import os
 import time
-
 class ModelBuilder:
     """
     A class for building TRecNet models.
@@ -35,13 +35,28 @@ class ModelBuilder:
         return jet_input, other_input
         
     def construct_architecture(self, jet_input, other_input, jet_pretrain_model, bb_pretrain_model):
-        
+        print(f'Constructing architecture for model version: {self.Model.model_v}')
+
+        # need to pass architechtural hyperparams to model constructor for some models,
+        # so we look for a hparams attribute in the model and pass it if it exists
+        hparams = getattr(self.Model, "hparams", None)
+        if hparams is None:
+            hparams = getattr(self.Model, "model_hparams", None)
+        if hparams is None:
+            hparams = {}
+
         if (self.Model.model_v == 'JetClassifier_v1'):
             from Models.JetClassifier_v1 import construct_JetClassifier_v1
-            output = construct_JetClassifier_v1(self.Model, jet_input, other_input)    
+            output = construct_JetClassifier_v1(self.Model, jet_input, other_input)
+        elif (self.Model.model_v == 'JetClassifier_v1x0'):
+            from Models.JetClassifier_v1x0 import construct_JetClassifier_v1x0
+            output = construct_JetClassifier_v1x0(self.Model, jet_input, other_input)      
         elif (self.Model.model_v == 'bbClassifier_v1'):
             from Models.bbClassifier_v1 import construct_bbClassifier_v1
-            output = construct_bbClassifier_v1(self.Model, jet_input, other_input)     
+            output = construct_bbClassifier_v1(self.Model, jet_input, other_input)
+        elif (self.Model.model_v == 'bbClassifier_v1x0'):
+            from Models.bbClassifier_v1x0 import construct_bbClassifier_v1x0
+            output = construct_bbClassifier_v1x0(self.Model, jet_input, other_input)
         elif (self.Model.model_v == 'TRecNet_tt_v1'):
             from Models.TRecNet_tt_v1 import construct_TRecNet_tt_v1
             output = construct_TRecNet_tt_v1(self.Model, jet_input, other_input, jet_pretrain_model)
@@ -59,12 +74,42 @@ class ModelBuilder:
             output = construct_TRecNet_ttbb_v4(self.Model, jet_input, other_input, jet_pretrain_model)
         elif (self.Model.model_v == 'TRecNet_ttbb_v5'):
             from Models.TRecNet_ttbb_v5 import construct_TRecNet_ttbb_v5
-            output = construct_TRecNet_ttbb_v5(self.Model, jet_input, other_input, jet_pretrain_model, bb_pretrain_model)
-            
+            output = construct_TRecNet_ttbb_v5(self.Model, jet_input, other_input, jet_pretrain_model, bb_pretrain_model, hparams=hparams)
+        # added TRecNet_ttbb_v*x0 _v*x* are tommy models
+        elif (self.Model.model_v == 'TRecNet_ttbb_v4x0'):
+            from Models.TRecNet_ttbb_v4x0 import construct_TRecNet_ttbb_v4x0
+            output = construct_TRecNet_ttbb_v4x0(self.Model, jet_input, other_input, jet_pretrain_model)
+        elif (self.Model.model_v == 'TRecNet_ttbb_v5x0'):
+            from Models.TRecNet_ttbb_v5x0 import construct_TRecNet_ttbb_v5x0
+            output = construct_TRecNet_ttbb_v5x0(self.Model, jet_input, other_input, jet_pretrain_model, bb_pretrain_model)
+        elif (self.Model.model_v == 'TRecNet_ttbb_v5x1'):
+            from Models.TRecNet_ttbb_v5x1 import construct_TRecNet_ttbb_v5x1
+            output = construct_TRecNet_ttbb_v5x1(self.Model, jet_input, other_input, jet_pretrain_model, bb_pretrain_model, hparams=hparams)
+        elif (self.Model.model_v == 'TRecNet_ttbb_v5x1_clf'):
+            from Models.TRecNet_ttbb_v5x1_clf import construct_TRecNet_ttbb_v5x1_clf
+            output = construct_TRecNet_ttbb_v5x1_clf(self.Model, jet_input, other_input, jet_pretrain_model, bb_pretrain_model)
+        elif (self.Model.model_v == 'TRecNet_ttbb_v5x2'):
+            from Models.TRecNet_ttbb_v5x2 import construct_TRecNet_ttbb_v5x2
+            output = construct_TRecNet_ttbb_v5x2(self.Model, jet_input, other_input, jet_pretrain_model, bb_pretrain_model, hparams=hparams)
+        elif (self.Model.model_v == 'TRecNet_ttbb_v5x3'):
+            from Models.TRecNet_ttbb_v5x3 import construct_TRecNet_ttbb_v5x3
+            output = construct_TRecNet_ttbb_v5x3(self.Model, jet_input, other_input, jet_pretrain_model, bb_pretrain_model)
+
+        else: raise Exception("Unknown model version")
+
         return output
     
-    def create_model(self, initial_lr, final_lr_div, lr_power, lr_decay_step, jet_pretrain_model=None, bb_pretrain_model=None, frozen_file=None):
-        
+    def create_model(
+        self,
+        initial_lr,
+        final_lr_div,
+        lr_power,
+        lr_decay_step,
+        jet_pretrain_model=None,
+        bb_pretrain_model=None,
+        frozen_file=None,
+        optim='adam', # added optimizer option to choose AdamW or Adam
+    ):
         # For TRecNet+ttbar+JetPretrainUnfrozen we read in the model, but for others we construct it
         if self.Model.unfreeze:
             
@@ -75,24 +120,30 @@ class ModelBuilder:
             for layer in model.layers:
                 if isinstance(layer, keras.Model):
                     layer.trainable = True 
-            
         else:
-    
             # Construct the model's architecture
             jet_input, other_input = self.construct_input_layers()
             output = self.construct_architecture(jet_input, other_input, jet_pretrain_model, bb_pretrain_model)
             model = keras.models.Model(inputs=[jet_input, other_input], outputs=output)
-             
-             
-        # Learning rate and optimization settings
-        lr_schedule = keras.optimizers.schedules.PolynomialDecay(initial_learning_rate=initial_lr, decay_steps=lr_decay_step,end_learning_rate=initial_lr/final_lr_div,power=lr_power)
-        optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
-        
-        # Compile with relevant loss functions
-        if 'Pretrainer' in self.Model.model_name:
-            model.compile(loss='binary_crossentropy', optimizer= optimizer, metrics=['mae','mse'],jit_compile=False)
-        else:
-            model.compile(loss='mae', optimizer= optimizer, metrics=['mse'],jit_compile=False)
-                
+            # quick validation in logs
+            print("create_model: constructed new model; type:", type(model).__name__)
 
-        return model 
+        # Learning rate and optimization settings
+        lr_schedule = keras.optimizers.schedules.PolynomialDecay(
+            initial_learning_rate=initial_lr,
+            decay_steps=lr_decay_step,
+            end_learning_rate=initial_lr / float(final_lr_div),
+            power=lr_power,
+        )
+        # addeded option for AdamW optimizer
+        if optim == 'adam':
+            optimizer = keras.optimizers.Adam(learning_rate=lr_schedule)
+        elif optim == 'adamw':
+            optimizer = keras.optimizers.AdamW(learning_rate=lr_schedule)
+        # Compile with relevant loss functions
+        if "Pretrainer" in getattr(self.Model, "model_name", ""):
+            model.compile(loss="binary_crossentropy", optimizer=optimizer, metrics=["mae", "mse"], jit_compile=False)
+        else:
+            model.compile(loss="mae", optimizer=optimizer, metrics=["mse"], jit_compile=False)
+
+        return model
