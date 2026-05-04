@@ -75,6 +75,7 @@ def checkUnits(df,col_name,obs_units):
                 logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
             else:
                 logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
+                print(f'mode_df[{col_name}][0] = {mode_df[col_name][0]}')
                 sys.exit()
 
         elif obs_units == "MeV":
@@ -91,6 +92,7 @@ def checkUnits(df,col_name,obs_units):
                 logger.warning(col_name+' is estimated to be in units of keV when units of '+obs_units+' were set. Scaling to the latter units. Please ensure your histogram looks correct.')
             else:
                 logger.error(col_name+' for seems to be in a strange range and units cannot be determined. Exiting program.')
+                print(f'mode_df[{col_name}][0] = {mode_df[col_name][0]}')
                 sys.exit()
     
     return df
@@ -171,7 +173,7 @@ def getEvenStatsTicks(df_col,observable,folded_bins,nbins=8):
         ticks = np.concatenate((neg_ticks,pos_ticks))
     # Otherwise, just split truth events equally into nbins
     else:
-        _, ticks = pd.qcut(df_col,q=nbins,retbins=True)
+        _, ticks = pd.qcut(df_col, q=nbins, retbins=True, duplicates="drop")
 
     # Round the ticks to nearest two decimal places (if necessary), else round to nearest tenth
     two_dec_round = ['eta','phi','y','yboost','chi','deta','dphi','m']

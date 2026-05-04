@@ -56,7 +56,7 @@ This only needs to be done once. Then one can run the container using the follow
 ```console
 $ singularity run --nv --bind <directory_with_data> <directory_container_is_in>/<container_name.sif>
 ```
-**2. Create training config:** Create a `json` file full of your training configurations. This includes data files, number of jets, model hyperparameters, etc. Examples can be found in the `config/training/examples` directory. 
+**2. Create training config:** Create a `json` file full of your training configurations. This includes data files, number of jets, model hyperparameters, etc. Examples can be found in the `config/training/examples` directory.
 
 **3. Select or create an architecture:** Each different model architecture has its own build file in the directory `source/ml/Models/`. Choose which one suits your needs, or create one that suits your needs.
 
@@ -117,7 +117,7 @@ $ python source/prep/MLFilePrep.py combineH5Files --file_list file_lists/<file_l
 
 To make predictions using a trained model on a real data set (or other dataset that has no truth attached to it), we use a command very similar to that for testing the model:
 ```console
-$ python source/ml/run_prediction.py -i <model_id> -d <data_set> -s <path/save_location> 
+$ python source/ml/run_prediction.py -i <model_id> -d <data_set> -s <path/save_location>
 ```
 This will make predictions using the data set you provide, and saves them in a root file at the desired location. If you would also like to save the scaled variables to this root file, append `--include_scaled` to your terminal command.
 
@@ -125,25 +125,24 @@ This will make predictions using the data set you provide, and saves them in a r
 
 Everything needed to plot the test results of your new model can be found in the directory `source/plotting/`. To make plots, follow these steps:
 
-**1. Setup environment:** Set up and activate your python enviornment, if you have not done so already. One can run the following commands:
+**1. Setup environment:** Set up and activate your python environment, if you have not done so already. One can run the following commands:
 ```console
 $ setup.sh
 $ source TRecNet_env/bin/activate
 ```
 
-**1.5. Prepare data from algorithm-based reconstruction methods:** If you want to compare to old algorithm-based reconstruction methods, you'll need to reformat the data a bit using the following command:
+**2. Prepare data from algorithm-based reconstruction methods:** If you want to compare to old algorithm-based reconstruction methods, you'll need to reformat the data a bit using the following command:
 ```console
 $ python source/plotting/AlgorithmMethodDataPrep.py --reco_method <reco_method> --file_list file_lists/<file_list.txt>  --save_dir <path/save_location> --test_file_name <path/test_file.root>
 ```
-This will create a root file in the given save directory that contains all the data from the files in the given file list for the given reconstruction method. If a test file name is given (and this is optional), then the resulting file will only contain events that were also in the test file. Note that currently `KLFitter4`, `KLFitter6`, `PseudoTop` and `Chi2` are supported options for `reco_method`. 
+This will create a root file in the given save directory that contains all the data from the files in the given file list for the given reconstruction method. If a test file name is given (and this is optional), then the resulting file will only contain events that were also in the test file. Note that currently `KLFitter4`, `KLFitter6`, `PseudoTop` and `Chi2` are supported options for `reco_method`.
 
-**2. Create config files:** Create `json` config files for the plotting specifications, dataset specifications, and each of the types of plots you want to make. Examples in `config/plotting/examples`. Note that the plot config file sets which types of plots to make and which config files to use for each of them.
+**3. Create config files:** Create `json` config files for the plotting specifications, dataset specifications, and each of the types of plots you want to make. Examples in `config/plotting/examples`. Note that the plot config file sets which types of plots to make and which config files to use for each of them. Thesis-specific plotting examples are kept in `config/plotting/tommy_plots`.
 
-**3. Run plotter:** Run the plotting code, using the following command:
+**4. Run plotter:** Run the plotting code, using the following command:
 ```console
-$ python source/plotting/run_plotter.py -c config/plotting/<examples/plot_config.json> - l <log_level>
+$ python source/plotting/run_plotter.py -c config/plotting/examples/example_plot_config.json -l <log_level>
 ```
 `<log_level>` can be set to 'DEBUG', 'INFO', 'WARNING', 'ERROR', or 'CRITICAL' for various levels of verbosity.
-
 
 

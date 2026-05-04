@@ -1,15 +1,22 @@
 # Ignore environments and containers that are created
+TRecNet/
+.venv/
+venv/
+env/
+TRecNet_env/
+/TRecNet_env
+env/TRecNet_env/
 image/TRecNetContainer.sif
 image/*.sif
-TRecNet_env/
 
-# Ignore all configs, except for the example ones
+# Ignore all configs, except for the checked-in examples
 config/prep/*
 !config/prep/examples
 config/ml/*
 !config/ml/examples
 config/plotting/*
 !config/plotting/examples
+!config/plotting/tommy_plots
 
 # Ignore latex compilation files for the diagrams
 diagrams/*/*.log
@@ -33,3 +40,9 @@ __pycache__/
 .tensorboard_logs/
 .vscode/
 tensorboard_logs/
+outputs/
+model_comparisons/
+*.h5
+*.npy
+*.root
+*.log

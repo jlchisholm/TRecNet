@@ -1,7 +1,7 @@
-{   
-    "data": "/data/jchishol/ttbb_trecnet_0825/traintest_h5_files/nom_ttbb_10jets_b1b2_train.h5",
-    "xmaxmean": "/data/jchishol/ttbb_trecnet_0825/maxmean/X_maxmean_nom_ttbb_10jets_b1b2_train.npy",
-    "ymaxmean": "/data/jchishol/ttbb_trecnet_0825/maxmean/Y_maxmean_nom_ttbb_10jets_b1b2_train.npy",
+{
+    "data": "/path/to/nom_ttbb_10jets_b1b2_train.h5",
+    "xmaxmean": "/path/to/X_maxmean_nom_ttbb_10jets_b1b2_train.npy",
+    "ymaxmean": "/path/to/Y_maxmean_nom_ttbb_10jets_b1b2_train.npy",
     "split": [70,15,15],
     "njets": 8,
     "max_epochs": 100,

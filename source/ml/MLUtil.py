@@ -165,5 +165,6 @@ class Utilities:
         # Split up jets and other for X, and Y just all stays together
         totalX_jets, totalX_other = timestep_builder.reshape_X(X_df)
         Y_total = np.array(Y_df)
-        
+        # print(f'scaled_Y_keys = {scaled_Y_keys}')
+        # print(f'scaled_X_keys = {scaled_X_keys}')
         return totalX_jets, totalX_other, Y_total, scaled_X_keys, scaled_Y_keys
