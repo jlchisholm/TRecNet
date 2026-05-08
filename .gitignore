@@ -9,14 +9,13 @@ env/TRecNet_env/
 image/TRecNetContainer.sif
 image/*.sif
 
-# Ignore all configs, except for the checked-in examples
+# Ignore all configs, except for the example ones
 config/prep/*
 !config/prep/examples
-config/ml/*
-!config/ml/examples
+config/training/*
+!config/training/examples
 config/plotting/*
 !config/plotting/examples
-!config/plotting/tommy_plots
 
 # Ignore latex compilation files for the diagrams
 diagrams/*/*.log
@@ -43,6 +42,5 @@ tensorboard_logs/
 outputs/
 model_comparisons/
 *.h5
-*.npy
 *.root
 *.log

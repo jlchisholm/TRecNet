@@ -1,0 +1,28 @@
+{
+    "data": {
+        "data": "/data/jchishol/ttbb_trecnet_0825/traintest_h5_files/nom_ttbb_10jets_b1b2_train.h5",
+        "xmaxmean": "/data/jchishol/ttbb_trecnet_0825/maxmean/X_maxmean_nom_ttbb_10jets_b1b2_train.npy",
+        "ymaxmean": "/data/jchishol/ttbb_trecnet_0825/maxmean/Y_maxmean_nom_ttbb_10jets_b1b2_train.npy",
+        "data_is_prepped": false,
+        "split": [
+            70,
+            15,
+            15
+        ]
+    },
+    "variables": {
+        "njets": 8,
+        "nleptons": 1,
+        "initial_state": "ttbar" or "ttbb",
+        "final_state": "ljets" or "allhad" or "dilep" (though maybe njets and nleptons implies it actually...)
+    },
+    "hyperparameters": {
+        "max_epochs": 100,
+        "patience": 8,
+        "initial_lr": 1e-3,
+        "final_lr_div": 2e1,
+        "lr_power": 0.25,
+        "lr_decay_step": 10000,
+        "batch_size": 1000
+    }
+}
