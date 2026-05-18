@@ -1,5 +1,3 @@
-
-
 ############################################################################
 # Path management for models, outputs, and logs
 # - uses environment variables for root overrides
@@ -38,8 +36,11 @@ def model_dir_candidates(model_id):
     # One-level nested access: trained_models/<family>/<model_id>/
     for d in glob.glob(os.path.join(TRAINED_ROOT, "*", model_id)):
         yield d
-    # Nested access: trained_models/TRecNet_*/<tag>/<model_id>/
+    # Nested access: trained_models/<model_name>/<model_id>/
     for d in glob.glob(os.path.join(TRAINED_ROOT, "*", "*", model_id)):
+        yield d
+    # Higher-level nested access: trained_models/<sub-dir>/<model_name>/<model_id>
+    for d in glob.glob(os.path.join(TRAINED_ROOT, "*", "*", "*", model_id)):
         yield d
 
 def resolve_model_dir(model_id: str) -> str:

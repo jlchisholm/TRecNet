@@ -91,7 +91,7 @@ class TRecNet_Model:
         grabber.check_model_trained(model_id)
         
         self.model_v = grabber.get_model_v(model_id)
-        #self.model_name = grabber.get_model_name(model_id) # func doesn't exist yet
+        self.model_name = grabber.get_model_name(model_id)
         self.model_id = model_id
         self.n_jets = grabber.get_njets(model_id)
         self.with_ttbar = grabber.get_ttbar_status(model_id)

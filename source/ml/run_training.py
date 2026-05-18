@@ -10,20 +10,19 @@
 #                                                                        #
 ##########################################################################
 
-
-import os, sys
-# makes intra-repo imports work regardless of CWD
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if ROOT not in sys.path: sys.path.insert(0, ROOT)
-os.environ["CUDA_VISIBLE_DEVICES"]="1"    # These are the GPUs visible for training
 from argparse import ArgumentParser
 import json
-
-from TRecNet_Model import TRecNet_Model
-from Training import Training
-
 import tracemalloc
 tracemalloc.start()
+
+# All imports relative to TRecNet/ directory
+import os, sys
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",".."))
+if ROOT not in sys.path: sys.path.insert(0, ROOT)
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "1") 
+from source.ml.TRecNet_Model import TRecNet_Model
+from source.ml.Training import Training
+
 
 # Dictionary of compatible models for each of the pretrained classifiers
 compatible_models = {

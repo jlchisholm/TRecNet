@@ -7,16 +7,11 @@
 #  Defines classes and functions to help get info from trained models.  # 
 #                                                                       #
 #  Thoughts for improvements: Have X and Y keys as input variables?     #
-#
-#
-# Updated Sep.25/25
-#
 #                                                                       #
 #########################################################################
 
 import sys, os
-import glob
-from paths import resolve_model_dir
+from source.ml.paths import resolve_model_dir
 
 class InfoGrabber:
     """
@@ -178,6 +173,17 @@ class InfoGrabber:
         
         model_v = model_id.split('v')[0] + 'v' + model_id.split('v')[1].split('_')[0]
         return model_v
+    
+    def get_model_name(self, model_id):
+        
+        model_name = model_id.split("jets")[0]
+        for c in reversed(model_name):
+            if c in [str(i) for i in range(0,10)]:
+                model_name = model_name[:-1]
+            elif c=='_':
+                model_name = model_name[:-1]
+                break
+        return model_name
     
     def get_njets(self, model_id):
         

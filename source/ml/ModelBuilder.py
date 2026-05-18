@@ -14,8 +14,6 @@
 import keras
 from keras.layers import Input, TFSMLayer
 
-import os
-import time
 class ModelBuilder:
     """
     A class for building TRecNet models.

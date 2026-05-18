@@ -13,32 +13,25 @@
 # Github Copilot was used as a linter, and for debugging                 #                                                                     #
 ##########################################################################
 
-import os, sys
 import argparse
 import json
 import numpy as np
 import pandas as pd
-
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
-
-os.environ.setdefault("CUDA_VISIBLE_DEVICES", "1") 
-
-from source.ml.Models.blocks import set_encoder, transformer_blocks, objwise, pooling
-from source.ml.Predictions import Predictor
-from source.ml.TRecNet_Model import TRecNet_Model
-
-from source.ml.paths import resolve_model_dir, ensure_dir
-
-
 import matplotlib
 matplotlib.use("Agg") 
 import matplotlib.pyplot as plt
 import seaborn as sb
-
 #from sklearn.metrics import mean_absolute_error, mean_squared_error, multilabel_confusion_matrix
 
+# All imports relative to TRecNet/ directory
+import os, sys
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..","..",".."))
+if ROOT not in sys.path: sys.path.insert(0, ROOT)
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "1") 
+from source.ml.Models.blocks import set_encoder, transformer_blocks, objwise, pooling
+from source.ml.Predictions import Predictor
+from source.ml.TRecNet_Model import TRecNet_Model
+from source.ml.paths import resolve_model_dir, ensure_dir
 
 
 def fprintf(path, text):
@@ -200,7 +193,6 @@ def main():
         fprintf(log_path, f" resolve_model_dir failed")
         return 
     
-
     # Load models
     model1 = TRecNet_Model()
     model2 = TRecNet_Model()

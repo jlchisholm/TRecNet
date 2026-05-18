@@ -14,29 +14,26 @@
 #                                                                        #
 ##########################################################################
 
-import os, sys
-# makes intra-repo imports work regardless of CWD
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if ROOT not in sys.path: sys.path.insert(0, ROOT)
-os.environ["CUDA_VISIBLE_DEVICES"]="1"    # These are the GPUs visible for training
 from argparse import ArgumentParser
 import uproot
-from Predictions import Predictor
-from TRecNet_Model import TRecNet_Model
-from Models.blocks import set_encoder, transformer_blocks, objwise, pooling # apparantly i need to import these here, idk ask python
-
 import numpy as np
-import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from sklearn.metrics import multilabel_confusion_matrix
 import seaborn as sb
-# added new path handler 
-from paths import resolve_model_dir
-
 import tracemalloc
 tracemalloc.start()
+
+# All imports relative to TRecNet/ directory
+import os, sys
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",".."))
+if ROOT not in sys.path: sys.path.insert(0, ROOT)
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "1") 
+from source.ml.Predictions import Predictor
+from source.ml.TRecNet_Model import TRecNet_Model
+from source.ml.Models.blocks import set_encoder, transformer_blocks, objwise, pooling
+from source.ml.paths import resolve_model_dir
 
 
 
@@ -134,7 +131,7 @@ def make_plots(model, scale_pred_dic, scale_true_dic, origscale_pred_dic, origsc
         plot_pred_vs_truth(model_name, key, origscale_pred_dic[key], origscale_true_dic[key], save_loc_original)
 
     # Jet CM Plot (For JetPretrainer)
-    if model.model_name == 'JetPretrainer':
+    if model_name == 'JetPretrainer':
         jet_cm_plot(model.njets, scale_pred_dic, scale_true_dic, save_loc_scaled)
         #jet_cm_plot(preds_origscale_dic, true_origscale_dic, save_loc_original)    
 
@@ -176,9 +173,5 @@ if __name__ == "__main__":
 
     print('Results saved in %s.' % results_save_path)
 
-    # make sure it is what we want it to be
-    # with uproot.open(results_save_path) as f:
-    #     print(f.keys())  # expect: ['reco;1', 'reco_scaled;1', 'parton;1', 'parton_scaled;1']
-    #     print(f['reco'].keys())  # branch names match your dict keys
 
     print('Validation complete! :)')

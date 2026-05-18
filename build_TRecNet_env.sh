@@ -26,6 +26,7 @@ pip install vector~=1.6.2
 pip install tensorflow~=2.20.0
 pip install onnxruntime~=1.19.2
 pip install keras-tuner~=1.4.8
+pip install seaborn~=0.13.2
 
 # Deactivate environment
 deactivate

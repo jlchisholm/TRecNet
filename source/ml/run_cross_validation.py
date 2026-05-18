@@ -2,16 +2,17 @@
 ############
 # run_cross_validation.py
 # perform nx2 cross validation on a model
-import os, sys
-
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if ROOT not in sys.path:
-    sys.path.insert(0, ROOT)
 
 from argparse import ArgumentParser
 import json
-from TRecNet_Model import TRecNet_Model
-from Training import Training
+
+# All imports relative to TRecNet/source/ directory
+import os, sys
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..",".."))
+if ROOT not in sys.path: sys.path.insert(0, ROOT)
+os.environ.setdefault("CUDA_VISIBLE_DEVICES", "1") 
+from source.ml.TRecNet_Model import TRecNet_Model
+from source.ml.Training import Training
 
 compatible_models = {
     "JetClassifier_v1": [

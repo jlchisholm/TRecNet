@@ -14,8 +14,6 @@
 
 import os, sys, shutil
 from datetime import datetime
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if ROOT not in sys.path: sys.path.insert(0, ROOT)
 os.environ["CUDA_VISIBLE_DEVICES"]="2"    # These are the GPUs visible for training
 from argparse import ArgumentParser
 from contextlib import redirect_stdout
@@ -33,14 +31,14 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 import keras
 import keras_tuner as kt
-# get path utility
-from paths import tb_fit_dir
+
 #from clr_callback import * 
 
-from MLUtil import Utilities
-from Scaler import Scaler
-from TRecNet_Model import TRecNet_Model
-from ModelBuilder import ModelBuilder
+from source.ml.MLUtil import Utilities
+from source.ml.Scaler import Scaler
+from source.ml.TRecNet_Model import TRecNet_Model
+from source.ml.ModelBuilder import ModelBuilder
+from source.ml.paths import tb_fit_dir
 
 import tracemalloc
 tracemalloc.start()

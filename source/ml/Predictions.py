@@ -10,22 +10,21 @@
 #                                                                       #
 #########################################################################
 
-import os
-import pandas as pd
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import h5py
+import os, sys
 import uproot
 from sklearn.model_selection import train_test_split
 from tensorflow import keras
 #from clr_callback import * 
 
-from MLUtil import *
-from Scaler import Scaler
-from InfoGrabber import InfoGrabber
-# use path utility module
-from paths import resolve_model_dir, keras_path, outputs_dir
+from source.ml.MLUtil import *
+from source.ml.Scaler import Scaler
+from source.ml.InfoGrabber import InfoGrabber
+from source.ml.paths import resolve_model_dir, keras_path, outputs_dir
+
+from source.ml.Models.blocks.set_encoder import JetSetEncoder
+from source.ml.Models.blocks.transformer_blocks import ObjFFNBottom, SelfAttentionBlock
+from source.ml.Models.blocks.objwise import ObjWise
+from source.ml.Models.blocks.pooling import AttentionPooling
 
         
         
