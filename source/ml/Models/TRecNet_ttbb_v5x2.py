@@ -103,8 +103,13 @@ def construct_TRecNet_ttbb_v5x2(
         flat_jets = Flatten(name="flattened_jets")(jet_input)
         concat0 = concatenate([other_input, flat_jets], name="concat_jets_other")
         x = concat0
+        print("Made it here.....")
         for i, units in enumerate(jet_cls_mlp, start=1):
-            x = Dense(units, activation=CLS_ACT, name=f"dense_jcls_{units}_{i}")(x)
+            print("i: ", i)
+            print("units: ", units)
+            print(f"dense_jcls_{units}_{i}")
+            print(CLS_ACT)
+            x = Dense(int(units), activation=CLS_ACT, name=f"dense_jcls_{units}_{i}")(x)
             if CLS_DO and CLS_DO > 0:
                 x = Dropout(CLS_DO, name=f"do_jcls_{units}_{i}")(x)
         j_weights = Dense(Model.jets_shape[1], activation="sigmoid", name="jets_sigmoid")(x)
@@ -204,5 +209,5 @@ def construct_TRecNet_ttbb_v5x2(
             x = Dropout(HEAD_DO, name=f"do_bb_{units}_{i}")(x)
     boutput = Dense(Model.bbbar_shape, name="bbbar_output")(x)
 
-    output = concatenate([houtput, loutput, boutput], name="final_output")
+    output = concatenate([loutput, houtput, boutput], name="final_output")
     return output

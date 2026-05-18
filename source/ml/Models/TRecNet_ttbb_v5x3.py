@@ -215,6 +215,6 @@ def construct_TRecNet_ttbb_v5x3(Model, jet_input, other_input, jet_pretrain_mode
     boutput = Dense(Model.bbbar_shape, name='bbbar_output')(x)
 
     # Final output
-    output = concatenate([houtput, loutput, boutput], name='final_output')
+    output = concatenate([loutput, houtput, boutput], name='final_output')
             
     return output

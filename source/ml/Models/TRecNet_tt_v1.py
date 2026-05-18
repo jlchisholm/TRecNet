@@ -67,6 +67,6 @@ def construct_TRecNet_tt_v1(Model,jet_input, other_input,jet_pretrain_model):
     houtput = Dense(Model.had_shape+Model.ttbar_shape, name='had_output')(hdense2)
 
     # Final output
-    output = concatenate([houtput, loutput], name='final_output')
+    output = concatenate([loutput, houtput], name='final_output')
             
     return output

@@ -1,18 +1,20 @@
-import os, sys
-sys.path.append("/home/jchishol/TRecNet")
-sys.path.append("home/jchishol/")
-os.environ["CUDA_VISIBLE_DEVICES"]="1"    # These are the GPUs visible for training
+#########################################################################
+#                                                                       #
+#  MLUtil.py.                                                           #
+#  Author: Jenna Chisholm                                               #
+#                                                                       #
+#  Utilities used for machine learning.                                 # 
+#                                                                       #
+#########################################################################
 
 import numpy as np
 import itertools
-import matplotlib
-matplotlib.use('Agg')
 import h5py
 
 #from clr_callback import * 
 
-import Scaler
-import ShapeTimesteps
+from source.ml.Scaler import *
+from source.ml.ShapeTimesteps import *
 
 
 class Utilities:
@@ -56,16 +58,17 @@ class Utilities:
             Y_keys = ['j'+str(i+1)+'_isExtraB' for i in range(n_jets)]
             
         else:
-            # Start with hadronic keys
-            Y_keys = ['th_pt', 'th_eta','th_phi','th_m', 'wh_pt', 'wh_eta', 'wh_phi', 'wh_m'] 
+            
+            # Start with leptonic keys
+            Y_keys = ['tl_pt', 'tl_eta', 'tl_phi', 'tl_m', 'wl_pt', 'wl_eta', 'wl_phi', 'wl_m']
+            
+            # THEN hadronic keys
+            Y_keys.extend(['th_pt', 'th_eta','th_phi','th_m', 'wh_pt', 'wh_eta', 'wh_phi', 'wh_m']) 
             
             # Next is ttbar keys (if included), since these are output with the hadronic keys
             if add_ttbar:
                 Y_keys.extend(['ttbar_pt','ttbar_eta','ttbar_phi','ttbar_m'])
                 
-            # Leptonic keys AFTER hadronic + ttbar keys
-            Y_keys.extend(['tl_pt', 'tl_eta', 'tl_phi', 'tl_m', 'wl_pt', 'wl_eta', 'wl_phi', 'wl_m']) # lep keys AFTER hadronic + ttbar keys
-
             # bbbar or b1b2 keys at the end
             if b_mode == 'bbbar':
                 Y_keys.extend(['b_t_pt','b_t_m','b_t_eta','b_t_phi','bbar_tbar_pt','bbar_tbar_m','bbar_tbar_eta','bbar_tbar_phi'])
@@ -115,7 +118,7 @@ class Utilities:
                 scaled_Y_keys (list of str): Scaled Y keys.
         """        
 
-        scaler = Scaler.Scaler()
+        scaler = Scaler()
         X_df = scaler.scale_arrays(dataset, X_keys, X_maxmean_dic)
         scaled_X_keys = X_df.keys()
         
@@ -157,7 +160,7 @@ class Utilities:
         with h5py.File(datafile,'r') as dataset:   # Only want the dataset open as long as we need it
             
             # Create the timestep builder while we still have the dataset open
-            timestep_builder = ShapeTimesteps.ShapeTimesteps(dataset, jn, mask_value)
+            timestep_builder = ShapeTimesteps(dataset, jn, mask_value)
             
             # Scales data set to be between -1 and 1, with a mean of 0, and encodes phi in other variables (e.g. px, py)
             X_df, Y_df, scaled_X_keys, scaled_Y_keys = self.scale(dataset, X_keys, Y_keys, X_maxmean_dic, Y_maxmean_dic, onlyX)
