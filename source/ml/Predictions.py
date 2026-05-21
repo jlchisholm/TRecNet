@@ -290,12 +290,12 @@ class Predictor:
             )
 
         # Save the results as 'reco' (pred) and 'parton' (truth) (if available)
-        results_file["reco"] = pred_dic
+        results_file.mktree("reco", pred_dic)
         if include_scaled:
-            results_file["reco_scaled"] = scale_pred_dic
+            results_file.mktree("reco_scaled", scale_pred_dic)
         if mode in ['val','test']:
-            results_file["parton"] = true_dic
+            results_file.mktree("parton", true_dic)
             if include_scaled:
-                results_file["parton_scaled"] = scale_true_dic
+                results_file.mktree("parton_scaled", scale_true_dic)
 
         print('Results saved in %s.' % save_path)

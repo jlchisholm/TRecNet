@@ -161,7 +161,7 @@ if __name__ == "__main__":
     make_plots(model, scale_pred_dic, scale_true_dic, origscale_pred_dic, origscale_true_dic)
     
     model_dir = resolve_model_dir(model.model_id)
-    results_save_path = os.path.join(model_dir, 'results', 'Results.root')
+    results_save_path = os.path.join(model_dir, 'validation', 'Val_Results.root')
     os.makedirs(os.path.dirname(results_save_path), exist_ok=True)
     results_file = uproot.recreate(results_save_path)
 
