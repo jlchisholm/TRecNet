@@ -18,30 +18,64 @@ import uproot
 import vector
 from argparse import ArgumentParser
 
+# Numpy dot product has huge memory issues, so we'll just make our own
+def dot(v1, v2):
+    return np.sum(v1*v2,axis=1)
+
 
 def add_new_variable(par, obs, new_tree):
     var = par+"_"+obs
     
     # Anything that will need the 4-vector to be created
-    if obs in ["px", "py"]:
+    if obs in ["px", "py", "E", "y", "pout"]:
         var_vecs = vector.array({"pt":new_tree[par+"_pt"], "eta": new_tree[par+"_eta"],"phi": new_tree[par+"_phi"],"m":new_tree[par+"_m"]})
         if obs=="px":
             new_tree[var] = var_vecs.px
         elif obs=="py":
             new_tree[var] = var_vecs.py
-        elif obs=="e":
+        elif obs=="E":
             new_tree[var] = var_vecs.e
         elif obs=="y":
             new_tree[var] = var_vecs.rapidity
-            
-    # Things that don't need the 4-vector
-    else:
+        elif var=="th_pout":
+            tl_vecs = vector.array({"pt":new_tree["tl_pt"], "eta": new_tree["tl_eta"],"phi": new_tree["tl_phi"],"m":new_tree["tl_m"]})
+            th_px, th_py, th_pz = var_vecs.px, var_vecs.py, var_vecs.pz
+            tl_px, tl_py, tl_pz = tl_vecs.px, tl_vecs.py, tl_vecs.pz
+            th_P = np.stack([th_px, th_py, th_pz], axis=1)
+            tl_P = np.stack([tl_px, tl_py, tl_pz], axis=1)
+            ez = np.repeat(np.array([[0,0,1]]), new_tree["th_pt"].shape[0],axis=0)
+            new_tree[var] = dot(th_P, np.cross(tl_P,ez))/np.linalg.norm(np.cross(tl_P,ez),axis=1)
+        elif var=="tl_pout":
+            th_vecs = vector.array({"pt":new_tree["th_pt"], "eta": new_tree["th_eta"],"phi": new_tree["th_phi"],"m":new_tree["th_m"]})
+            tl_px, tl_py, tl_pz = var_vecs.px, var_vecs.py, var_vecs.pz
+            th_px, th_py, th_pz = th_vecs.px, th_vecs.py, th_vecs.pz
+            tl_P = np.stack([tl_px, tl_py, tl_pz], axis=1)
+            th_P = np.stack([th_px, th_py, th_pz], axis=1)
+            ez = np.repeat(np.array([[0,0,1]]), new_tree["th_pt"].shape[0],axis=0)
+            new_tree[var] = dot(tl_P, np.cross(th_P,ez))/np.linalg.norm(np.cross(th_P,ez),axis=1)
+    else: # Things that don't need the 4-vector
         if var=="ttbar_HT":
             new_tree[var] = new_tree["th_pt"]+new_tree["tl_pt"]
         elif var=="ttbar_dphi":
             new_tree[var] = np.abs((new_tree["th_phi"]-new_tree["tl_pt"])% (2*np.pi))
-        
-        
+        elif var=="ttbar_deta":
+            new_tree[var] = np.abs((new_tree["th_eta"]-new_tree["tl_eta"]))
+        elif var=="ttbar_ystar":
+            if "th_y" not in new_tree.keys():
+                add_new_variable("th","y",new_tree)
+            if "tl_y" not in new_tree.keys():
+                add_new_variable("tl","y",new_tree)
+            new_tree[var] = np.abs((new_tree["th_y"]-new_tree["tl_y"])/2)    
+        elif var=="ttbar_yboost":
+            if "th_y" not in new_tree.keys():
+                add_new_variable("th","y",new_tree)
+            if "tl_y" not in new_tree.keys():
+                add_new_variable("tl","y",new_tree)
+            new_tree[var] = np.abs((new_tree["th_y"]+new_tree["tl_y"])/2)
+        elif var=="ttbar_chi":
+            if "ttbar_ystar" not in new_tree.keys():
+                add_new_variable("ttbar","ystar",new_tree)
+            new_tree[var] = np.exp(2*np.abs(new_tree["ttbar_ystar"]))
         
     
     return new_tree
