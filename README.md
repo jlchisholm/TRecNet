@@ -131,15 +131,22 @@ $ setup.sh
 $ source TRecNet_env/bin/activate
 ```
 
-**2. Prepare data from algorithm-based reconstruction methods:** If you want to compare to old algorithm-based reconstruction methods, you'll need to reformat the data a bit using the following command:
+**2. Add additional variables to your results file:** If you want to plot variables other than the basic variables used in your machine learning process, you can use the `add_extra_results.py` script in the `source/ml` directory. You'll first need to create a `json` config file containing the additional variables you would like (following the example of `config/example_extra_vars_config.json`). Then run the following command:
+```console
+$ python source/ml/add_extra_results.py -i <results_file>.root -c <extra_vars_config>.json -t "<branch names>"
+```
+where `"<branch names>"` is the set of branch names you want to add the variables to, deliminated by spaces (e.g. `"reco parton"`). The new results file will appear in the same directory as the old results file, and will automatically be named `Results+Extra.root`.
+
+
+**3. Prepare data from algorithm-based reconstruction methods:** If you want to compare to old algorithm-based reconstruction methods, you'll need to reformat the data a bit using the following command:
 ```console
 $ python source/plotting/AlgorithmMethodDataPrep.py --reco_method <reco_method> --file_list file_lists/<file_list.txt>  --save_dir <path/save_location> --test_file_name <path/test_file.root>
 ```
 This will create a root file in the given save directory that contains all the data from the files in the given file list for the given reconstruction method. If a test file name is given (and this is optional), then the resulting file will only contain events that were also in the test file. Note that currently `KLFitter4`, `KLFitter6`, `PseudoTop` and `Chi2` are supported options for `reco_method`.
 
-**3. Create config files:** Create `json` config files for the plotting specifications, dataset specifications, and each of the types of plots you want to make. Examples in `config/plotting/examples`. Note that the plot config file sets which types of plots to make and which config files to use for each of them. Thesis-specific plotting examples are kept in `config/plotting/tommy_plots`.
+**4. Create config files:** Create `json` config files for the plotting specifications, dataset specifications, and each of the types of plots you want to make. Examples in `config/plotting/examples`. Note that the plot config file sets which types of plots to make and which config files to use for each of them.
 
-**4. Run plotter:** Run the plotting code, using the following command:
+**5. Run plotter:** Run the plotting code, using the following command:
 ```console
 $ python source/plotting/run_plotter.py -c config/plotting/examples/example_plot_config.json -l <log_level>
 ```

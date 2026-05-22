@@ -1,0 +1,9 @@
+{
+    "th": ["px", "py", "E", "y","pout"],
+    "tl": ["px", "py", "E", "y","pout"],
+    "ttbar": ["px", "py", "E", "y", "HT", "dphi","deta","ystar","yboost","chi"],
+    "wh": ["px", "py", "E", "y"],
+    "wl": ["px", "py", "E", "y"],
+    "b1": ["px", "py", "E", "y"],
+    "b2": ["px", "py", "E", "y"]
+}
